@@ -1,5 +1,6 @@
 package mo.dev.ctrus.ui.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,20 +46,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import mo.dev.ctrus.R
 import mo.dev.ctrus.theme.ThemeColorOption
 import mo.dev.ctrus.theme.ThemeManager
 import mo.dev.ctrus.util.clickableNoRipple
 
-private data class AppIconOption(val label: String, val swatch: Color?)
-
-private val appIconOptions = listOf(
-    AppIconOption("Orange", ThemeColorOption.Orange.color),
-    AppIconOption("Lime", ThemeColorOption.Lime.color),
-    AppIconOption("Lemon", ThemeColorOption.Lemon.color),
-    AppIconOption("Dark", null),
-)
+/** Matches the real preview artwork ported from the iOS asset catalog (AppIconPicker.swift). */
+private enum class AppIconAsset(val label: String, val drawableRes: Int) {
+    Orange("Orange", R.drawable.ic_app_icon_orange),
+    Lime("Lime", R.drawable.ic_app_icon_lime),
+    Lemon("Lemon", R.drawable.ic_app_icon_lemon),
+    Dark("Dark", R.drawable.ic_app_icon_dark),
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +76,7 @@ fun SettingsScreen(
     onValidateUnlockCode: (String) -> Boolean,
     onDebugModeClick: () -> Unit = {},
 ) {
-    var selectedAppIcon by remember { mutableStateOf(appIconOptions.first()) }
+    var selectedAppIcon by remember { mutableStateOf(AppIconAsset.Orange) }
     var showResetAlert by remember { mutableStateOf(false) }
     var showInvalidCodeAlert by remember { mutableStateOf(false) }
     var unlockCode by remember { mutableStateOf("") }
@@ -306,40 +310,44 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
 }
 
 @Composable
-private fun AppIconRow(selected: AppIconOption, onSelect: (AppIconOption) -> Unit) {
+private fun AppIconRow(selected: AppIconAsset, onSelect: (AppIconAsset) -> Unit) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(appIconOptions) { option ->
+        items(AppIconAsset.entries) { option ->
+            val isSelected = option == selected
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            option.swatch ?: Color(0xFF1C1C1E),
-                            RoundedCornerShape(14.dp)
-                        )
-                        .border(
-                            width = if (option == selected) 2.dp else 0.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(14.dp)
-                        )
-                        .clickableNoRipple { onSelect(option) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (option == selected) {
+                Box {
+                    Image(
+                        painter = painterResource(id = option.drawableRes),
+                        contentDescription = option.label,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(
+                                width = if (isSelected) 3.dp else 0.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .clickableNoRipple { onSelect(option) }
+                    )
+                    if (isSelected) {
                         Box(
                             modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 6.dp, y = (-6).dp)
                                 .size(18.dp)
-                                .background(Color(0xFF34C759), CircleShape),
+                                .background(Color.White, CircleShape)
+                                .padding(2.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Filled.Check,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(10.dp)
                             )
                         }
                     }

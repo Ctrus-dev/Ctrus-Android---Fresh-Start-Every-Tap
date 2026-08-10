@@ -19,7 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /** Mirrors a SwiftUI `Section("...")` inside an inset-grouped Form. */
 @Composable
@@ -28,20 +30,21 @@ fun SettingsSection(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(bottom = 20.dp)) {
         Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
+            text = title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Normal,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = 20.dp, bottom = 6.dp)
         )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .background(
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    RoundedCornerShape(20.dp)
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    RoundedCornerShape(14.dp)
                 ),
             content = content
         )

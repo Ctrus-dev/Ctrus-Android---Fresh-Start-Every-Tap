@@ -22,9 +22,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.theme.ThemeManager
 import mo.dev.ctrus.theme.pastelBackground
+
+// This screen has a light pastel background regardless of the app-wide dark
+// theme used elsewhere (Settings, Active Session), so its text needs fixed
+// dark colors instead of the (white) theme defaults meant for dark surfaces.
+private val HomeOnPastel = Color(0xFF1C1C1E)
+private val HomeOnPastelVariant = Color(0xFF6B6B70)
 
 /**
  * Placeholder for the profile list / "Fresh Start" entry point (iOS HomeView.swift).
@@ -49,7 +56,7 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.End
         ) {
             IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = HomeOnPastel)
             }
         }
 
@@ -61,19 +68,22 @@ fun HomeScreen(
             Text(
                 "Ctrus",
                 style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                color = HomeOnPastel
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 "Fresh Start, Every Tap",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = HomeOnPastelVariant
             )
             Spacer(Modifier.height(32.dp))
             Button(
                 onClick = onStartFocus,
                 shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = themeColor)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = themeColor,
+                    contentColor = Color.White
+                )
             ) {
                 Text("Start Focus Session")
             }
