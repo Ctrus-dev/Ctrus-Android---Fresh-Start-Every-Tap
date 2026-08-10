@@ -60,6 +60,13 @@ This is a first-pass scaffold, not a working port:
 
 ## Build
 
-Not built or run on this machine — no JDK or Android Studio was installed when this was
-scaffolded. Open in Android Studio (needs JDK 17+) to actually compile, run, and catch
-whatever the first build turns up; treat this scaffold as unverified until then.
+Builds clean: `./gradlew :app:assembleDebug` succeeds (verified using Android Studio's
+bundled JBR as JAVA_HOME, since there's no separate system JDK). Only verified to
+compile and package, not run on a device/emulator yet — visually check the screens
+against the iOS app once you can launch it, since none of the layout has been eyeballed
+outside of reading the source.
+
+Toolchain is current-stable as of when this was last built: Gradle 9.7.0, AGP 9.3.1,
+Kotlin 2.4.10, Compose BOM 2026.06.01. AGP 9 has Kotlin support built in, so there's no
+separate `org.jetbrains.kotlin.android` plugin or `kotlinOptions` block — don't add them
+back if a migration guide/older tutorial suggests it.
