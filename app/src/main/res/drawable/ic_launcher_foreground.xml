@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder mark (a simple "C") until the real Ctrus lemon artwork is ported over from iOS -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M69,34 C60,28 46,29 38,38 C29,47 29,62 38,71 C46,80 60,81 69,75 L69,75 L69,64 C63,70 53,70 47,64 C41,58 41,49 47,43 C53,37 63,37 69,44 Z" />
+</vector>

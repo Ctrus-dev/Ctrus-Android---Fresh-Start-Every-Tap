@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Ctrus</string>
+    <string name="accessibility_service_description">Lets Ctrus detect when a blocked app is opened so it can show the block screen for the profile you configured.</string>
+</resources>

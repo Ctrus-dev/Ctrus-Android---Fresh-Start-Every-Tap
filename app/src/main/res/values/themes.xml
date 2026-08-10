@@ -1,0 +1,4 @@
+<resources>
+    <!-- Window-level base theme; Compose applies the real Ctrus color scheme on top (see theme/Theme.kt) -->
+    <style name="Theme.Ctrus" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
