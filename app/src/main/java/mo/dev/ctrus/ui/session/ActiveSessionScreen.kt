@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,10 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import mo.dev.ctrus.R
 
 data class ActiveSessionUiState(
     val profileName: String,
@@ -67,7 +72,7 @@ fun ActiveSessionScreen(
                 )
             )
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+        Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars).padding(24.dp)) {
             Header(state, onChartTapped, onCloseTapped)
 
             Spacer(Modifier.height(40.dp))
@@ -95,7 +100,7 @@ fun ActiveSessionScreen(
 
             if (state.isBreakAvailable) {
                 HoldToConfirmButton(
-                    title = if (state.isBreakActive) "Hold to Stop Break" else "Hold to Start Break",
+                    title = stringResource(if (state.isBreakActive) R.string.session_hold_stop_break else R.string.session_hold_start_break),
                     backgroundColor = Color.White,
                     onConfirm = onBreakHeld
                 )
@@ -110,14 +115,14 @@ fun ActiveSessionScreen(
                 ) {
                     Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFFF6B5C))
                     Spacer(Modifier.width(6.dp))
-                    Text("Emergency", color = Color(0xFFFF6B5C))
+                    Text(stringResource(R.string.session_emergency_button), color = Color(0xFFFF6B5C))
                 }
                 OutlinedButton(
                     onClick = onStopTapped,
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(26.dp)
                 ) {
-                    Text("Stop", color = Color.White)
+                    Text(stringResource(R.string.session_stop_button), color = Color.White)
                 }
             }
         }

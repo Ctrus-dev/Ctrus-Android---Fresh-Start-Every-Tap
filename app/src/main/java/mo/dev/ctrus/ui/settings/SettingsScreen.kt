@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,51 +44,51 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import android.content.ClipData
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.icon.AppIcon
 import mo.dev.ctrus.theme.ThemeColorOption
 import mo.dev.ctrus.theme.ThemeManager
 import mo.dev.ctrus.util.clickableNoRipple
-
-/** Matches the real preview artwork ported from the iOS asset catalog (AppIconPicker.swift). */
-private enum class AppIconAsset(val label: String, val drawableRes: Int) {
-    Orange("Orange", R.drawable.ic_app_icon_orange),
-    Lime("Lime", R.drawable.ic_app_icon_lime),
-    Lemon("Lemon", R.drawable.ic_app_icon_lemon),
-    Dark("Dark", R.drawable.ic_app_icon_dark),
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     themeManager: ThemeManager,
-    isBlocking: Boolean,
     isUsageAccessGranted: Boolean,
     appVersion: String,
+    selectedAppIcon: AppIcon,
+    onSelectAppIcon: (AppIcon) -> Unit,
     onDismiss: () -> Unit,
     onOpenUrl: (String) -> Unit,
-    onResetBlockingState: () -> Unit,
-    onValidateUnlockCode: (String) -> Boolean,
+    onValidateUnlockCode: suspend (String) -> Boolean,
+    deviceId: String? = null,
     onDebugModeClick: () -> Unit = {},
 ) {
-    var selectedAppIcon by remember { mutableStateOf(AppIconAsset.Orange) }
-    var showResetAlert by remember { mutableStateOf(false) }
     var showInvalidCodeAlert by remember { mutableStateOf(false) }
     var unlockCode by remember { mutableStateOf("") }
+    var isVerifying by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Filled.Close, contentDescription = "Close")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.settings_close_content_description))
                     }
                 }
             )
@@ -100,7 +101,7 @@ fun SettingsScreen(
             contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp)
         ) {
             item {
-                SettingsSection(title = "Theme") {
+                SettingsSection(title = stringResource(R.string.settings_section_theme)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -114,9 +115,9 @@ fun SettingsScreen(
                         )
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            Text("Appearance", style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.settings_appearance_title), style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "Customize the look of your app",
+                                stringResource(R.string.settings_appearance_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -128,40 +129,39 @@ fun SettingsScreen(
             }
 
             item {
-                SettingsSection(title = "App Icon") {
+                SettingsSection(title = stringResource(R.string.settings_section_app_icon)) {
                     AppIconRow(
                         selected = selectedAppIcon,
-                        onSelect = { selectedAppIcon = it }
+                        onSelect = onSelectAppIcon
                     )
                 }
             }
 
             item {
-                SettingsSection(title = "Help") {
-                    SettingsRow(title = "Debug Mode", showChevron = true, onClick = onDebugModeClick)
+                SettingsSection(title = stringResource(R.string.settings_section_help)) {
+                    SettingsRow(title = stringResource(R.string.settings_debug_mode), showChevron = true, onClick = onDebugModeClick)
                     SettingsDivider()
-                    SettingsLinkRow(title = "Blocking Native Apps") { onOpenUrl("https://ctrus.net") }
-                    if (!isBlocking) {
-                        SettingsDivider()
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 14.dp)
-                        ) {
-                            TextButton(onClick = { showResetAlert = true }) {
-                                Text(
-                                    "Reset Blocking State",
-                                    color = themeManager.selectedColorOption.color
-                                )
-                            }
-                        }
-                    }
+                    SettingsLinkRow(title = stringResource(R.string.settings_blocking_native_apps)) { onOpenUrl("https://ctrus.net") }
                 }
             }
 
             item {
-                SettingsSection(title = "Locked Out and Lost Your Ctrus?") {
-                    SettingsLinkRow(title = "Get an Unlock Code") { onOpenUrl("https://ctrus.net") }
+                SettingsSection(title = stringResource(R.string.settings_section_recovery)) {
+                    SettingsLinkRow(title = stringResource(R.string.settings_get_unlock_code)) { onOpenUrl("https://recover.ctrus.net") }
+                    if (deviceId != null) {
+                        SettingsDivider()
+                        val clipboard = LocalClipboard.current
+                        val deviceIdLabel = stringResource(R.string.settings_device_id)
+                        SettingsRow(title = deviceIdLabel) {
+                            TextButton(onClick = {
+                                coroutineScope.launch {
+                                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(deviceIdLabel, deviceId)))
+                                }
+                            }) {
+                                Text(deviceId.take(8) + "…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
                     SettingsDivider()
                     Row(
                         modifier = Modifier
@@ -172,34 +172,44 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = unlockCode,
                             onValueChange = { unlockCode = it },
-                            placeholder = { Text("Enter code") },
+                            placeholder = { Text(stringResource(R.string.settings_enter_code_placeholder)) },
                             singleLine = true,
+                            enabled = !isVerifying,
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(8.dp))
-                        TextButton(
-                            enabled = unlockCode.isNotEmpty(),
-                            onClick = {
-                                if (onValidateUnlockCode(unlockCode)) {
-                                    unlockCode = ""
-                                } else {
-                                    showInvalidCodeAlert = true
+                        if (isVerifying) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        } else {
+                            TextButton(
+                                enabled = unlockCode.isNotEmpty(),
+                                onClick = {
+                                    isVerifying = true
+                                    coroutineScope.launch {
+                                        val valid = onValidateUnlockCode(unlockCode)
+                                        isVerifying = false
+                                        if (valid) {
+                                            unlockCode = ""
+                                        } else {
+                                            showInvalidCodeAlert = true
+                                        }
+                                    }
                                 }
+                            ) {
+                                Text(stringResource(R.string.settings_unlock_button), color = themeManager.selectedColorOption.color)
                             }
-                        ) {
-                            Text("Unlock", color = themeManager.selectedColorOption.color)
                         }
                     }
                 }
             }
 
             item {
-                SettingsSection(title = "About") {
-                    SettingsRow(title = "Version") {
-                        Text("v$appVersion", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                SettingsSection(title = stringResource(R.string.settings_section_about)) {
+                    SettingsRow(title = stringResource(R.string.settings_version)) {
+                        Text(stringResource(R.string.settings_version_value, appVersion), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     SettingsDivider()
-                    SettingsRow(title = "Usage Access") {
+                    SettingsRow(title = stringResource(R.string.settings_usage_access)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
@@ -211,17 +221,17 @@ fun SettingsScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                if (isUsageAccessGranted) "Authorized" else "Not Authorized",
+                                stringResource(if (isUsageAccessGranted) R.string.settings_authorized else R.string.settings_not_authorized),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                     SettingsDivider()
-                    SettingsRow(title = "Made in") {
+                    SettingsRow(title = stringResource(R.string.settings_made_in)) {
                         Text("🇵🇹")
                     }
                     SettingsDivider()
-                    SettingsLinkRow(title = "Based on Foqos - Tap to Block") {
+                    SettingsLinkRow(title = stringResource(R.string.settings_based_on_foqos)) {
                         onOpenUrl("https://www.foqos.app")
                     }
                 }
@@ -229,32 +239,13 @@ fun SettingsScreen(
         }
     }
 
-    if (showResetAlert) {
-        AlertDialog(
-            onDismissRequest = { showResetAlert = false },
-            title = { Text("Reset Blocking State") },
-            text = {
-                Text("This will clear all app restrictions and remove any ghost schedules. Only use this if you're locked out and no profile is active.")
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showResetAlert = false
-                    onResetBlockingState()
-                }) { Text("Reset", color = Color(0xFFFF3B30)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showResetAlert = false }) { Text("Cancel") }
-            }
-        )
-    }
-
     if (showInvalidCodeAlert) {
         AlertDialog(
             onDismissRequest = { showInvalidCodeAlert = false },
-            title = { Text("Invalid Code") },
-            text = { Text("That unlock code isn't valid. Visit ctrus.net to get one.") },
+            title = { Text(stringResource(R.string.settings_invalid_code_title)) },
+            text = { Text(stringResource(R.string.settings_invalid_code_body)) },
             confirmButton = {
-                TextButton(onClick = { showInvalidCodeAlert = false }) { Text("OK") }
+                TextButton(onClick = { showInvalidCodeAlert = false }) { Text(stringResource(R.string.common_ok)) }
             }
         )
     }
@@ -272,13 +263,13 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Theme Color", modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.settings_theme_color), modifier = Modifier.weight(1f))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickableNoRipple { expanded = true }
             ) {
                 Text(
-                    themeManager.selectedColorOption.displayName,
+                    stringResource(themeManager.selectedColorOption.displayNameRes),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
@@ -296,7 +287,7 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
                                     .background(option.color, CircleShape)
                             )
                             Spacer(Modifier.width(8.dp))
-                            Text(option.displayName)
+                            Text(stringResource(option.displayNameRes))
                         }
                     },
                     onClick = {
@@ -310,18 +301,19 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
 }
 
 @Composable
-private fun AppIconRow(selected: AppIconAsset, onSelect: (AppIconAsset) -> Unit) {
+private fun AppIconRow(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(AppIconAsset.entries) { option ->
+        items(AppIcon.entries) { option ->
             val isSelected = option == selected
+            val label = stringResource(option.labelRes)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box {
                     Image(
                         painter = painterResource(id = option.drawableRes),
-                        contentDescription = option.label,
+                        contentDescription = label,
                         modifier = Modifier
                             .size(56.dp)
                             .clip(RoundedCornerShape(14.dp))
@@ -353,7 +345,7 @@ private fun AppIconRow(selected: AppIconAsset, onSelect: (AppIconAsset) -> Unit)
                     }
                 }
                 Spacer(Modifier.height(4.dp))
-                Text(option.label, style = MaterialTheme.typography.bodyMedium)
+                Text(label, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

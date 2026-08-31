@@ -1,7 +1,9 @@
 package mo.dev.ctrus.theme
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import mo.dev.ctrus.R
 import android.graphics.Color as AndroidColor
 
 /**
@@ -9,10 +11,10 @@ import android.graphics.Color as AndroidColor
  * The iOS values are Display P3; these are the closest sRGB approximation, matching
  * the app icon fills, so keep both in sync if the palette ever changes.
  */
-enum class ThemeColorOption(val displayName: String, val color: Color) {
-    Orange("Orange", Color(0xFFF3A641)),
-    Lime("Lime", Color(0xFF4CB65F)),
-    Lemon("Lemon", Color(0xFFF7D045)),
+enum class ThemeColorOption(@StringRes val displayNameRes: Int, val color: Color) {
+    Orange(R.string.color_orange, Color(0xFFF3A641)),
+    Lime(R.string.color_lime, Color(0xFF4CB65F)),
+    Lemon(R.string.color_lemon, Color(0xFFF7D045)),
 }
 
 val DefaultThemeColorOption = ThemeColorOption.Orange

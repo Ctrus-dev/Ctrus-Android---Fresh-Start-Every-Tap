@@ -17,8 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import mo.dev.ctrus.R
 import mo.dev.ctrus.theme.CtrusTheme
 import mo.dev.ctrus.theme.ThemeManager
 
@@ -27,7 +29,7 @@ class BlockerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val profileName = intent.getStringExtra(EXTRA_PROFILE_NAME) ?: "your profile"
+        val profileName = intent.getStringExtra(EXTRA_PROFILE_NAME) ?: getString(R.string.blocker_profile_fallback)
         val themeManager = ThemeManager.getInstance(applicationContext)
 
         setContent {
@@ -54,21 +56,21 @@ private fun BlockerScreen(profileName: String, onDismiss: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "This app is blocked",
+            stringResource(R.string.blocker_title),
             style = MaterialTheme.typography.headlineMedium,
             color = Color.White,
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "$profileName is active right now.",
+            stringResource(R.string.blocker_subtitle, profileName),
             style = MaterialTheme.typography.bodyLarge,
             color = Color.White.copy(alpha = 0.85f),
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(16.dp))
         Button(onClick = onDismiss) {
-            Text("OK")
+            Text(stringResource(R.string.blocker_ok))
         }
     }
 }
