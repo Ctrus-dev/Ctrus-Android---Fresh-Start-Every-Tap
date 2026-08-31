@@ -48,6 +48,7 @@ import mo.dev.ctrus.data.MonthlyDayAggregate
 import mo.dev.ctrus.data.WeeklyDayAggregate
 import mo.dev.ctrus.data.duration
 import mo.dev.ctrus.data.usedBreakDurationIncludingActive
+import mo.dev.ctrus.theme.CtrusRoundedBold
 import mo.dev.ctrus.util.DateFormatters
 import java.util.Calendar
 import java.util.Date
@@ -289,7 +290,7 @@ private fun ChartHeader(selectedLabel: String?, selectedValueSeconds: Double?, a
             Column {
                 Text(selectedLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(DateFormatters.formatDurationHoursMinutes(selectedValueSeconds), style = MaterialTheme.typography.headlineMedium)
+                    Text(DateFormatters.formatDurationHoursMinutes(selectedValueSeconds), style = MaterialTheme.typography.headlineMedium, fontFamily = CtrusRoundedBold)
                     Text(stringResource(R.string.insights_total_label), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -297,7 +298,7 @@ private fun ChartHeader(selectedLabel: String?, selectedValueSeconds: Double?, a
         } else {
             Column {
                 Text(stringResource(R.string.insights_avg_focus_session), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(DateFormatters.formatDurationHoursMinutes(averageSeconds), style = MaterialTheme.typography.headlineMedium)
+                Text(DateFormatters.formatDurationHoursMinutes(averageSeconds), style = MaterialTheme.typography.headlineMedium, fontFamily = CtrusRoundedBold)
             }
         }
     }
@@ -328,7 +329,12 @@ private fun SessionRow(session: BlockedProfileSessionEntity, profile: BlockedPro
         ) {
             val durationSeconds = session.duration() / 1000.0
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(DateFormatters.formatDurationHoursMinutes(durationSeconds), style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(
+                    DateFormatters.formatDurationHoursMinutes(durationSeconds),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    fontFamily = CtrusRoundedBold,
+                )
                 Text(stringResource(R.string.insights_total_label), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             val breakSeconds = session.usedBreakDurationIncludingActive(profile)

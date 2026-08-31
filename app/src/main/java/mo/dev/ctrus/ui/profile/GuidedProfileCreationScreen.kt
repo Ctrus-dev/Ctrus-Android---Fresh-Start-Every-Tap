@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,7 @@ import mo.dev.ctrus.R
 import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
+import mo.dev.ctrus.theme.CtrusSystemColors
 
 private enum class GuidedStep(
     @androidx.annotation.StringRes val titleRes: Int,
@@ -255,6 +257,8 @@ private fun ReviewRow(title: String, value: String, showDivider: Boolean = true)
         Text(value, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
     if (showDivider) {
-        androidx.compose.material3.HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+        androidx.compose.material3.HorizontalDivider(
+            color = if (isSystemInDarkTheme()) CtrusSystemColors.separatorDark else CtrusSystemColors.separatorLight,
+        )
     }
 }

@@ -50,9 +50,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import mo.dev.ctrus.R
 import mo.dev.ctrus.data.BlockedProfileEntity
 import mo.dev.ctrus.data.SessionRepository
+import mo.dev.ctrus.theme.FixedLightPrimaryText
+import mo.dev.ctrus.theme.FixedLightSecondaryText
 import mo.dev.ctrus.theme.ThemeManager
 import mo.dev.ctrus.theme.pastelBackground
 import mo.dev.ctrus.ui.dashboard.DefaultModel3DSize
@@ -63,8 +66,8 @@ import mo.dev.ctrus.util.DateFormatters
 // This screen has a light pastel background regardless of the app-wide dark
 // theme used elsewhere (Settings, Active Session), so its text needs fixed
 // dark colors instead of the (white) theme defaults meant for dark surfaces.
-private val HomeOnPastel = Color(0xFF1C1C1E)
-private val HomeOnPastelVariant = Color(0xFF6B6B70)
+private val HomeOnPastel = FixedLightPrimaryText
+private val HomeOnPastelVariant = FixedLightSecondaryText
 
 /** Mirrors HomeView.swift's pageBody: 3D mascot, then either the empty-state Welcome or the profile list + bottom launcher. */
 @Composable
@@ -294,7 +297,9 @@ private fun LauncherBar(activeProfile: BlockedProfileEntity?, themeColor: Color,
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             DateFormatters.formatDurationClock(displaySeconds),
-                            style = MaterialTheme.typography.titleMedium,
+                            fontSize = 20.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             color = Color.White,
                         )
                         Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.White)

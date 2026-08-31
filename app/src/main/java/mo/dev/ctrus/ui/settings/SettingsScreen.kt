@@ -140,8 +140,11 @@ fun SettingsScreen(
             item {
                 SettingsSection(title = stringResource(R.string.settings_section_help)) {
                     SettingsRow(title = stringResource(R.string.settings_debug_mode), showChevron = true, onClick = onDebugModeClick)
-                    SettingsDivider()
-                    SettingsLinkRow(title = stringResource(R.string.settings_blocking_native_apps)) { onOpenUrl("https://ctrus.net") }
+                    // Hidden for now: iOS's Help section has no equivalent link (it has a
+                    // conditional "Reset Blocking State" button instead, not yet ported here).
+                    // Kept in code, not rendered, until that's decided.
+                    // SettingsDivider()
+                    // SettingsLinkRow(title = stringResource(R.string.settings_blocking_native_apps)) { onOpenUrl("https://ctrus.net") }
                 }
             }
 

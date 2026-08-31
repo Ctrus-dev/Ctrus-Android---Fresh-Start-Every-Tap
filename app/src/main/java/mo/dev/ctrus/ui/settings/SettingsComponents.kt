@@ -2,6 +2,7 @@ package mo.dev.ctrus.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -19,10 +20,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import mo.dev.ctrus.theme.CtrusSystemColors
 
 /** Mirrors a SwiftUI `Section("...")` inside an inset-grouped Form. */
 @Composable
@@ -137,6 +138,6 @@ fun CustomToggleRow(
 fun SettingsDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(start = 16.dp),
-        color = Color.White.copy(alpha = 0.08f)
+        color = if (isSystemInDarkTheme()) CtrusSystemColors.separatorDark else CtrusSystemColors.separatorLight,
     )
 }

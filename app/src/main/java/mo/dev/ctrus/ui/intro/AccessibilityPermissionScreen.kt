@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import mo.dev.ctrus.R
+import mo.dev.ctrus.theme.FixedLightPrimaryText
+import mo.dev.ctrus.theme.FixedLightSecondaryText
 import mo.dev.ctrus.theme.pastelBackground
 import mo.dev.ctrus.ui.dashboard.DefaultModel3DSize
 import mo.dev.ctrus.ui.dashboard.RotatingModel3DView
@@ -75,11 +76,16 @@ fun AccessibilityPermissionScreen(themeColor: Color, onRequestAuthorization: () 
             .padding(top = 48.dp, bottom = 32.dp, start = 24.dp, end = 24.dp),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.intro_welcome_title), fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.intro_welcome_title),
+                color = FixedLightPrimaryText,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Bold,
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 stringResource(R.string.intro_welcome_subtitle),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = FixedLightSecondaryText,
                 textAlign = TextAlign.Center,
             )
         }
@@ -98,7 +104,7 @@ fun AccessibilityPermissionScreen(themeColor: Color, onRequestAuthorization: () 
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text(
                 stringResource(R.string.intro_open_source_prefix) + stringResource(R.string.intro_open_source_link) + stringResource(R.string.intro_open_source_suffix),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = FixedLightSecondaryText,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.clickable {

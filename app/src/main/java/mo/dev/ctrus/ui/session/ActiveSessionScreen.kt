@@ -1,6 +1,7 @@
 package mo.dev.ctrus.ui.session
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -59,6 +61,15 @@ fun ActiveSessionScreen(
     onEmergencyTapped: () -> Unit,
     onStopTapped: () -> Unit,
 ) {
+    // Mirrors ActiveProfileSessionView's `colorScheme == .dark` checks: the theme-color
+    // background stays solid in both modes, but the wash overlaid on it and the text/icon
+    // colors drawn over it adapt to the system setting the same way iOS's .primary label
+    // and Color(.systemBackground)-based gradient do.
+    val dark = isSystemInDarkTheme()
+    val primaryContent = if (dark) Color.White else Color.Black
+    val supportingContent = if (dark) Color.White.copy(alpha = 0.78f) else Color.Black.copy(alpha = 0.66f)
+    val systemBackground = if (dark) Color.Black else Color.White
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -66,14 +77,14 @@ fun ActiveSessionScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.Black.copy(alpha = 0f),
-                        Color.Black.copy(alpha = 0.18f)
+                        systemBackground.copy(alpha = 0.02f),
+                        systemBackground.copy(alpha = 0.34f)
                     )
                 )
             )
     ) {
         Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars).padding(24.dp)) {
-            Header(state, onChartTapped, onCloseTapped)
+            Header(state, primaryContent, supportingContent, onChartTapped, onCloseTapped)
 
             Spacer(Modifier.height(40.dp))
 
@@ -83,15 +94,16 @@ fun ActiveSessionScreen(
             ) {
                 Text(
                     text = state.displayTime,
-                    fontSize = 52.sp,
+                    fontSize = 58.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    fontFamily = FontFamily.Monospace,
+                    color = primaryContent
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = state.focusMessage,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = supportingContent,
                     textAlign = TextAlign.Center
                 )
             }
@@ -102,6 +114,7 @@ fun ActiveSessionScreen(
                 HoldToConfirmButton(
                     title = stringResource(if (state.isBreakActive) R.string.session_hold_stop_break else R.string.session_hold_start_break),
                     backgroundColor = Color.White,
+                    contentColor = primaryContent,
                     onConfirm = onBreakHeld
                 )
                 Spacer(Modifier.height(12.dp))
@@ -122,7 +135,7 @@ fun ActiveSessionScreen(
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(26.dp)
                 ) {
-                    Text(stringResource(R.string.session_stop_button), color = Color.White)
+                    Text(stringResource(R.string.session_stop_button), color = primaryContent)
                 }
             }
         }
@@ -132,6 +145,8 @@ fun ActiveSessionScreen(
 @Composable
 private fun Header(
     state: ActiveSessionUiState,
+    primaryContent: Color,
+    supportingContent: Color,
     onChartTapped: () -> Unit,
     onCloseTapped: () -> Unit,
 ) {
@@ -145,7 +160,7 @@ private fun Header(
                 text = state.profileName,
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = primaryContent
             )
             state.statusMessage?.let {
                 Spacer(Modifier.height(8.dp))
@@ -153,13 +168,13 @@ private fun Header(
                     Icon(
                         Icons.Filled.CoffeeMaker,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.85f),
+                        tint = supportingContent,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         text = it,
-                        color = Color.White.copy(alpha = 0.85f),
+                        color = supportingContent,
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -167,21 +182,23 @@ private fun Header(
         }
 
         Row {
-            CircleIconButton(icon = Icons.Filled.BarChart, onClick = onChartTapped)
+            CircleIconButton(icon = Icons.Filled.BarChart, contentColor = primaryContent, onClick = onChartTapped)
             Spacer(Modifier.width(8.dp))
-            CircleIconButton(icon = Icons.Filled.Close, onClick = onCloseTapped)
+            CircleIconButton(icon = Icons.Filled.Close, contentColor = primaryContent, onClick = onCloseTapped)
         }
     }
 }
 
 @Composable
-private fun CircleIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+private fun CircleIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, contentColor: Color, onClick: () -> Unit) {
+    // Approximates iOS's `.thinMaterial` circle (an adaptive frosted-glass fill) with a
+    // translucent version of the same primary content color used for its icon.
     IconButton(
         onClick = onClick,
         modifier = Modifier
             .size(42.dp)
-            .background(Color.Black.copy(alpha = 0.18f), CircleShape)
+            .background(contentColor.copy(alpha = 0.18f), CircleShape)
     ) {
-        Icon(icon, contentDescription = null, tint = Color.White)
+        Icon(icon, contentDescription = null, tint = contentColor)
     }
 }
