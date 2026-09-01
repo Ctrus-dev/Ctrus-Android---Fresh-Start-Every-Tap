@@ -316,12 +316,12 @@
         <item>Small squeezes of effort like this fill the glass fast.</item>
     </string-array>
     <string-array name="shield_buttons">
-        <item>Back</item>
-        <item>Back</item>
         <item>Got it</item>
-        <item>Stay zesty</item>
-        <item>Back</item>
-        <item>Keep squeezing</item>
+        <item>Got it</item>
+        <item>Got it</item>
+        <item>Got it</item>
+        <item>Got it</item>
+        <item>Got it</item>
     </string-array>
 
     <!-- Rotates on the active-session timer screen, mirroring FocusMessages.swift. -->

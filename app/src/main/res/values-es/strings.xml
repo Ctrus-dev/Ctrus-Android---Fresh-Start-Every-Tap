@@ -314,12 +314,12 @@
         <item>Pequeños chorritos de jugo como este llenan el vaso rápido.</item>
     </string-array>
     <string-array name="shield_buttons">
-        <item>Atrás</item>
-        <item>Atrás</item>
         <item>Entendido</item>
-        <item>Sigue cítrico</item>
-        <item>Atrás</item>
-        <item>Sigue exprimiendo</item>
+        <item>Entendido</item>
+        <item>Entendido</item>
+        <item>Entendido</item>
+        <item>Entendido</item>
+        <item>Entendido</item>
     </string-array>
 
     <string-array name="focus_messages">

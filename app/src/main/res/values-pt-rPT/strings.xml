@@ -314,12 +314,12 @@
         <item>Pequenas gotas de sumo como esta enchem o copo depressa.</item>
     </string-array>
     <string-array name="shield_buttons">
-        <item>Voltar</item>
-        <item>Voltar</item>
         <item>Entendido</item>
-        <item>Fica cítrico</item>
-        <item>Voltar</item>
-        <item>Continua a espremer</item>
+        <item>Entendido</item>
+        <item>Entendido</item>
+        <item>Entendido</item>
+        <item>Entendido</item>
+        <item>Entendido</item>
     </string-array>
 
     <string-array name="focus_messages">
