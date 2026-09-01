@@ -371,7 +371,7 @@ private fun CtrusNavHost(
             val session = activeSession
             val profile = activeProfile
             if (session != null && profile != null) {
-                val focusMessage by orchestrator.focusMessage.collectAsState()
+                val focusMessageIndex by orchestrator.focusMessage.collectAsState()
                 val allowsBreaks = StrategyCapabilities.allowsTimedBreaks(profile.blockingStrategyId)
                 val isBreakActive = session.isBreakActive(profile, allowsBreaks)
 
@@ -380,7 +380,7 @@ private fun CtrusNavHost(
                         profileName = profile.name,
                         statusMessage = if (isBreakActive) stringResource(R.string.session_on_break) else null,
                         displayTime = DateFormatters.formatDurationClock(displaySeconds),
-                        focusMessage = focusMessage,
+                        focusMessageIndex = focusMessageIndex,
                         isBreakActive = isBreakActive,
                         isBreakAvailable = session.isBreakAvailable(profile, allowsBreaks),
                     ),

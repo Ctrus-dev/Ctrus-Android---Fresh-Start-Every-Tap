@@ -33,12 +33,17 @@ project follows the same approach:
   default launcher, Ctrus itself) so a misconfigured profile can't lock the user out of
   their phone. Extend this before wiring up real blocking logic.
 - **`blocking/BlockerActivity`** — the full-screen surface shown instead of a blocked
-  app (launched by the accessibility service via `Intent` + `FLAG_ACTIVITY_NEW_TASK`,
-  with `performGlobalAction(GLOBAL_ACTION_HOME)` first to reliably dismiss the blocked
-  app underneath, matching Switchly's `BlockLaunchController`).
-- **`blocking/BlockDecisionEngine`** currently always returns `Allow` — there is no
-  ported profile/session data model yet, so the accessibility service is inert out of
-  the box. Wiring this up to a real "which packages does the active profile block" is
+  app, launched instantly by the accessibility service (`Intent` + `FLAG_ACTIVITY_NEW_TASK`,
+  no `performGlobalAction(GLOBAL_ACTION_HOME)` kick beforehand — see the note below on
+  why that was removed). Mirrors `ShieldConfigurationExtension.swift`: solid theme-color
+  background, a 🔒 icon, and one of 6 citrus-themed title/subtitle/button messages chosen
+  deterministically per app per day (same FNV-1a-hash-of-name XOR day-key scheme as
+  `getFunBlockMessage`). Its dismiss button — and the system back gesture — navigate to
+  the home screen (`ACTION_MAIN`/`CATEGORY_HOME`) rather than just finishing, since
+  finishing alone would reveal the blocked app's still-alive task underneath.
+- **`blocking/BlockDecisionEngine`** is fully wired to `BlockingStateHolder`'s
+  Room-derived snapshot of the active session's profile — a package is blocked when it's
+  in (or, in allow-mode, not in) the profile's `selectedPackages`.
   the next real milestone.
 
 ## What's real vs. still pending
@@ -251,16 +256,21 @@ visit.** Three related issues in `model3d/`:
   riskier change (would mean moving to a custom `TextureView`-based GL view) that needs on-device
   confirmation the cache fix didn't already resolve it.
 
-**Bug fixed this pass — blocking an app closed it to the home screen instead of showing the
-shield.** `BlockingAccessibilityService.showBlocker` called `performGlobalAction(GLOBAL_ACTION_HOME)`
-and `startActivity(BlockerActivity)` back to back in the same tick. That's a race: on some timing,
-the system finished settling onto the launcher *after* `BlockerActivity`'s window was already up,
-which put the launcher back on top — so the user just saw the blocked app vanish to home, with no
-shield ever visibly staying on screen. Fixed by giving `startActivity` a 250ms delay (via
-`serviceScope`) after the `GLOBAL_ACTION_HOME` call, so the home transition settles first and
-`BlockerActivity` reliably ends up on top. `GLOBAL_ACTION_HOME` is still called first (not removed)
-— it's what makes backing out of the shield land on the home screen instead of revealing the
-blocked app underneath in the task stack.
+**Bug fixed this pass — blocking an app visibly flashed the home screen before the shield
+appeared.** An earlier version of `BlockingAccessibilityService.showBlocker` called
+`performGlobalAction(GLOBAL_ACTION_HOME)`, waited 250ms for that transition to settle, then
+`startActivity(BlockerActivity)` — added because starting the two back-to-back in the same tick
+raced the HOME transition and sometimes left the launcher on top instead of the shield. That fix
+traded one bug for a more noticeable one: the blocked app now reliably reached the shield, but only
+after a visible detour through the home screen, reading as "the app abruptly closes, then the block
+screen appears" instead of an instant shield. Fixed properly by dropping `GLOBAL_ACTION_HOME` from
+`showBlocker` entirely — `BlockerActivity` now starts immediately on top of the blocked app — and
+moving the "go home" behavior to `BlockerActivity` itself: its dismiss button and back gesture both
+launch the home intent before finishing, which is what actually needs to keep the blocked app's
+task from being revealed, without any detour on the way *in*. On-device (emulator) testing with
+`com.google.android.deskclock` as the target confirmed the shield now appears immediately with no
+home-screen flash, re-blocks reliably on repeated attempts, and dismissing lands on home rather
+than back in the blocked app.
 
 ## Localization
 

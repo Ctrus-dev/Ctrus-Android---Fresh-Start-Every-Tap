@@ -9,10 +9,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 
 /**
  * Primary blocking mechanism, modeled on Switchly's SwitchlyAccessibilityService (see
@@ -64,22 +62,16 @@ class BlockingAccessibilityService : AccessibilityService() {
     }
 
     private fun showBlocker(decision: BlockDecision.Block) {
-        performGlobalAction(GLOBAL_ACTION_HOME)
+        // Launched immediately, on top of the blocked app, with no performGlobalAction(HOME)
+        // kick first — that used to flash the launcher for ~250ms before BlockerActivity came
+        // up, which read as the blocked app abruptly closing. BlockerActivity's own dismiss
+        // button goes home itself (see its kdoc), so the blocked app's task is never revealed
+        // either way; this just removes the visible detour through the home screen on the way in.
         val intent = Intent(this, BlockerActivity::class.java)
             .putExtra(BlockerActivity.EXTRA_PACKAGE_NAME, decision.packageName)
             .putExtra(BlockerActivity.EXTRA_PROFILE_NAME, decision.profileName)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-        // Starting BlockerActivity in the same tick as performGlobalAction(GLOBAL_ACTION_HOME)
-        // races the HOME transition: the system sometimes finishes settling on the launcher
-        // *after* BlockerActivity's window is already up, which pushes BlockerActivity back off
-        // screen again — the blocked app then just reads as "closed to the home screen" instead
-        // of shielded. A short delay lets HOME settle first so BlockerActivity reliably ends up on
-        // top.
-        serviceScope.launch {
-            delay(250)
-            startActivity(intent)
-        }
+        startActivity(intent)
     }
 
     override fun onInterrupt() {

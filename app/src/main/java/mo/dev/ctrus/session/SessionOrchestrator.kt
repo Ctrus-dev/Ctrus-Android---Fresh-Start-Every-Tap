@@ -76,8 +76,8 @@ class SessionOrchestrator(
     private val _displayedSeconds = MutableStateFlow(0.0)
     val displayedSeconds: StateFlow<Double> = _displayedSeconds
 
-    private val _focusMessage = MutableStateFlow(FocusMessages.random())
-    val focusMessage: StateFlow<String> = _focusMessage
+    private val _focusMessage = MutableStateFlow(FocusMessages.randomIndex())
+    val focusMessage: StateFlow<Int> = _focusMessage
 
     private val _errorMessage = MutableStateFlow<UiText?>(null)
     val errorMessage: StateFlow<UiText?> = _errorMessage
@@ -234,7 +234,7 @@ class SessionOrchestrator(
         }
         messageJob = viewModelScope.launch {
             while (isActive) {
-                _focusMessage.value = FocusMessages.random()
+                _focusMessage.value = FocusMessages.randomIndex()
                 delay(10_000)
             }
         }

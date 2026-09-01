@@ -258,10 +258,7 @@
     <string name="color_lime">Lima</string>
     <string name="color_lemon">Limón</string>
     <string name="color_dark">Oscuro</string>
-    <string name="blocker_title">Esta aplicación está bloqueada</string>
-    <string name="blocker_subtitle">%1$s está activo ahora mismo.</string>
-    <string name="blocker_ok">OK</string>
-    <string name="blocker_profile_fallback">tu perfil</string>
+    <string name="blocker_app_fallback">Esta app</string>
     <string name="accessibility_service_description">Permite que Ctrus detecte cuándo se abre una app bloqueada, para mostrar la pantalla de bloqueo del perfil que configuraste.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
@@ -299,4 +296,48 @@
         <item quantity="one">%1$d minuto</item>
         <item quantity="other">%1$d minutos</item>
     </plurals>
+
+    <string-array name="shield_titles">
+        <item>Todavía no está maduro</item>
+        <item>Trampa jugosa</item>
+        <item>Jugo preservado</item>
+        <item>Guarda el huerto</item>
+        <item>No hay nada más que pelar</item>
+        <item>Lleno de jugo</item>
+    </string-array>
+    <string-array name="shield_subtitles">
+        <item>%1$s puede esperar hasta que estés listo para recogerlo.</item>
+        <item>Un clic se convierte en veinte. No exprimamos esto hasta el final.</item>
+        <item>Estamos manteniendo tu atención tan fresca como el jugo de la mañana.</item>
+        <item>Unos minutos maduran en una hora sin darte cuenta.</item>
+        <item>No te estás perdiendo nada importante, ya está todo pelado y listo.</item>
+        <item>Pequeños chorritos de jugo como este llenan el vaso rápido.</item>
+    </string-array>
+    <string-array name="shield_buttons">
+        <item>Atrás</item>
+        <item>Atrás</item>
+        <item>Entendido</item>
+        <item>Sigue cítrico</item>
+        <item>Atrás</item>
+        <item>Sigue exprimiendo</item>
+    </string-array>
+
+    <string-array name="focus_messages">
+        <item>Cuando la vida te da limones, haz limonada</item>
+        <item>Un naranjal no se planta en un día</item>
+        <item>Deja que tu esfuerzo dé frutos</item>
+        <item>No llores sobre limones ya exprimidos</item>
+        <item>La lima siempre parece más verde en el árbol del vecino</item>
+        <item>El progreso madura como un cítrico, día a día</item>
+        <item>Este momento moldea el cítrico que cosecharás mañana</item>
+        <item>Pela el momento como una naranja y saboréalo por completo</item>
+        <item>Limita las distracciones, deja que tu potencial madure como una naranja</item>
+        <item>Tu atención decide en qué huerto creces</item>
+        <item>Protege tu jugo mental</item>
+        <item>Mantente en tu rama, como una lima esperando madurar</item>
+        <item>La disciplina es la ralladura que da sabor a la libertad</item>
+        <item>El buen trabajo necesita un vaso lleno de limonada</item>
+        <item>La pulpa que sobra de las distracciones diluye tu jugo</item>
+        <item>Protege tu huerto, protege tu tiempo</item>
+    </string-array>
 </resources>

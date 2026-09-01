@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -45,7 +46,7 @@ data class ActiveSessionUiState(
     val profileName: String,
     val statusMessage: String? = null,
     val displayTime: String,
-    val focusMessage: String,
+    val focusMessageIndex: Int,
     val isBreakActive: Boolean,
     val isBreakAvailable: Boolean,
 )
@@ -101,7 +102,7 @@ fun ActiveSessionScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = state.focusMessage,
+                    text = stringArrayResource(R.array.focus_messages)[state.focusMessageIndex],
                     style = MaterialTheme.typography.titleMedium,
                     color = supportingContent,
                     textAlign = TextAlign.Center

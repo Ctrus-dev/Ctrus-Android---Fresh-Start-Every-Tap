@@ -258,10 +258,7 @@
     <string name="color_lime">Lima</string>
     <string name="color_lemon">Limão</string>
     <string name="color_dark">Escuro</string>
-    <string name="blocker_title">Esta aplicação está bloqueada</string>
-    <string name="blocker_subtitle">%1$s está ativo agora.</string>
-    <string name="blocker_ok">OK</string>
-    <string name="blocker_profile_fallback">o teu perfil</string>
+    <string name="blocker_app_fallback">Esta app</string>
     <string name="accessibility_service_description">Permite que o Ctrus detete quando uma app bloqueada é aberta, para mostrar o ecrã de bloqueio do perfil que configuraste.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
@@ -299,4 +296,48 @@
         <item quantity="one">%1$d minuto</item>
         <item quantity="other">%1$d minutos</item>
     </plurals>
+
+    <string-array name="shield_titles">
+        <item>Ainda não está maduro</item>
+        <item>Armadilha sumarenta</item>
+        <item>Sumo preservado</item>
+        <item>Guarda o pomar</item>
+        <item>Não há mais nada para descascar</item>
+        <item>Cheio de sumo</item>
+    </string-array>
+    <string-array name="shield_subtitles">
+        <item>%1$s pode esperar até estares pronto para o colher.</item>
+        <item>Um clique vira vinte. Não vamos espremer isto até ao fim.</item>
+        <item>Estamos a manter a tua atenção tão fresca como o sumo da manhã.</item>
+        <item>Uns minutos amadurecem numa hora sem dares por isso.</item>
+        <item>Não estás a perder nada de importante, está tudo já descascado e pronto.</item>
+        <item>Pequenas gotas de sumo como esta enchem o copo depressa.</item>
+    </string-array>
+    <string-array name="shield_buttons">
+        <item>Voltar</item>
+        <item>Voltar</item>
+        <item>Entendido</item>
+        <item>Fica cítrico</item>
+        <item>Voltar</item>
+        <item>Continua a espremer</item>
+    </string-array>
+
+    <string-array name="focus_messages">
+        <item>Quando a vida te dá limões, faz limonada</item>
+        <item>Um laranjal não se planta num dia</item>
+        <item>Deixa o teu esforço dar frutos</item>
+        <item>Não chores sobre limões já espremidos</item>
+        <item>A lima parece sempre mais verde na árvore do vizinho</item>
+        <item>O progresso amadurece como um citrino, dia após dia</item>
+        <item>Este momento molda o citrino que colherás amanhã</item>
+        <item>Descasca o momento como uma laranja e saboreia-o por completo</item>
+        <item>Limita as distrações, deixa o teu potencial amadurecer como uma laranja</item>
+        <item>A tua atenção decide em que pomar cresces</item>
+        <item>Protege o teu sumo mental</item>
+        <item>Mantém-te no teu ramo, como uma lima à espera de amadurecer</item>
+        <item>A disciplina é a raspa que dá sabor à liberdade</item>
+        <item>Um bom trabalho precisa de um copo cheio de limonada</item>
+        <item>A polpa que sobra das distrações dilui o teu sumo</item>
+        <item>Protege o teu pomar, protege o teu tempo</item>
+    </string-array>
 </resources>

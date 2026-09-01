@@ -258,10 +258,7 @@
     <string name="color_lime">Lime</string>
     <string name="color_lemon">Lemon</string>
     <string name="color_dark">Dark</string>
-    <string name="blocker_title">This app is blocked</string>
-    <string name="blocker_subtitle">%1$s is active right now.</string>
-    <string name="blocker_ok">OK</string>
-    <string name="blocker_profile_fallback">your profile</string>
+    <string name="blocker_app_fallback">This app</string>
     <string name="accessibility_service_description">Lets Ctrus detect when a blocked app is opened so it can show the block screen for the profile you configured.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
@@ -299,4 +296,51 @@
         <item quantity="one">%1$d minute</item>
         <item quantity="other">%1$d minutes</item>
     </plurals>
+
+    <!-- Shown on the full-screen block surface (BlockerActivity), one of 6 variants chosen
+         deterministically per app per day, mirroring ShieldConfigurationExtension.swift. -->
+    <string-array name="shield_titles">
+        <item>Not ripe yet</item>
+        <item>Juicy trap</item>
+        <item>Juice preserved</item>
+        <item>Guard the grove</item>
+        <item>Nothing left to peel</item>
+        <item>Juiced up</item>
+    </string-array>
+    <string-array name="shield_subtitles">
+        <item>%1$s can wait until you\'re ready to pick it.</item>
+        <item>One click turns into twenty. Let\'s not squeeze this dry.</item>
+        <item>We\'re keeping your attention as fresh as morning juice.</item>
+        <item>A few minutes ripen into an hour before you know it.</item>
+        <item>You\'re not missing anything important, it\'s all already peeled and ready.</item>
+        <item>Small squeezes of effort like this fill the glass fast.</item>
+    </string-array>
+    <string-array name="shield_buttons">
+        <item>Back</item>
+        <item>Back</item>
+        <item>Got it</item>
+        <item>Stay zesty</item>
+        <item>Back</item>
+        <item>Keep squeezing</item>
+    </string-array>
+
+    <!-- Rotates on the active-session timer screen, mirroring FocusMessages.swift. -->
+    <string-array name="focus_messages">
+        <item>When life gives you lemons, make lemonade</item>
+        <item>An orange grove isn\'t planted in a day</item>
+        <item>Let your effort bear fruit</item>
+        <item>Don\'t cry over squeezed lemons</item>
+        <item>The lime always looks greener on someone else\'s tree</item>
+        <item>Progress ripens like citrus, one day at a time</item>
+        <item>This moment shapes the citrus you\'ll harvest tomorrow</item>
+        <item>Peel back the moment like an orange and taste it fully</item>
+        <item>Limit distractions, let your potential ripen like an orange</item>
+        <item>Your attention decides which grove you grow in</item>
+        <item>Protect your mental zest</item>
+        <item>Stay on your branch, like a lime waiting to ripen</item>
+        <item>Discipline is the zest that flavors freedom</item>
+        <item>Great work needs a full glass of lemonade</item>
+        <item>Leftover pulp from distraction dilutes your juice</item>
+        <item>Protect your grove, protect your time</item>
+    </string-array>
 </resources>
