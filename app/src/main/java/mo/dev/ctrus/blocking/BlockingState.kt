@@ -23,6 +23,12 @@ data class BlockingState(
 ) {
     val isBlocking: Boolean get() = profileId != null
 
+    // Mirrors AppBlockerUtil.deactivateRestrictionsForBreak: app/domain shielding and the
+    // install block both pause for a break, but the deletion block (denyAppRemoval on iOS)
+    // deliberately does not — see its "strict mode" comment there.
+    val isInstallBlockActive: Boolean get() = isBlocking && !isBreakActive && enableBlockAppInstallation
+    val isDeletionBlockActive: Boolean get() = isBlocking && enableStrictMode
+
     fun isPackageBlocked(packageName: String): Boolean {
         if (!isBlocking || isBreakActive) return false
         return if (allowMode) packageName !in blockedPackages else packageName in blockedPackages

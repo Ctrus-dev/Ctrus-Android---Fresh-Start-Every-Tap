@@ -58,15 +58,15 @@ object DateFormatters {
         return if (hours > 0) "${hours}h" else "${minutes}m"
     }
 
-    /** "Today" / "Yesterday" / "Jan 5, 2026". */
-    fun formatSessionDate(date: Date): String {
+    /** "Today" / "Yesterday" / "Jan 5, 2026" — the two relative labels are localized by the caller. */
+    fun formatSessionDate(date: Date, todayLabel: String, yesterdayLabel: String): String {
         val today = Calendar.getInstance().apply { time = Date() }
         val target = Calendar.getInstance().apply { time = date }
         val yesterday = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -1) }
 
         return when {
-            isSameDay(target, today) -> "Today"
-            isSameDay(target, yesterday) -> "Yesterday"
+            isSameDay(target, today) -> todayLabel
+            isSameDay(target, yesterday) -> yesterdayLabel
             else -> SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(date)
         }
     }
@@ -76,8 +76,8 @@ object DateFormatters {
 
     fun formatDayNumber(date: Date): String = SimpleDateFormat("d", Locale.getDefault()).format(date)
 
-    /** "Wed, Jan 7" — the selected-day header above an insights chart. */
-    fun formatSelectedDayHeader(date: Date): String = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(date)
+    /** "Wednesday, Jan 7" — the selected-day header above an insights chart. */
+    fun formatSelectedDayHeader(date: Date): String = SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(date)
 
     /** "Jan 5 - 11" (same month) / "Jan 29 - Feb 4" (different months). */
     fun formatWeekRange(start: Date, end: Date): String {
@@ -94,6 +94,9 @@ object DateFormatters {
 
     /** "Jan 5, 2026 at 3:45 PM" — full date+time, used in session details. */
     fun formatDate(date: Date): String = SimpleDateFormat("MMM d, yyyy 'at' h:mm a", Locale.getDefault()).format(date)
+
+    /** "Sep 29" — the recovery-unlock reset date, matching iOS's `.dateTime.month().day()`. */
+    fun formatMonthDay(date: Date): String = SimpleDateFormat("MMM d", Locale.getDefault()).format(date)
 
     /** "Jan - Feb" (same year) / "Dec 2025 - Jan 2026" (different years). */
     fun formatMonthRange(start: Date, end: Date): String {

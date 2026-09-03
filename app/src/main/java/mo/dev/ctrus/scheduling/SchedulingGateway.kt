@@ -12,4 +12,8 @@ package mo.dev.ctrus.scheduling
 interface SchedulingGateway {
     fun scheduleBreakExpiry(sessionId: String, profileId: String, triggerAtEpochMilli: Long)
     fun cancelBreakExpiry(sessionId: String)
+
+    /** Mirrors StrategyManager.scheduleBreakReminder: a "break almost over" notification 60s before it ends. */
+    fun scheduleBreakWarning(sessionId: String, profileName: String, triggerAtEpochMilli: Long)
+    fun cancelBreakWarning(sessionId: String)
 }

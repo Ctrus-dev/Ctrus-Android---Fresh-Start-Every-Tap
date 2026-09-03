@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
@@ -28,6 +30,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
@@ -47,7 +50,10 @@ fun MonthlyHeatmapGrid(
     modifier: Modifier = Modifier,
 ) {
     val weeks = remember(days) { buildWeeks(days) }
+    if (weeks.isEmpty()) return
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    val emptyColor = MaterialTheme.colorScheme.surfaceVariant
+    val emptyTextColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
 
     fun selectAt(x: Float, y: Float) {
         if (weeks.isEmpty() || canvasSize.width == 0) return
@@ -61,14 +67,19 @@ fun MonthlyHeatmapGrid(
 
     Column(modifier = modifier) {
         Canvas(
+            // A fixed dp-per-row height guessed at the cell size, but each cell is actually
+            // width/7 (square) — on a wider sheet that's taller than 44dp, so the grid overran
+            // its allotted height and the last row bled into the legend below it. Matching the
+            // aspect ratio to the actual 7-column-by-N-row grid keeps height exactly in sync with
+            // whatever width the cells end up being, on any screen.
             modifier = Modifier
                 .fillMaxWidth()
-                .height((weeks.size * 44).dp)
+                .aspectRatio(7f / weeks.size, matchHeightConstraintsFirst = false)
                 .onSizeChanged { canvasSize = it }
                 .pointerInput(weeks) { detectTapGestures { offset -> selectAt(offset.x, offset.y) } }
                 .pointerInput(weeks) { detectDragGestures { change, _ -> selectAt(change.position.x, change.position.y) } },
         ) {
-            drawGrid(weeks, selectedDay, themeColor)
+            drawGrid(weeks, selectedDay, themeColor, emptyColor, emptyTextColor)
         }
         Spacer(Modifier.height(8.dp))
         Legend(themeColor)
@@ -77,14 +88,14 @@ fun MonthlyHeatmapGrid(
 
 @Composable
 private fun Legend(themeColor: Color) {
-    Row {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         listOf(
             stringResource(mo.dev.ctrus.R.string.insights_legend_under_1h) to 0.3f,
             stringResource(mo.dev.ctrus.R.string.insights_legend_1_3h) to 0.5f,
             stringResource(mo.dev.ctrus.R.string.insights_legend_3_5h) to 0.7f,
             stringResource(mo.dev.ctrus.R.string.insights_legend_over_5h) to 0.9f,
         ).forEach { (label, alpha) ->
-            Row(modifier = Modifier.padding(end = 12.dp)) {
+            Row(modifier = Modifier.padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.size(10.dp).clip(RoundedCornerShape(2.dp))) {
                     Canvas(modifier = Modifier.size(10.dp)) {
                         drawRect(themeColor.copy(alpha = alpha))
@@ -97,15 +108,15 @@ private fun Legend(themeColor: Color) {
     }
 }
 
-private fun colorForHours(hours: Double, themeColor: Color): Color = when {
-    hours <= 0 -> Color.Gray.copy(alpha = 0.15f)
+private fun colorForHours(hours: Double, themeColor: Color, emptyColor: Color): Color = when {
+    hours <= 0 -> emptyColor
     hours < 1 -> themeColor.copy(alpha = 0.3f)
     hours < 3 -> themeColor.copy(alpha = 0.5f)
     hours < 5 -> themeColor.copy(alpha = 0.7f)
     else -> themeColor.copy(alpha = 0.9f)
 }
 
-private fun DrawScope.drawGrid(weeks: List<List<MonthlyDayAggregate?>>, selectedDay: MonthlyDayAggregate?, themeColor: Color) {
+private fun DrawScope.drawGrid(weeks: List<List<MonthlyDayAggregate?>>, selectedDay: MonthlyDayAggregate?, themeColor: Color, emptyColor: Color, emptyTextColor: Int) {
     if (weeks.isEmpty()) return
     val cellSize = size.width / 7
     val gap = cellSize * 0.06f
@@ -119,7 +130,7 @@ private fun DrawScope.drawGrid(weeks: List<List<MonthlyDayAggregate?>>, selected
             val isSelected = selectedDay?.date == day.date
 
             drawRoundRect(
-                color = colorForHours(hours, themeColor),
+                color = colorForHours(hours, themeColor, emptyColor),
                 topLeft = topLeft,
                 size = Size(squareSize, squareSize),
                 cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx()),
@@ -134,7 +145,11 @@ private fun DrawScope.drawGrid(weeks: List<List<MonthlyDayAggregate?>>, selected
                 )
             }
 
-            val textColor = if (hours > 3) android.graphics.Color.WHITE else android.graphics.Color.DKGRAY
+            val textColor = when {
+                hours > 3 -> android.graphics.Color.WHITE
+                hours > 0 -> android.graphics.Color.DKGRAY
+                else -> emptyTextColor
+            }
             drawContext.canvas.nativeCanvas.drawText(
                 day.dayOfMonth.toString(),
                 topLeft.x + squareSize / 2,

@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -32,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,9 +45,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 import mo.dev.ctrus.data.BlockedProfileEntity
+import mo.dev.ctrus.ui.common.GlassIconButton
 
 /**
  * Android equivalent of BlockedProfileListView.swift's "Manage" sheet: tap a row to edit, "+" to
@@ -75,25 +79,37 @@ fun ManageProfilesScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.manage_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.manage_close_content_description)) }
-                },
-                actions = {
-                    if (profiles.isNotEmpty()) {
-                        IconButton(onClick = { editMode = !editMode }) {
-                            Icon(
-                                if (editMode) Icons.Filled.Check else Icons.Filled.Edit,
+            // Matches ProfileInsightsScreen's header: close/action icons on their own row, with
+            // the big bold title below it — not a Material TopAppBar's inline title.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+            ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    GlassIconButton(onClick = onDismiss, icon = Icons.Filled.Close, contentDescription = stringResource(R.string.manage_close_content_description))
+                    Row {
+                        if (profiles.isNotEmpty()) {
+                            GlassIconButton(
+                                onClick = { editMode = !editMode },
+                                icon = if (editMode) Icons.Filled.Check else Icons.Filled.Edit,
                                 contentDescription = stringResource(if (editMode) R.string.manage_done_content_description else R.string.manage_edit_move_content_description),
                             )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        if (canCreateProfiles) {
+                            GlassIconButton(onClick = onAddProfile, icon = Icons.Filled.Add, contentDescription = stringResource(R.string.manage_add_profile_content_description))
                         }
                     }
-                    if (canCreateProfiles) {
-                        IconButton(onClick = onAddProfile) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.manage_add_profile_content_description)) }
-                    }
-                },
-            )
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    stringResource(R.string.manage_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         },
     ) { innerPadding ->
         LazyColumn(

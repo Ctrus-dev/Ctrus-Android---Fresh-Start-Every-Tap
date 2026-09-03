@@ -24,6 +24,8 @@
     <string name="common_profiles">Profiles</string>
     <string name="common_tag">Tag</string>
     <string name="common_active">Active</string>
+    <string name="common_today">Today</string>
+    <string name="common_yesterday">Yesterday</string>
     <string name="common_disabled">Disabled</string>
     <string name="common_default">Default</string>
     <string name="common_min_short">%1$d min</string>
@@ -32,6 +34,9 @@
     <string name="home_getting_started_title">Getting Started</string>
     <string name="home_getting_started_body">Let\'s get you started by creating your first profile. You can customize it as much or as little as you\'d like.</string>
     <string name="home_create_profile_button">Create Profile</string>
+    <string name="home_accessibility_alert_title">Accessibility Access needed</string>
+    <string name="home_accessibility_alert_message">Blocking is paused until access is restored.</string>
+    <string name="home_accessibility_alert_detail">Ctrus needs Accessibility access to block apps and websites. Grant access again to restore blocking.</string>
     <string name="home_manage_profiles_content_description">Manage %1$s</string>
     <string name="home_show_insights_content_description">Show %1$s insights</string>
     <string name="home_edit_profile_content_description">Edit %1$s</string>
@@ -40,9 +45,7 @@
     <string name="home_menu_edit">Edit</string>
     <string name="home_menu_stop">Stop</string>
     <string name="home_menu_start">Start</string>
-    <string name="home_launcher_start">Start</string>
-    <string name="home_indicator_breaks">Breaks</string>
-    <string name="home_indicator_deletion_blocked">Deletion Blocked</string>
+    <string name="home_launcher_start">Hold to Start</string>
     <string name="manage_title">Profiles</string>
     <string name="manage_close_content_description">Close</string>
     <string name="manage_edit_move_content_description">Edit/Move</string>
@@ -53,8 +56,8 @@
     <string name="manage_move_down_content_description">Move down</string>
     <string name="manage_cannot_delete_active_title">Cannot Delete Active Profile</string>
     <string name="manage_cannot_delete_active_body">You cannot delete a profile that is currently active. Please switch to a different profile first.</string>
-    <string name="start_picker_title">Which profile?</string>
-    <string name="start_picker_no_apps_selected">No apps selected</string>
+    <string name="start_picker_go_button">Fresh Start, Every Tap</string>
+    <string name="start_picker_active_session_notice">A profile is already active. Stop it before starting another one.</string>
     <string name="insights_filter_content_description">Filter</string>
     <string name="insights_filter_this_week">This Week</string>
     <string name="insights_filter_last_week">Last Week</string>
@@ -63,48 +66,36 @@
     <string name="insights_filter_select_month">Select Month…</string>
     <string name="insights_filter_select_week">Select Week…</string>
     <string name="insights_filter_all_sessions">All Sessions</string>
-    <string name="insights_filter_delete_all_sessions">Delete All Sessions</string>
     <string name="insights_reset">Reset</string>
     <string name="insights_avg_focus_session">Avg Focus Session</string>
-    <string name="insights_total_label"> total</string>
+    <string name="insights_total_label">total</string>
     <string name="insights_summary_title">Summary</string>
     <string name="insights_total_focus_time">Total Focus Time</string>
     <string name="insights_total_break_time">Total Break Time</string>
-    <string name="insights_profile_id">Profile ID</string>
-    <string name="insights_delete_session_content_description">Delete session</string>
-    <string name="insights_delete_session_title">Delete Session</string>
-    <string name="insights_delete_session_body">Are you sure you want to delete this session? This action cannot be undone.</string>
-    <string name="insights_delete_all_title">Delete All Sessions</string>
-    <string name="insights_delete_all_body">Are you sure you want to delete all completed sessions? This action cannot be undone.</string>
-    <string name="insights_delete_all_confirm">Delete All</string>
     <string name="insights_screen_title">%1$s Insights</string>
     <string name="insights_legend_under_1h">Under 1h</string>
     <string name="insights_legend_1_3h">1-3h</string>
     <string name="insights_legend_3_5h">3-5h</string>
     <string name="insights_legend_over_5h">&gt;5h</string>
-    <string name="session_details_title">Session Details</string>
-    <string name="session_details_info_section">Session Info</string>
-    <string name="session_details_tag">Tag</string>
-    <string name="session_details_profile">Profile</string>
-    <string name="session_details_force_started">Force Started</string>
-    <string name="session_details_timing_section">Timing</string>
-    <string name="session_details_start">Start</string>
-    <string name="session_details_end">End</string>
-    <string name="session_details_in_progress">In Progress</string>
-    <string name="session_details_duration">Duration</string>
-    <string name="session_details_break_section">Break</string>
-    <string name="session_details_break_start">Break Start</string>
-    <string name="session_details_break_end">Break End</string>
-    <string name="session_details_break_duration">Break Duration</string>
+    <!-- Sunday-first, matching WeeklySessionAggregator.startOfWeek -->
+    <string-array name="weekday_short">
+        <item>Sun</item>
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+    </string-array>
     <string name="a11y_disclosure_title">Accessibility access</string>
     <string name="a11y_disclosure_body">Ctrus uses Android\'s Accessibility service to know which app is in the foreground, so it can show the block screen when you open something a profile is blocking. It only reads the name of the app currently on screen — it does not read passwords, messages, or anything you type, and nothing leaves your device.</string>
     <string name="a11y_disclosure_agree_checkbox">I understand and agree</string>
     <string name="a11y_disclosure_continue">Continue to Settings</string>
     <string name="intro_welcome_title">Welcome to Ctrus</string>
     <string name="intro_welcome_subtitle">We need Accessibility Access to get started</string>
-    <string name="intro_open_source_prefix">Ctrus is 100% open source, </string>
+    <string name="intro_open_source_prefix">Ctrus is 100% open source,</string>
     <string name="intro_open_source_link">read the code yourself</string>
-    <string name="intro_open_source_suffix"> if you\'re skeptical</string>
+    <string name="intro_open_source_suffix">if you\'re skeptical</string>
     <string name="intro_nudge">Still here? Find “Ctrus” in the Accessibility list and turn it on.</string>
     <string name="intro_allow_button">Allow Accessibility Access</string>
     <string name="app_picker_title_allow">Select Apps to Allow</string>
@@ -167,14 +158,13 @@
     <string name="field_remove_domain_content_description">Remove %1$s</string>
     <string name="field_allow_only_selected_domains_title">Allow Only Selected Domains</string>
     <string name="field_allow_only_selected_domains_desc">Only selected domains stay available during sessions.</string>
-    <string name="field_no_tags_added_yet">No tags added yet</string>
     <string name="field_remove_tag_content_description">Remove %1$s</string>
     <string name="field_add_tag_button">+ %1$s</string>
     <string name="field_add_tag">Add Tag</string>
     <string name="field_scan_tag_title">Scan your Ctrus tag</string>
     <string name="field_nfc_no_hardware">This device doesn\'t support NFC.</string>
     <string name="field_nfc_disabled">NFC is turned off. Enable it in system settings, then try again.</string>
-    <string name="field_nfc_hold_near_tag">Hold the back of your phone near the tag.</string>
+    <string name="field_nfc_hold_near_tag">Bring the back of your phone close to your Ctrus.</string>
     <string name="field_nfc_scan_empty">The scanned code was empty.</string>
     <string name="field_nfc_scan_duplicate">That tag is already in this list.</string>
     <string name="field_allow_timed_breaks_title">Allow Timed Breaks</string>
@@ -211,11 +201,26 @@
     <string name="profile_form_missing_unlock_body">Set a Physical Unlock to continue.</string>
     <string name="profile_form_duplicate_title">Duplicate Profile</string>
     <string name="profile_form_duplicate_name_suffix">%1$s Copy</string>
-    <string name="session_on_break">On a Break</string>
-    <string name="session_hold_stop_break">Hold to Stop Break</string>
-    <string name="session_hold_start_break">Hold to Start Break</string>
+    <string name="session_hold_stop_break">Hold to stop a break</string>
+    <string name="session_hold_start_break">Hold to start a break</string>
     <string name="session_emergency_button">Emergency</string>
     <string name="session_stop_button">Stop</string>
+    <string name="break_notification_channel_name">Break reminders</string>
+    <string name="break_notification_channel_description">Lets you know when your break is about to end</string>
+    <string name="break_notification_title">Break almost over!</string>
+    <string name="break_notification_body">Hope you enjoyed your break, starting %1$s in 1 minute.</string>
+    <string name="emergency_title">Emergency Access</string>
+    <string name="emergency_unblocks_remaining_label">Unblocks remaining</string>
+    <string name="emergency_limited_notice">You have a limited number of emergency unblocks.</string>
+    <string name="emergency_unblock_button">Emergency Unblock</string>
+    <string name="emergency_hold_button">Hold to Unblock</string>
+    <string name="emergency_reduce_notice">This will reduce your remaining count by 1.</string>
+    <string name="emergency_none_remaining">No emergency unblocks remaining. You\'re out of luck.</string>
+    <string name="emergency_reset_period_content_description">Reset period</string>
+    <string name="emergency_reset_weeks_2">2 weeks</string>
+    <string name="emergency_reset_weeks_4">4 weeks</string>
+    <string name="emergency_resets_in_hours">Resets in %1$dh</string>
+    <string name="emergency_resets_on_date">Resets %1$s</string>
     <string name="error_dialog_title">Something went wrong</string>
     <string name="error_original_tag_required">You must scan the original tag to stop focus.</string>
     <string name="error_not_allowed_to_unblock">This is not allowed to unblock this profile.</string>
@@ -223,7 +228,7 @@
     <string name="nfc_scan_title">Scan your Ctrus tag</string>
     <string name="nfc_no_hardware">This device doesn\'t support NFC, so this strategy can\'t start or stop here.</string>
     <string name="nfc_disabled">NFC is turned off. Enable it in system settings, then try again.</string>
-    <string name="nfc_hold_near_tag">Hold the back of your phone near the tag.</string>
+    <string name="nfc_hold_near_tag">Bring the back of your phone close to your Ctrus.</string>
     <string name="nfc_open_settings">Open Settings</string>
     <string name="strategy_nfc_name">Ctrus NFC</string>
     <string name="strategy_nfc_description">Start and stop by tapping your Ctrus.</string>
@@ -236,22 +241,23 @@
     <string name="settings_appearance_desc">Customize the look of your app</string>
     <string name="settings_theme_color">Theme Color</string>
     <string name="settings_section_app_icon">App Icon</string>
-    <string name="settings_section_help">Help</string>
-    <string name="settings_debug_mode">Debug Mode</string>
-    <string name="settings_blocking_native_apps">Blocking Native Apps</string>
     <string name="settings_section_recovery">Locked Out and Lost Your Ctrus?</string>
     <string name="settings_get_unlock_code">Get an Unlock Code</string>
     <string name="settings_device_id">Device ID</string>
+    <string name="settings_copy_device_id_content_description">Copy Device ID</string>
     <string name="settings_enter_code_placeholder">Enter code</string>
     <string name="settings_unlock_button">Unlock</string>
+    <string name="settings_recovery_one_left">You only have 1 unlock left.</string>
+    <string name="settings_recovery_resets_in_hours">No unlocks remaining. Resets in %1$dh.</string>
+    <string name="settings_recovery_resets_on_date">No unlocks remaining. Resets %1$s.</string>
+    <string name="settings_recovery_default_status">You have access to 2 unlocks every 4 weeks.</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_version_value">v%1$s</string>
-    <string name="settings_usage_access">Usage Access</string>
+    <string name="settings_accessibility_access">Accessibility Access</string>
     <string name="settings_authorized">Authorized</string>
     <string name="settings_not_authorized">Not Authorized</string>
     <string name="settings_made_in">Made in</string>
-    <string name="settings_based_on_foqos">Based on Foqos - Tap to Block</string>
     <string name="settings_invalid_code_title">Invalid Code</string>
     <string name="settings_invalid_code_body">That unlock code isn\'t valid. Visit recover.ctrus.net to get one.</string>
     <string name="color_orange">Orange</string>
@@ -267,10 +273,6 @@
     <plurals name="domains_count">
         <item quantity="one">%1$d Domain</item>
         <item quantity="other">%1$d Domains</item>
-    </plurals>
-    <plurals name="apps_blocked_count">
-        <item quantity="one">%1$d app blocked</item>
-        <item quantity="other">%1$d apps blocked</item>
     </plurals>
     <plurals name="apps_selected_count">
         <item quantity="one">%1$d app selected</item>
@@ -297,25 +299,31 @@
         <item quantity="other">%1$d minutes</item>
     </plurals>
 
-    <!-- Shown on the full-screen block surface (BlockerActivity), one of 6 variants chosen
+    <!-- Shown on the full-screen block surface (BlockerActivity), one of 8 variants chosen
          deterministically per app per day, mirroring ShieldConfigurationExtension.swift. -->
     <string-array name="shield_titles">
         <item>Not ripe yet</item>
         <item>Juicy trap</item>
-        <item>Juice preserved</item>
-        <item>Guard the grove</item>
-        <item>Nothing left to peel</item>
-        <item>Juiced up</item>
+        <item>Protect the grove</item>
+        <item>Nothing to peel</item>
+        <item>Drop by drop</item>
+        <item>Sour now, sweet later</item>
+        <item>Make lemonade</item>
+        <item>Grow somewhere better</item>
     </string-array>
     <string-array name="shield_subtitles">
         <item>%1$s can wait until you\'re ready to pick it.</item>
         <item>One click turns into twenty. Let\'s not squeeze this dry.</item>
-        <item>We\'re keeping your attention as fresh as morning juice.</item>
         <item>A few minutes ripen into an hour before you know it.</item>
-        <item>You\'re not missing anything important, it\'s all already peeled and ready.</item>
+        <item>Relax, you\'re not missing anything.</item>
         <item>Small squeezes of effort like this fill the glass fast.</item>
+        <item>This feeling fades faster than you think.</item>
+        <item>When life gives you lemons, close %1$s.</item>
+        <item>Your attention can bear more fruit elsewhere.</item>
     </string-array>
     <string-array name="shield_buttons">
+        <item>Got it</item>
+        <item>Got it</item>
         <item>Got it</item>
         <item>Got it</item>
         <item>Got it</item>
@@ -333,13 +341,9 @@
         <item>The lime always looks greener on someone else\'s tree</item>
         <item>Progress ripens like citrus, one day at a time</item>
         <item>This moment shapes the citrus you\'ll harvest tomorrow</item>
-        <item>Peel back the moment like an orange and taste it fully</item>
-        <item>Limit distractions, let your potential ripen like an orange</item>
         <item>Your attention decides which grove you grow in</item>
-        <item>Protect your mental zest</item>
         <item>Stay on your branch, like a lime waiting to ripen</item>
-        <item>Discipline is the zest that flavors freedom</item>
-        <item>Great work needs a full glass of lemonade</item>
+        <item>Great work needs a glass of lemonade</item>
         <item>Leftover pulp from distraction dilutes your juice</item>
         <item>Protect your grove, protect your time</item>
     </string-array>

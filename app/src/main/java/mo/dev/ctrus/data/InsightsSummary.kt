@@ -1,11 +1,9 @@
 package mo.dev.ctrus.data
 
-import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
-data class WeeklyDayAggregate(val dayName: String, val displayLabel: String, val totalSessionSeconds: Double, val sessionCount: Int, val date: Date)
+data class WeeklyDayAggregate(val totalSessionSeconds: Double, val sessionCount: Int, val date: Date)
 
 data class WeeklySummary(
     val days: List<WeeklyDayAggregate>,
@@ -16,7 +14,7 @@ data class WeeklySummary(
     val weekEndDate: Date,
 )
 
-data class MonthlyDayAggregate(val dayOfMonth: Int, val dayName: String, val totalSessionSeconds: Double, val sessionCount: Int, val date: Date)
+data class MonthlyDayAggregate(val dayOfMonth: Int, val totalSessionSeconds: Double, val sessionCount: Int, val date: Date)
 
 data class MonthlySummary(
     val days: List<MonthlyDayAggregate>,
@@ -35,8 +33,6 @@ data class ProfileInsightsMetrics(val totalCompletedSessions: Int, val totalFocu
  * since [mo.dev.ctrus.ui.insights.ProfileInsightsScreen] just calls these from `remember`.
  */
 object InsightsSummary {
-    private val dayNameFormat = SimpleDateFormat("EEE", Locale.getDefault())
-
     fun weeklySummary(sessions: List<BlockedProfileSessionEntity>, selectedDate: Date, calendar: Calendar = Calendar.getInstance()): WeeklySummary {
         val weekStart = WeeklySessionAggregator.startOfWeek(selectedDate, calendar)
         val weekEnd = addDays(weekStart, 6, calendar)
@@ -49,12 +45,7 @@ object InsightsSummary {
 
         val days = (0 until 7).map { dayOffset ->
             val currentDay = addDays(weekStart, dayOffset, calendar)
-            val cal = (calendar.clone() as Calendar).apply { time = currentDay }
-            val dayNumber = cal.get(Calendar.DAY_OF_MONTH)
-            val dayName = dayNameFormat.format(currentDay)
             WeeklyDayAggregate(
-                dayName = dayName,
-                displayLabel = "$dayName $dayNumber",
                 totalSessionSeconds = aggregation.dailyDurations[dayOffset],
                 sessionCount = aggregation.dailySessionCounts[dayOffset],
                 date = currentDay,
@@ -89,7 +80,6 @@ object InsightsSummary {
             val cal = (calendar.clone() as Calendar).apply { time = currentDay }
             MonthlyDayAggregate(
                 dayOfMonth = cal.get(Calendar.DAY_OF_MONTH),
-                dayName = dayNameFormat.format(currentDay),
                 totalSessionSeconds = aggregation.dailyDurations[dayOffset],
                 sessionCount = aggregation.dailySessionCounts[dayOffset],
                 date = currentDay,

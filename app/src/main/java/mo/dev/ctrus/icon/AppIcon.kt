@@ -11,8 +11,8 @@ import mo.dev.ctrus.R
  */
 enum class AppIcon(@StringRes val labelRes: Int, val drawableRes: Int, val aliasClassName: String) {
     Orange(R.string.color_orange, R.drawable.ic_app_icon_orange, "mo.dev.ctrus.OrangeIconAlias"),
-    Lime(R.string.color_lime, R.drawable.ic_app_icon_lime, "mo.dev.ctrus.LimeIconAlias"),
     Lemon(R.string.color_lemon, R.drawable.ic_app_icon_lemon, "mo.dev.ctrus.LemonIconAlias"),
+    Lime(R.string.color_lime, R.drawable.ic_app_icon_lime, "mo.dev.ctrus.LimeIconAlias"),
     Dark(R.string.color_dark, R.drawable.ic_app_icon_dark, "mo.dev.ctrus.DarkIconAlias"),
 }
 

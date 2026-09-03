@@ -1,6 +1,8 @@
 package mo.dev.ctrus
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -52,9 +54,24 @@ class CtrusApp : Application() {
         // Warms the 3D mascot's parsed-mesh cache before Home is ever shown, so the model doesn't
         // visibly stall on the very first appearance either — see ObjModelCache's kdoc.
         applicationScope.launch { ObjModelCache.get(this@CtrusApp) }
+
+        createNotificationChannels()
+    }
+
+    /** Backs the "break almost over" notification posted by ExpiryReceiver's warning alarm. */
+    private fun createNotificationChannels() {
+        val manager = getSystemService(NotificationManager::class.java)
+        val channel = NotificationChannel(
+            BREAK_WARNING_CHANNEL_ID,
+            getString(R.string.break_notification_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply { description = getString(R.string.break_notification_channel_description) }
+        manager.createNotificationChannel(channel)
     }
 
     companion object {
+        const val BREAK_WARNING_CHANNEL_ID = "break_warning"
+
         fun from(context: android.content.Context): CtrusApp = context.applicationContext as CtrusApp
     }
 }

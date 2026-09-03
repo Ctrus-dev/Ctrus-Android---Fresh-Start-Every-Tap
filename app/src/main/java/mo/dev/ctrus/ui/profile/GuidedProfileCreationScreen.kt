@@ -27,7 +27,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -50,6 +49,7 @@ import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
 import mo.dev.ctrus.theme.CtrusSystemColors
+import mo.dev.ctrus.ui.common.GlassIconButton
 
 private enum class GuidedStep(
     @androidx.annotation.StringRes val titleRes: Int,
@@ -125,12 +125,14 @@ fun GuidedProfileCreationScreen(
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = { if (isFirstStep) onDismiss() else stepIndex-- }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.guided_back_content_description))
-                    }
+                    GlassIconButton(
+                        onClick = { if (isFirstStep) onDismiss() else stepIndex-- },
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.guided_back_content_description),
+                    )
                 },
                 actions = {
-                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.guided_cancel_content_description)) }
+                    GlassIconButton(onClick = onDismiss, icon = Icons.Filled.Close, contentDescription = stringResource(R.string.guided_cancel_content_description))
                 },
             )
         },
@@ -176,7 +178,7 @@ private fun StepHeader(index: Int, total: Int, step: GuidedStep, draft: ProfileD
         Spacer(Modifier.height(6.dp))
         Text(stringResource(step.introTitleRes), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(6.dp))
-        Text(stringResource(step.introDescriptionRes), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(step.introDescriptionRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -186,7 +188,7 @@ private fun GuidedCard(content: @Composable () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .padding(bottom = 28.dp)
+            .padding(bottom = 36.dp)
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(28.dp))
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
@@ -254,7 +256,7 @@ private fun ReviewContent(draft: ProfileDraft, availableStrategies: List<Blockin
 private fun ReviewRow(title: String, value: String, showDivider: Boolean = true) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(end = 12.dp))
-        Text(value, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
     if (showDivider) {
         androidx.compose.material3.HorizontalDivider(

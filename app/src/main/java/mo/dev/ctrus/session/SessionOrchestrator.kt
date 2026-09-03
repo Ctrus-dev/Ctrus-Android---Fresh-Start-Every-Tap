@@ -198,11 +198,18 @@ class SessionOrchestrator(
                 session.isBreakActive(profile, allowsBreaks) -> {
                     sessions.endBreak(session, profile)
                     scheduling.cancelBreakExpiry(session.id)
+                    scheduling.cancelBreakWarning(session.id)
                 }
                 session.isBreakAvailable(profile, allowsBreaks) -> {
                     val updated = sessions.startBreak(session, profile.allowMultipleBreaks)
                     val remaining = updated.remainingBreakAllowance(profile)
-                    scheduling.scheduleBreakExpiry(session.id, profile.id, System.currentTimeMillis() + (remaining * 1000).toLong())
+                    val now = System.currentTimeMillis()
+                    scheduling.scheduleBreakExpiry(session.id, profile.id, now + (remaining * 1000).toLong())
+                    // Mirrors StrategyManager.scheduleBreakReminder: warn 60s before the break ends,
+                    // skipped for breaks too short to meaningfully warn about.
+                    if (remaining > 60) {
+                        scheduling.scheduleBreakWarning(session.id, profile.name, now + ((remaining - 60) * 1000).toLong())
+                    }
                 }
             }
         }
@@ -214,6 +221,7 @@ class SessionOrchestrator(
         viewModelScope.launch {
             if (!preferences.consumeEmergencyUnblock()) return@launch
             scheduling.cancelBreakExpiry(session.id)
+            scheduling.cancelBreakWarning(session.id)
             sessions.endSession(session)
         }
     }

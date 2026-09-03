@@ -78,7 +78,7 @@ fun StrategyFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, a
             )
             Column {
                 Text(stringResource(strategy.displayNameRes), style = MaterialTheme.typography.bodyLarge)
-                Text(stringResource(strategy.descriptionRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(strategy.descriptionRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -225,9 +225,7 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
         onDispose { nfcScanController.stopScan() }
     }
 
-    if (draft.physicalUnblockItems.isEmpty()) {
-        SettingsRow(title = stringResource(R.string.field_no_tags_added_yet), showChevron = false)
-    } else {
+    if (draft.physicalUnblockItems.isNotEmpty()) {
         draft.physicalUnblockItems.forEachIndexed { index, item ->
             if (index > 0) SettingsDivider()
             SettingsRow(
@@ -240,8 +238,8 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
                 },
             )
         }
+        SettingsDivider()
     }
-    SettingsDivider()
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         TextButton(enabled = !disabled, onClick = { isScanningTag = true }) { Text("+ " + stringResource(R.string.field_add_tag)) }
     }

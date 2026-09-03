@@ -19,9 +19,32 @@ class AlarmSchedulingGateway(private val context: Context) : SchedulingGateway {
     }
 
     override fun cancelBreakExpiry(sessionId: String) {
+        cancel(requestCode(ExpiryReceiver.KIND_BREAK, sessionId))
+    }
+
+    override fun scheduleBreakWarning(sessionId: String, profileName: String, triggerAtEpochMilli: Long) {
+        val intent = Intent(context, ExpiryReceiver::class.java).apply {
+            action = ExpiryReceiver.KIND_BREAK_WARNING
+            putExtra(ExpiryReceiver.EXTRA_OWNER_ID, sessionId)
+            putExtra(ExpiryReceiver.EXTRA_PROFILE_NAME, profileName)
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            requestCode(sessionId),
+            requestCode(ExpiryReceiver.KIND_BREAK_WARNING, sessionId),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtEpochMilli, pendingIntent)
+    }
+
+    override fun cancelBreakWarning(sessionId: String) {
+        cancel(requestCode(ExpiryReceiver.KIND_BREAK_WARNING, sessionId))
+    }
+
+    private fun cancel(requestCode: Int) {
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
             Intent(context, ExpiryReceiver::class.java),
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         ) ?: return
@@ -37,11 +60,11 @@ class AlarmSchedulingGateway(private val context: Context) : SchedulingGateway {
         }
         return PendingIntent.getBroadcast(
             context,
-            requestCode(sessionId),
+            requestCode(ExpiryReceiver.KIND_BREAK, sessionId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 
-    private fun requestCode(sessionId: String): Int = (ExpiryReceiver.KIND_BREAK + sessionId).hashCode()
+    private fun requestCode(kind: String, sessionId: String): Int = (kind + sessionId).hashCode()
 }

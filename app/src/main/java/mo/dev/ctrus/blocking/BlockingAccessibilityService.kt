@@ -45,6 +45,7 @@ class BlockingAccessibilityService : AccessibilityService() {
         lastHandledPackage = packageName
         when (val decision = BlockDecisionEngine.decide(this, packageName)) {
             is BlockDecision.Block -> showBlocker(decision)
+            BlockDecision.Dismiss -> goHome()
             BlockDecision.Allow -> Unit
         }
     }
@@ -57,8 +58,14 @@ class BlockingAccessibilityService : AccessibilityService() {
 
         when (val decision = BlockDecisionEngine.decide(this, packageName)) {
             is BlockDecision.Block -> showBlocker(decision)
+            BlockDecision.Dismiss -> goHome()
             BlockDecision.Allow -> Unit
         }
+    }
+
+    /** Leaves the Play Store / uninstall-confirmation surface without the citrus shield screen. */
+    private fun goHome() {
+        startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     private fun showBlocker(decision: BlockDecision.Block) {

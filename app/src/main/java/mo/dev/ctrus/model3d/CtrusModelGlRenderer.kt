@@ -46,8 +46,10 @@ private const val FRAGMENT_SHADER = """
  * (Branco/white dividers) stay fixed, matching the exported VF_Ctrus_Cima_FV.obj/.mtl naming.
  */
 class CtrusModelGlRenderer(private val context: Context, private val assetPath: String) : GLSurfaceView.Renderer {
-    @Volatile var yawDegrees: Float = 25f
-    @Volatile var pitchDegrees: Float = -18f
+    // Matches iOS's RotatingModel3DRepresentable: the pivot node gets no initial rotation, so the
+    // model shows front-on (as authored) until the user drags it, instead of an arbitrary angle.
+    @Volatile var yawDegrees: Float = 0f
+    @Volatile var pitchDegrees: Float = 0f
     @Volatile var accentColor: FloatArray = floatArrayOf(0.95f, 0.65f, 0.25f, 1f)
 
     private class GpuGroup(val vbo: Int, val isAccent: Boolean, val vertexCount: Int)

@@ -126,7 +126,7 @@ fun CustomToggleRow(
             Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(
                 description,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -136,8 +136,10 @@ fun CustomToggleRow(
 
 @Composable
 fun SettingsDivider() {
+    // Inset on both ends — matching the row content's own horizontal padding — instead of
+    // running flush to the card's raw right edge.
     HorizontalDivider(
-        modifier = Modifier.padding(start = 16.dp),
+        modifier = Modifier.padding(horizontal = 16.dp),
         color = if (isSystemInDarkTheme()) CtrusSystemColors.separatorDark else CtrusSystemColors.separatorLight,
     )
 }

@@ -35,8 +35,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -102,8 +105,21 @@ fun AccessibilityPermissionScreen(themeColor: Color, onRequestAuthorization: () 
         Spacer(Modifier.weight(1f))
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            // Built with buildAnnotatedString (not string concatenation) for two reasons: it lets
+            // "read the code yourself" carry the theme color like iOS's three-Text `+` does, and
+            // it sidesteps aapt trimming the leading/trailing spaces off the prefix/suffix string
+            // resources — string-concatenating those directly ran the words together.
+            val openSourceText = buildAnnotatedString {
+                append(stringResource(R.string.intro_open_source_prefix))
+                append(" ")
+                withStyle(SpanStyle(color = themeColor)) {
+                    append(stringResource(R.string.intro_open_source_link))
+                }
+                append(" ")
+                append(stringResource(R.string.intro_open_source_suffix))
+            }
             Text(
-                stringResource(R.string.intro_open_source_prefix) + stringResource(R.string.intro_open_source_link) + stringResource(R.string.intro_open_source_suffix),
+                openSourceText,
                 color = FixedLightSecondaryText,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Medium,

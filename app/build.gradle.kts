@@ -31,6 +31,15 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // Without this, Android has no way to know the app ships pt-rPT/es resources, so it never
+    // shows up under system Settings > Apps > [Ctrus] > App languages (Samsung's "Idiomas da
+    // aplicação") — AGP generates the LocaleConfig resource + manifest reference automatically
+    // from the values-*/ directories present, instead of hand-maintaining an XML list that can
+    // drift out of sync with them.
+    androidResources {
+        generateLocaleConfig = true
+    }
 }
 
 dependencies {

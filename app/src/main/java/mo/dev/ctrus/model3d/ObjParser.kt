@@ -64,7 +64,10 @@ object ObjParser {
         val centerY = (minY + maxY) / 2f
         val centerZ = (minZ + maxZ) / 2f
         val extent = maxOf(maxX - minX, maxY - minY, maxZ - minZ).coerceAtLeast(0.0001f)
-        val scale = 2f / extent // fit the longest axis into a diameter-2 sphere
+        // 2.2, not a literal diameter-2 sphere: matches iOS's centerAndScale, which fits the
+        // model's longest axis to 2.9 world units against its own camera/FOV — the equivalent
+        // fill fraction for this renderer's 45° FOV / camera-at-4 setup works out to about 2.2.
+        val scale = 2.2f / extent
 
         val groups = groupVertices.map { (name, verts) ->
             var i = 0

@@ -24,6 +24,8 @@
     <string name="common_profiles">Perfiles</string>
     <string name="common_tag">Etiqueta</string>
     <string name="common_active">Activo</string>
+    <string name="common_today">Hoy</string>
+    <string name="common_yesterday">Ayer</string>
     <string name="common_disabled">Desactivado</string>
     <string name="common_default">Predeterminado</string>
     <string name="common_min_short">%1$d min</string>
@@ -32,6 +34,9 @@
     <string name="home_getting_started_title">Primeros Pasos</string>
     <string name="home_getting_started_body">Empecemos creando tu primer perfil. Puedes personalizarlo tanto como quieras.</string>
     <string name="home_create_profile_button">Crear Perfil</string>
+    <string name="home_accessibility_alert_title">Se necesita acceso de accesibilidad</string>
+    <string name="home_accessibility_alert_message">El bloqueo está en pausa hasta que se restaure el acceso.</string>
+    <string name="home_accessibility_alert_detail">Ctrus necesita acceso de accesibilidad para bloquear apps y sitios web. Concede el acceso de nuevo para restaurar el bloqueo.</string>
     <string name="home_manage_profiles_content_description">Gestionar %1$s</string>
     <string name="home_show_insights_content_description">Mostrar estadísticas de %1$s</string>
     <string name="home_edit_profile_content_description">Editar %1$s</string>
@@ -40,9 +45,7 @@
     <string name="home_menu_edit">Editar</string>
     <string name="home_menu_stop">Detener</string>
     <string name="home_menu_start">Iniciar</string>
-    <string name="home_launcher_start">Iniciar</string>
-    <string name="home_indicator_breaks">Descansos</string>
-    <string name="home_indicator_deletion_blocked">Eliminación Bloqueada</string>
+    <string name="home_launcher_start">Presiona para empezar</string>
     <string name="manage_title">Perfiles</string>
     <string name="manage_close_content_description">Cerrar</string>
     <string name="manage_edit_move_content_description">Editar/Mover</string>
@@ -53,8 +56,8 @@
     <string name="manage_move_down_content_description">Mover hacia abajo</string>
     <string name="manage_cannot_delete_active_title">No Se Puede Eliminar el Perfil Activo</string>
     <string name="manage_cannot_delete_active_body">No puedes eliminar un perfil que está actualmente activo. Cambia primero a otro perfil.</string>
-    <string name="start_picker_title">¿Qué perfil?</string>
-    <string name="start_picker_no_apps_selected">Ninguna app seleccionada</string>
+    <string name="start_picker_go_button">Un Nuevo Comienzo en Cada Toque</string>
+    <string name="start_picker_active_session_notice">Ya hay un perfil activo. Detenlo antes de iniciar otro.</string>
     <string name="insights_filter_content_description">Filtro</string>
     <string name="insights_filter_this_week">Esta Semana</string>
     <string name="insights_filter_last_week">Semana Pasada</string>
@@ -63,48 +66,35 @@
     <string name="insights_filter_select_month">Seleccionar Mes…</string>
     <string name="insights_filter_select_week">Seleccionar Semana…</string>
     <string name="insights_filter_all_sessions">Todas las Sesiones</string>
-    <string name="insights_filter_delete_all_sessions">Eliminar Todas las Sesiones</string>
     <string name="insights_reset">Restablecer</string>
     <string name="insights_avg_focus_session">Sesión Media de Enfoque</string>
-    <string name="insights_total_label"> total</string>
+    <string name="insights_total_label">total</string>
     <string name="insights_summary_title">Resumen</string>
     <string name="insights_total_focus_time">Tiempo Total de Enfoque</string>
     <string name="insights_total_break_time">Tiempo Total de Descanso</string>
-    <string name="insights_profile_id">ID del Perfil</string>
-    <string name="insights_delete_session_content_description">Eliminar sesión</string>
-    <string name="insights_delete_session_title">Eliminar Sesión</string>
-    <string name="insights_delete_session_body">¿Seguro que quieres eliminar esta sesión? Esta acción no se puede deshacer.</string>
-    <string name="insights_delete_all_title">Eliminar Todas las Sesiones</string>
-    <string name="insights_delete_all_body">¿Seguro que quieres eliminar todas las sesiones completadas? Esta acción no se puede deshacer.</string>
-    <string name="insights_delete_all_confirm">Eliminar Todo</string>
     <string name="insights_screen_title">Estadísticas de %1$s</string>
     <string name="insights_legend_under_1h">Menos de 1h</string>
     <string name="insights_legend_1_3h">1-3h</string>
     <string name="insights_legend_3_5h">3-5h</string>
     <string name="insights_legend_over_5h">&gt;5h</string>
-    <string name="session_details_title">Detalles de la Sesión</string>
-    <string name="session_details_info_section">Información de la Sesión</string>
-    <string name="session_details_tag">Etiqueta</string>
-    <string name="session_details_profile">Perfil</string>
-    <string name="session_details_force_started">Iniciado a la Fuerza</string>
-    <string name="session_details_timing_section">Cronometraje</string>
-    <string name="session_details_start">Inicio</string>
-    <string name="session_details_end">Fin</string>
-    <string name="session_details_in_progress">En Curso</string>
-    <string name="session_details_duration">Duración</string>
-    <string name="session_details_break_section">Descanso</string>
-    <string name="session_details_break_start">Inicio del Descanso</string>
-    <string name="session_details_break_end">Fin del Descanso</string>
-    <string name="session_details_break_duration">Duración del Descanso</string>
+    <string-array name="weekday_short">
+        <item>Dom</item>
+        <item>Lun</item>
+        <item>Mar</item>
+        <item>Mié</item>
+        <item>Jue</item>
+        <item>Vie</item>
+        <item>Sáb</item>
+    </string-array>
     <string name="a11y_disclosure_title">Acceso de Accesibilidad</string>
     <string name="a11y_disclosure_body">Ctrus usa el servicio de Accesibilidad de Android para saber qué app está en primer plano, para poder mostrar la pantalla de bloqueo cuando abres algo que un perfil está bloqueando. Solo lee el nombre de la app actualmente en pantalla — no lee contraseñas, mensajes ni nada que escribas, y nada sale de tu dispositivo.</string>
     <string name="a11y_disclosure_agree_checkbox">Entiendo y acepto</string>
     <string name="a11y_disclosure_continue">Continuar a Ajustes</string>
     <string name="intro_welcome_title">Bienvenido a Ctrus</string>
     <string name="intro_welcome_subtitle">Necesitamos Acceso de Accesibilidad para empezar</string>
-    <string name="intro_open_source_prefix">Ctrus es 100% de código abierto, </string>
+    <string name="intro_open_source_prefix">Ctrus es 100% de código abierto,</string>
     <string name="intro_open_source_link">lee el código tú mismo</string>
-    <string name="intro_open_source_suffix"> si eres escéptico</string>
+    <string name="intro_open_source_suffix">si eres escéptico</string>
     <string name="intro_nudge">¿Sigues ahí? Busca “Ctrus” en la lista de Accesibilidad y actívalo.</string>
     <string name="intro_allow_button">Permitir Acceso de Accesibilidad</string>
     <string name="app_picker_title_allow">Seleccionar Apps a Permitir</string>
@@ -167,14 +157,13 @@
     <string name="field_remove_domain_content_description">Eliminar %1$s</string>
     <string name="field_allow_only_selected_domains_title">Permitir Solo Dominios Seleccionados</string>
     <string name="field_allow_only_selected_domains_desc">Solo los dominios seleccionados permanecen disponibles durante las sesiones.</string>
-    <string name="field_no_tags_added_yet">Aún no hay etiquetas añadidas</string>
     <string name="field_remove_tag_content_description">Eliminar %1$s</string>
     <string name="field_add_tag_button">+ %1$s</string>
     <string name="field_add_tag">Añadir Etiqueta</string>
     <string name="field_scan_tag_title">Escanea tu etiqueta Ctrus</string>
     <string name="field_nfc_no_hardware">Este dispositivo no admite NFC.</string>
     <string name="field_nfc_disabled">El NFC está desactivado. Actívalo en los ajustes del sistema e inténtalo de nuevo.</string>
-    <string name="field_nfc_hold_near_tag">Acerca la parte trasera del teléfono a la etiqueta.</string>
+    <string name="field_nfc_hold_near_tag">Acerca la parte trasera del teléfono a tu Ctrus.</string>
     <string name="field_nfc_scan_empty">El código escaneado estaba vacío.</string>
     <string name="field_nfc_scan_duplicate">Esa etiqueta ya está en esta lista.</string>
     <string name="field_allow_timed_breaks_title">Permitir Descansos Cronometrados</string>
@@ -211,11 +200,26 @@
     <string name="profile_form_missing_unlock_body">Define un Desbloqueo Físico para continuar.</string>
     <string name="profile_form_duplicate_title">Duplicar Perfil</string>
     <string name="profile_form_duplicate_name_suffix">%1$s Copia</string>
-    <string name="session_on_break">De Descanso</string>
-    <string name="session_hold_stop_break">Mantén para Terminar Descanso</string>
-    <string name="session_hold_start_break">Mantén para Iniciar Descanso</string>
+    <string name="session_hold_stop_break">Presiona para terminar la pausa</string>
+    <string name="session_hold_start_break">Presiona para iniciar la pausa</string>
     <string name="session_emergency_button">Emergencia</string>
     <string name="session_stop_button">Detener</string>
+    <string name="break_notification_channel_name">Recordatorios de descanso</string>
+    <string name="break_notification_channel_description">Te avisa cuando tu descanso está por terminar</string>
+    <string name="break_notification_title">¡El descanso está por terminar!</string>
+    <string name="break_notification_body">Esperamos que hayas disfrutado tu descanso, %1$s comienza en 1 minuto.</string>
+    <string name="emergency_title">Acceso de Emergencia</string>
+    <string name="emergency_unblocks_remaining_label">Desbloqueos restantes</string>
+    <string name="emergency_limited_notice">Tienes un número limitado de desbloqueos de emergencia.</string>
+    <string name="emergency_unblock_button">Desbloqueo de Emergencia</string>
+    <string name="emergency_hold_button">Mantén Pulsado para Desbloquear</string>
+    <string name="emergency_reduce_notice">Esto reducirá en 1 tu número restante.</string>
+    <string name="emergency_none_remaining">No quedan desbloqueos de emergencia. Mala suerte.</string>
+    <string name="emergency_reset_period_content_description">Periodo de reinicio</string>
+    <string name="emergency_reset_weeks_2">2 semanas</string>
+    <string name="emergency_reset_weeks_4">4 semanas</string>
+    <string name="emergency_resets_in_hours">Se reinicia en %1$dh</string>
+    <string name="emergency_resets_on_date">Se reinicia el %1$s</string>
     <string name="error_dialog_title">Algo salió mal</string>
     <string name="error_original_tag_required">Debes escanear la etiqueta original para detener el enfoque.</string>
     <string name="error_not_allowed_to_unblock">Esto no está autorizado para desbloquear este perfil.</string>
@@ -223,7 +227,7 @@
     <string name="nfc_scan_title">Escanea tu etiqueta Ctrus</string>
     <string name="nfc_no_hardware">Este dispositivo no admite NFC, así que esta estrategia no puede iniciarse ni detenerse aquí.</string>
     <string name="nfc_disabled">El NFC está desactivado. Actívalo en los ajustes del sistema e inténtalo de nuevo.</string>
-    <string name="nfc_hold_near_tag">Acerca la parte trasera del teléfono a la etiqueta.</string>
+    <string name="nfc_hold_near_tag">Acerca la parte trasera del teléfono a tu Ctrus.</string>
     <string name="nfc_open_settings">Abrir Ajustes</string>
     <string name="strategy_nfc_name">Ctrus NFC</string>
     <string name="strategy_nfc_description">Inicia y detén tocando tu Ctrus.</string>
@@ -236,22 +240,23 @@
     <string name="settings_appearance_desc">Personaliza el aspecto de tu app</string>
     <string name="settings_theme_color">Color del Tema</string>
     <string name="settings_section_app_icon">Icono de la App</string>
-    <string name="settings_section_help">Ayuda</string>
-    <string name="settings_debug_mode">Modo de Depuración</string>
-    <string name="settings_blocking_native_apps">Bloqueo de Apps Nativas</string>
     <string name="settings_section_recovery">¿Bloqueado y Perdiste tu Ctrus?</string>
     <string name="settings_get_unlock_code">Obtener un Código de Desbloqueo</string>
     <string name="settings_device_id">ID del Dispositivo</string>
+    <string name="settings_copy_device_id_content_description">Copiar ID del Dispositivo</string>
     <string name="settings_enter_code_placeholder">Introduce el código</string>
     <string name="settings_unlock_button">Desbloquear</string>
+    <string name="settings_recovery_one_left">Solo te queda 1 desbloqueo.</string>
+    <string name="settings_recovery_resets_in_hours">Sin desbloqueos restantes. Se reinicia en %1$dh.</string>
+    <string name="settings_recovery_resets_on_date">Sin desbloqueos restantes. Se reinicia el %1$s.</string>
+    <string name="settings_recovery_default_status">Tienes acceso a 2 desbloqueos cada 4 semanas.</string>
     <string name="settings_section_about">Acerca de</string>
     <string name="settings_version">Versión</string>
     <string name="settings_version_value">v%1$s</string>
-    <string name="settings_usage_access">Acceso de Uso</string>
+    <string name="settings_accessibility_access">Acceso de Accesibilidad</string>
     <string name="settings_authorized">Autorizado</string>
     <string name="settings_not_authorized">No Autorizado</string>
     <string name="settings_made_in">Hecho en</string>
-    <string name="settings_based_on_foqos">Basado en Foqos - Tap to Block</string>
     <string name="settings_invalid_code_title">Código No Válido</string>
     <string name="settings_invalid_code_body">Ese código de desbloqueo no es válido. Visita recover.ctrus.net para obtener uno.</string>
     <string name="color_orange">Naranja</string>
@@ -267,10 +272,6 @@
     <plurals name="domains_count">
         <item quantity="one">%1$d Dominio</item>
         <item quantity="other">%1$d Dominios</item>
-    </plurals>
-    <plurals name="apps_blocked_count">
-        <item quantity="one">%1$d app bloqueada</item>
-        <item quantity="other">%1$d apps bloqueadas</item>
     </plurals>
     <plurals name="apps_selected_count">
         <item quantity="one">%1$d app seleccionada</item>
@@ -300,20 +301,26 @@
     <string-array name="shield_titles">
         <item>Todavía no está maduro</item>
         <item>Trampa jugosa</item>
-        <item>Jugo preservado</item>
-        <item>Guarda el huerto</item>
-        <item>No hay nada más que pelar</item>
-        <item>Lleno de jugo</item>
+        <item>Protege el huerto</item>
+        <item>Nada que pelar</item>
+        <item>Gota a gota</item>
+        <item>Agrio ahora, dulce después</item>
+        <item>Haz limonada</item>
+        <item>Crece en otro lado</item>
     </string-array>
     <string-array name="shield_subtitles">
         <item>%1$s puede esperar hasta que estés listo para recogerlo.</item>
         <item>Un clic se convierte en veinte. No exprimamos esto hasta el final.</item>
-        <item>Estamos manteniendo tu atención tan fresca como el jugo de la mañana.</item>
         <item>Unos minutos maduran en una hora sin darte cuenta.</item>
-        <item>No te estás perdiendo nada importante, ya está todo pelado y listo.</item>
+        <item>Relájate, no te estás perdiendo nada.</item>
         <item>Pequeños chorritos de jugo como este llenan el vaso rápido.</item>
+        <item>Esta sensación pasa más rápido de lo que piensas.</item>
+        <item>Cuando la vida te da limones, cierra %1$s.</item>
+        <item>Tu atención puede dar más frutos en otro lado.</item>
     </string-array>
     <string-array name="shield_buttons">
+        <item>Entendido</item>
+        <item>Entendido</item>
         <item>Entendido</item>
         <item>Entendido</item>
         <item>Entendido</item>
@@ -330,13 +337,9 @@
         <item>La lima siempre parece más verde en el árbol del vecino</item>
         <item>El progreso madura como un cítrico, día a día</item>
         <item>Este momento moldea el cítrico que cosecharás mañana</item>
-        <item>Pela el momento como una naranja y saboréalo por completo</item>
-        <item>Limita las distracciones, deja que tu potencial madure como una naranja</item>
         <item>Tu atención decide en qué huerto creces</item>
-        <item>Protege tu jugo mental</item>
         <item>Mantente en tu rama, como una lima esperando madurar</item>
-        <item>La disciplina es la ralladura que da sabor a la libertad</item>
-        <item>El buen trabajo necesita un vaso lleno de limonada</item>
+        <item>El buen trabajo necesita un vaso de limonada</item>
         <item>La pulpa que sobra de las distracciones diluye tu jugo</item>
         <item>Protege tu huerto, protege tu tiempo</item>
     </string-array>

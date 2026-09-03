@@ -58,7 +58,4 @@ class SessionRepository(private val dao: BlockedProfileSessionDao) {
 
     suspend fun update(session: BlockedProfileSessionEntity) = dao.update(session)
 
-    suspend fun deleteAllForProfile(profileId: String) = dao.deleteAllForProfile(profileId)
-
-    suspend fun delete(session: BlockedProfileSessionEntity) = dao.delete(session)
 }

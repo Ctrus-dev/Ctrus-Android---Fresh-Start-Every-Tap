@@ -23,10 +23,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,6 +46,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import mo.dev.ctrus.ui.session.HoldToConfirmButton
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,11 +91,19 @@ fun HomeScreen(
     onInsightsTapped: (BlockedProfileEntity) -> Unit,
     onManageTapped: () -> Unit,
     onLauncherTapped: () -> Unit,
+    showAccessibilityAlert: Boolean = false,
+    onAccessibilityAlertTapped: () -> Unit = {},
 ) {
     val themeColor = themeManager.selectedColorOption.color
 
     Box(modifier = Modifier.fillMaxSize().background(pastelBackground(themeColor))) {
         Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
+            if (showAccessibilityAlert) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+                    AccessibilityAlertPill(onClick = onAccessibilityAlertTapped)
+                }
+            }
+
             RotatingModel3DView(
                 themeColor = themeColor,
                 modifier = Modifier.size(DefaultModel3DSize).align(Alignment.CenterHorizontally).padding(top = 16.dp),
@@ -140,6 +153,27 @@ fun HomeScreen(
     }
 }
 
+/** Android equivalent of HomeAlertsView's HomeAlertCard: a red capsule pill, tapped to open the detail sheet. */
+@Composable
+private fun AccessibilityAlertPill(onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color(0xFFFF3B30).copy(alpha = 0.85f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+    ) {
+        Icon(Icons.Filled.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            stringResource(R.string.home_accessibility_alert_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White,
+        )
+    }
+}
+
 /** Android equivalent of RoundedButton's icon-only "ultraThinMaterial" glass style. */
 @Composable
 private fun HomeGlassIconButton(onClick: () -> Unit, icon: androidx.compose.ui.graphics.vector.ImageVector, contentDescription: String) {
@@ -177,6 +211,8 @@ private fun WelcomeSection(themeColor: Color, onAddProfile: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = themeColor, contentColor = Color.White),
             modifier = Modifier.fillMaxWidth().height(56.dp),
         ) {
+            Icon(Icons.Filled.AccountCircle, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.home_create_profile_button))
         }
     }
@@ -220,17 +256,6 @@ private fun ProfileCard(
                 val appsLabel = pluralStringResource(R.plurals.apps_count, profile.selectedPackages.size, profile.selectedPackages.size)
                 val domainsLabel = pluralStringResource(R.plurals.domains_count, profile.domains.orEmpty().size, profile.domains.orEmpty().size)
                 Text("$appsLabel | $domainsLabel", style = MaterialTheme.typography.bodySmall, color = HomeOnPastelVariant)
-
-                val breaksText = stringResource(R.string.home_indicator_breaks)
-                val deletionBlockedText = stringResource(R.string.home_indicator_deletion_blocked)
-                val indicators = buildList {
-                    if (profile.enableBreaks) add(breaksText)
-                    if (profile.enableStrictMode) add(deletionBlockedText)
-                }
-                if (indicators.isNotEmpty()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(indicators.joinToString("  ·  "), style = MaterialTheme.typography.labelSmall, color = HomeOnPastelVariant)
-                }
             }
 
             val sessions by sessionRepository.observeForProfile(profile.id).collectAsState(initial = emptyList())
@@ -249,14 +274,34 @@ private fun ProfileCard(
                 IconButton(onClick = { showMenu = true }) {
                     Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.home_more_actions_content_description, profile.name), tint = HomeOnPastelVariant)
                 }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.home_menu_insights)) }, onClick = { showMenu = false; onInsights() })
-                    DropdownMenuItem(text = { Text(stringResource(R.string.home_menu_edit)) }, onClick = { showMenu = false; onEdit() })
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    shape = RoundedCornerShape(20.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.90f),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.home_menu_insights)) },
+                        leadingIcon = { Icon(Icons.Filled.BarChart, contentDescription = null) },
+                        onClick = { showMenu = false; onInsights() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.home_menu_edit)) },
+                        leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                        onClick = { showMenu = false; onEdit() },
+                    )
                     if (isActive) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.home_menu_stop)) }, onClick = { showMenu = false; onStop() })
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.home_menu_stop)) },
+                            leadingIcon = { Icon(Icons.Filled.Stop, contentDescription = null) },
+                            onClick = { showMenu = false; onStop() },
+                        )
                     } else {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.home_menu_start)) },
+                            leadingIcon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
                             enabled = !isBlocking,
                             onClick = { showMenu = false; onStart() },
                         )
@@ -271,16 +316,22 @@ private fun ProfileCard(
 private fun LauncherBar(activeProfile: BlockedProfileEntity?, themeColor: Color, displaySeconds: Double, onTapped: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         if (activeProfile == null) {
-            Button(
-                onClick = onTapped,
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = themeColor, contentColor = Color.White),
-                modifier = Modifier.fillMaxWidth().height(64.dp),
-            ) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.home_launcher_start), style = MaterialTheme.typography.titleMedium)
-            }
+            // Same hold-to-confirm gesture as the break/emergency buttons, but the resting look
+            // stays identical to a plain filled Button (fully opaque theme color) — only a white
+            // sweep is added as press feedback, restingAlpha=1f keeps the base opaque.
+            HoldToConfirmButton(
+                title = stringResource(R.string.home_launcher_start),
+                backgroundColor = themeColor,
+                contentColor = Color.White,
+                icon = Icons.Filled.PlayArrow,
+                textStyle = MaterialTheme.typography.titleMedium,
+                height = 64.dp,
+                restingAlpha = 1f,
+                fillColor = Color.White,
+                fillAlpha = 0.25f,
+                iconSize = 24.dp,
+                onConfirm = onTapped,
+            )
         } else {
             Card(
                 onClick = onTapped,

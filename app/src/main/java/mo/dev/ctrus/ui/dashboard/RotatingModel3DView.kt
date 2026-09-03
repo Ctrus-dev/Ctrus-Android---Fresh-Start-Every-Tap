@@ -70,6 +70,19 @@ fun RotatingModel3DView(themeColor: Color, modifier: Modifier = Modifier.size(De
                 glSurfaceViewRef.value = this
             }
         },
+        // A setZOrderOnTop SurfaceView composites via its own SurfaceFlinger layer, outside the
+        // normal View z-order — hiding it (visibility = GONE) alone still leaves a window where
+        // the last composited frame can linger on real hardware, because that layer isn't torn
+        // down in lockstep with the View tree. onPause() synchronously blocks the render thread
+        // before it draws another frame, which combined with hiding the view gives Settings the
+        // best chance of a clean handoff without whatever frame was already in flight showing
+        // through. (NavHost also has no animated transition between routes for the same reason:
+        // see CtrusNavHost — that removes the other source of lingering, an animated crossfade
+        // keeping "home" composed for its duration.)
+        onRelease = { view ->
+            view.onPause()
+            view.visibility = android.view.View.GONE
+        },
     )
 
     LaunchedEffect(themeColor) {

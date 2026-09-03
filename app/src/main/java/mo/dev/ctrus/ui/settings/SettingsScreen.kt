@@ -9,21 +9,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
@@ -39,7 +42,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,12 +58,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 import mo.dev.ctrus.icon.AppIcon
+import mo.dev.ctrus.ui.common.GlassIconButton
 import mo.dev.ctrus.theme.ThemeColorOption
 import mo.dev.ctrus.theme.ThemeManager
+import mo.dev.ctrus.util.DateFormatters
 import mo.dev.ctrus.util.clickableNoRipple
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,8 +80,9 @@ fun SettingsScreen(
     onDismiss: () -> Unit,
     onOpenUrl: (String) -> Unit,
     onValidateUnlockCode: suspend (String) -> Boolean,
+    remainingRecoveryUnlocks: Int,
+    recoveryResetDateMillis: Long? = null,
     deviceId: String? = null,
-    onDebugModeClick: () -> Unit = {},
 ) {
     var showInvalidCodeAlert by remember { mutableStateOf(false) }
     var unlockCode by remember { mutableStateOf("") }
@@ -84,14 +91,26 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.settings_close_content_description))
-                    }
-                }
-            )
+            // Matches ProfileInsightsScreen's header: the close button on its own row, with the
+            // big bold title below it — not a Material TopAppBar's inline title.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+            ) {
+                GlassIconButton(
+                    onClick = onDismiss,
+                    icon = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.settings_close_content_description),
+                )
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    stringResource(R.string.settings_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
     ) { innerPadding ->
         LazyColumn(
@@ -118,7 +137,7 @@ fun SettingsScreen(
                             Text(stringResource(R.string.settings_appearance_title), style = MaterialTheme.typography.titleMedium)
                             Text(
                                 stringResource(R.string.settings_appearance_desc),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -138,34 +157,36 @@ fun SettingsScreen(
             }
 
             item {
-                SettingsSection(title = stringResource(R.string.settings_section_help)) {
-                    SettingsRow(title = stringResource(R.string.settings_debug_mode), showChevron = true, onClick = onDebugModeClick)
-                    // Hidden for now: iOS's Help section has no equivalent link (it has a
-                    // conditional "Reset Blocking State" button instead, not yet ported here).
-                    // Kept in code, not rendered, until that's decided.
-                    // SettingsDivider()
-                    // SettingsLinkRow(title = stringResource(R.string.settings_blocking_native_apps)) { onOpenUrl("https://ctrus.net") }
-                }
-            }
-
-            item {
                 SettingsSection(title = stringResource(R.string.settings_section_recovery)) {
                     SettingsLinkRow(title = stringResource(R.string.settings_get_unlock_code)) { onOpenUrl("https://recover.ctrus.net") }
                     if (deviceId != null) {
                         SettingsDivider()
                         val clipboard = LocalClipboard.current
                         val deviceIdLabel = stringResource(R.string.settings_device_id)
-                        SettingsRow(title = deviceIdLabel) {
-                            TextButton(onClick = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(deviceIdLabel, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                                Spacer(Modifier.height(2.dp))
+                                Text(deviceId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = {
                                 coroutineScope.launch {
                                     clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(deviceIdLabel, deviceId)))
                                 }
                             }) {
-                                Text(deviceId.take(8) + "…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(
+                                    Icons.Filled.ContentCopy,
+                                    contentDescription = stringResource(R.string.settings_copy_device_id_content_description),
+                                    tint = themeManager.selectedColorOption.color,
+                                )
                             }
                         }
                     }
                     SettingsDivider()
+                    val hasUnlockRemaining = remainingRecoveryUnlocks > 0
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -177,7 +198,7 @@ fun SettingsScreen(
                             onValueChange = { unlockCode = it },
                             placeholder = { Text(stringResource(R.string.settings_enter_code_placeholder)) },
                             singleLine = true,
-                            enabled = !isVerifying,
+                            enabled = !isVerifying && hasUnlockRemaining,
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -185,7 +206,7 @@ fun SettingsScreen(
                             CircularProgressIndicator(modifier = Modifier.size(20.dp))
                         } else {
                             TextButton(
-                                enabled = unlockCode.isNotEmpty(),
+                                enabled = unlockCode.isNotEmpty() && hasUnlockRemaining,
                                 onClick = {
                                     isVerifying = true
                                     coroutineScope.launch {
@@ -203,16 +224,21 @@ fun SettingsScreen(
                             }
                         }
                     }
+                    SettingsDivider()
+                    RecoveryUnlockStatusRow(
+                        remainingUnlocks = remainingRecoveryUnlocks,
+                        resetDateMillis = recoveryResetDateMillis,
+                    )
                 }
             }
 
             item {
                 SettingsSection(title = stringResource(R.string.settings_section_about)) {
                     SettingsRow(title = stringResource(R.string.settings_version)) {
-                        Text(stringResource(R.string.settings_version_value, appVersion), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.settings_version_value, appVersion), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     SettingsDivider()
-                    SettingsRow(title = stringResource(R.string.settings_usage_access)) {
+                    SettingsRow(title = stringResource(R.string.settings_accessibility_access)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
@@ -225,6 +251,7 @@ fun SettingsScreen(
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 stringResource(if (isUsageAccessGranted) R.string.settings_authorized else R.string.settings_not_authorized),
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -232,10 +259,6 @@ fun SettingsScreen(
                     SettingsDivider()
                     SettingsRow(title = stringResource(R.string.settings_made_in)) {
                         Text("🇵🇹")
-                    }
-                    SettingsDivider()
-                    SettingsLinkRow(title = stringResource(R.string.settings_based_on_foqos)) {
-                        onOpenUrl("https://www.foqos.app")
                     }
                 }
             }
@@ -259,57 +282,98 @@ fun SettingsScreen(
 private fun ThemeColorRow(themeManager: ThemeManager) {
     var expanded by remember { mutableStateOf(false) }
 
-    Box {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(stringResource(R.string.settings_theme_color), modifier = Modifier.weight(1f))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(stringResource(R.string.settings_theme_color), modifier = Modifier.weight(1f))
+
+        // The Box anchors the DropdownMenu to just this chip (not the whole row), so it opens
+        // next to where the user tapped, on the right, instead of under the row's left edge.
+        Box {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickableNoRipple { expanded = true }
             ) {
                 Text(
                     stringResource(themeManager.selectedColorOption.displayNameRes),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
             }
-        }
 
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            ThemeColorOption.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .background(option.color, CircleShape)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(option.displayNameRes))
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                shape = RoundedCornerShape(20.dp),
+                containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.90f),
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+            ) {
+                ThemeColorOption.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(option.displayNameRes)) },
+                        onClick = {
+                            themeManager.select(option)
+                            expanded = false
                         }
-                    },
-                    onClick = {
-                        themeManager.select(option)
-                        expanded = false
-                    }
-                )
+                    )
+                }
             }
         }
     }
 }
 
+/** Mirrors SettingsView's recoveryUnlockStatusText: red once at most 1 unlock remains. */
+@Composable
+private fun RecoveryUnlockStatusRow(remainingUnlocks: Int, resetDateMillis: Long?) {
+    val isLow = remainingUnlocks <= 1
+    val statusText = when {
+        remainingUnlocks == 1 -> stringResource(R.string.settings_recovery_one_left)
+        remainingUnlocks > 1 -> stringResource(R.string.settings_recovery_default_status)
+        resetDateMillis == null -> stringResource(R.string.settings_recovery_default_status)
+        else -> {
+            val diffMillis = resetDateMillis - System.currentTimeMillis()
+            if (diffMillis <= 24 * 3_600_000L) {
+                val hoursRemaining = kotlin.math.ceil(diffMillis / 3_600_000.0).toInt().coerceAtLeast(1)
+                stringResource(R.string.settings_recovery_resets_in_hours, hoursRemaining)
+            } else {
+                val date = DateFormatters.formatMonthDay(Date(resetDateMillis))
+                stringResource(R.string.settings_recovery_resets_on_date, date)
+            }
+        }
+    }
+    val statusColor = if (isLow) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Filled.History,
+            contentDescription = null,
+            tint = statusColor,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(statusText, style = MaterialTheme.typography.bodySmall, color = statusColor)
+    }
+}
+
 @Composable
 private fun AppIconRow(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        items(AppIcon.entries) { option ->
+        AppIcon.entries.forEach { option ->
             val isSelected = option == selected
             val label = stringResource(option.labelRes)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -318,12 +382,17 @@ private fun AppIconRow(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
                         painter = painterResource(id = option.drawableRes),
                         contentDescription = label,
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(60.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .border(
-                                width = if (isSelected) 3.dp else 0.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(14.dp)
+                            // Applying a 0.dp border unconditionally (even to mean "no border")
+                            // still rendered a faint hairline on every icon — only attach the
+                            // border modifier at all when this one is actually selected.
+                            .then(
+                                if (isSelected) {
+                                    Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
+                                } else {
+                                    Modifier
+                                }
                             )
                             .clickableNoRipple { onSelect(option) }
                     )

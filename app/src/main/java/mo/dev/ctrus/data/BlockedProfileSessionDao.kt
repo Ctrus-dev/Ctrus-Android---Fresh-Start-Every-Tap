@@ -1,7 +1,6 @@
 package mo.dev.ctrus.data
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -30,10 +29,4 @@ interface BlockedProfileSessionDao {
 
     @Update
     suspend fun update(session: BlockedProfileSessionEntity)
-
-    @Delete
-    suspend fun delete(session: BlockedProfileSessionEntity)
-
-    @Query("DELETE FROM blocked_profile_sessions WHERE profileId = :profileId")
-    suspend fun deleteAllForProfile(profileId: String)
 }
