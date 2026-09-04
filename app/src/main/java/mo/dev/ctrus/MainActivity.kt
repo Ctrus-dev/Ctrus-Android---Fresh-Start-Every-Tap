@@ -245,6 +245,7 @@ private fun CtrusNavHost(
     // (kept at None elsewhere in this file to avoid the 3D mascot lingering during navigation).
     var showSettings by remember { mutableStateOf(false) }
     var showManageProfiles by remember { mutableStateOf(false) }
+    var showCreateProfile by remember { mutableStateOf(false) }
     var editingProfileId by remember { mutableStateOf<String?>(null) }
     var insightsProfileId by remember { mutableStateOf<String?>(null) }
 
@@ -271,9 +272,41 @@ private fun CtrusNavHost(
                 themeColor = themeManager.selectedColorOption.color,
                 onDismiss = { showManageProfiles = false },
                 onEditProfile = { profile -> showManageProfiles = false; editingProfileId = profile.id },
-                onAddProfile = { showManageProfiles = false; navController.navigate("createProfile") },
+                onAddProfile = { showManageProfiles = false; showCreateProfile = true },
                 onReorder = { reordered -> coroutineScope.launch { app.profileRepository.reorder(reordered) } },
                 onDeleteProfile = { profile -> coroutineScope.launch { app.profileRepository.delete(profile) } },
+            )
+        }
+    }
+
+    if (showCreateProfile) {
+        ModalBottomSheet(onDismissRequest = { showCreateProfile = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+            GuidedProfileCreationScreen(
+                availableStrategies = app.strategyRegistry.pickerStrategies,
+                themeColor = themeManager.selectedColorOption.color,
+                nfcScanController = nfcScanController,
+                onDismiss = { showCreateProfile = false },
+                onCreate = { name, packages, strategyId, domains, allowMode, browserBlocking, allowModeDomains, adultContent, physicalUnblockItems, enableBreaks, breakMinutes, allowMultipleBreaks, strictMode, blockInstalls ->
+                    coroutineScope.launch {
+                        app.profileRepository.create(
+                            name = name,
+                            selectedPackages = packages,
+                            blockingStrategyId = strategyId,
+                            domains = domains,
+                            physicalUnblockItems = physicalUnblockItems,
+                            enableAllowMode = allowMode,
+                            enableBrowserBlocking = browserBlocking,
+                            enableAllowModeDomains = allowModeDomains,
+                            enableAdultContentBlocking = adultContent,
+                            enableBreaks = enableBreaks,
+                            breakTimeInMinutes = breakMinutes,
+                            allowMultipleBreaks = allowMultipleBreaks,
+                            enableStrictMode = strictMode,
+                            enableBlockAppInstallation = blockInstalls,
+                        )
+                        showCreateProfile = false
+                    }
+                },
             )
         }
     }
@@ -453,7 +486,7 @@ private fun CtrusNavHost(
                 isBlocking = activeSession != null,
                 displaySeconds = displaySeconds,
                 onOpenSettings = { showSettings = true },
-                onAddProfile = { navController.navigate("createProfile") },
+                onAddProfile = { showCreateProfile = true },
                 onEditProfile = { profile -> editingProfileId = profile.id },
                 onStartProfile = { profile -> requireAccessibility { orchestrator.requestStart(profile) } },
                 onStopProfile = { orchestrator.requestStop() },
@@ -469,36 +502,6 @@ private fun CtrusNavHost(
                 isAccessibilityEnabled = isAccessibilityEnabled,
                 isBatteryOptimizationExempt = isBatteryOptimizationExempt,
                 onPermissionsAlertTapped = { showPermissionsAlertSheet = true },
-            )
-        }
-
-        composable("createProfile") {
-            GuidedProfileCreationScreen(
-                availableStrategies = app.strategyRegistry.pickerStrategies,
-                themeColor = themeManager.selectedColorOption.color,
-                nfcScanController = nfcScanController,
-                onDismiss = { navController.popBackStack() },
-                onCreate = { name, packages, strategyId, domains, allowMode, browserBlocking, allowModeDomains, adultContent, physicalUnblockItems, enableBreaks, breakMinutes, allowMultipleBreaks, strictMode, blockInstalls ->
-                    coroutineScope.launch {
-                        app.profileRepository.create(
-                            name = name,
-                            selectedPackages = packages,
-                            blockingStrategyId = strategyId,
-                            domains = domains,
-                            physicalUnblockItems = physicalUnblockItems,
-                            enableAllowMode = allowMode,
-                            enableBrowserBlocking = browserBlocking,
-                            enableAllowModeDomains = allowModeDomains,
-                            enableAdultContentBlocking = adultContent,
-                            enableBreaks = enableBreaks,
-                            breakTimeInMinutes = breakMinutes,
-                            allowMultipleBreaks = allowMultipleBreaks,
-                            enableStrictMode = strictMode,
-                            enableBlockAppInstallation = blockInstalls,
-                        )
-                        navController.popBackStack()
-                    }
-                },
             )
         }
 
