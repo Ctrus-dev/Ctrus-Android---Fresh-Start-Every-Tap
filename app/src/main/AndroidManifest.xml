@@ -18,6 +18,11 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
+    <!-- Lets the accessibility service survive Doze/App Standby on OEM skins (MIUI, ColorOS,
+         FuntouchOS/OriginOS, OxygenOS) that kill background services more aggressively than
+         stock Android — see BatteryOptimizationUtil. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <!-- Recovery-code verification against recover.ctrus.net -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

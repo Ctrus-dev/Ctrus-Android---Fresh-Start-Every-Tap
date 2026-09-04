@@ -91,16 +91,17 @@ fun HomeScreen(
     onInsightsTapped: (BlockedProfileEntity) -> Unit,
     onManageTapped: () -> Unit,
     onLauncherTapped: () -> Unit,
-    showAccessibilityAlert: Boolean = false,
-    onAccessibilityAlertTapped: () -> Unit = {},
+    isAccessibilityEnabled: Boolean = true,
+    isBatteryOptimizationExempt: Boolean = true,
+    onPermissionsAlertTapped: () -> Unit = {},
 ) {
     val themeColor = themeManager.selectedColorOption.color
 
     Box(modifier = Modifier.fillMaxSize().background(pastelBackground(themeColor))) {
         Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
-            if (showAccessibilityAlert) {
+            if (!isAccessibilityEnabled || !isBatteryOptimizationExempt) {
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    AccessibilityAlertPill(onClick = onAccessibilityAlertTapped)
+                    AccessibilityAlertPill(onClick = onPermissionsAlertTapped)
                 }
             }
 
@@ -167,7 +168,7 @@ private fun AccessibilityAlertPill(onClick: () -> Unit) {
         Icon(Icons.Filled.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(
-            stringResource(R.string.home_accessibility_alert_title),
+            stringResource(R.string.home_permissions_alert_pill),
             style = MaterialTheme.typography.labelLarge,
             color = Color.White,
         )

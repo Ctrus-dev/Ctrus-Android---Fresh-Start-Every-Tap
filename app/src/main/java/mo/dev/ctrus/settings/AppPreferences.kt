@@ -34,6 +34,7 @@ class AppPreferences(private val context: Context) {
 
         val DEVICE_ID = stringPreferencesKey("recovery_device_id")
         val SHOW_INTRO = booleanPreferencesKey("show_intro_screen")
+        val SHOWN_BATTERY_OPTIMIZATION_PROMPT = booleanPreferencesKey("shown_battery_optimization_prompt")
         val LAUNCH_COUNT = intPreferencesKey("launch_count")
         val SELECTED_APP_ICON = stringPreferencesKey("selected_app_icon")
         val LAST_REVIEW_PROMPT_VERSION = stringPreferencesKey("last_review_prompt_version")
@@ -135,6 +136,13 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setShowIntroScreen(show: Boolean) {
         context.dataStore.edit { it[Keys.SHOW_INTRO] = show }
+    }
+
+    suspend fun hasShownBatteryOptimizationPrompt(): Boolean =
+        context.dataStore.data.first()[Keys.SHOWN_BATTERY_OPTIMIZATION_PROMPT] ?: false
+
+    suspend fun setHasShownBatteryOptimizationPrompt(shown: Boolean) {
+        context.dataStore.edit { it[Keys.SHOWN_BATTERY_OPTIMIZATION_PROMPT] = shown }
     }
 
     suspend fun selectedAppIcon(): AppIcon {

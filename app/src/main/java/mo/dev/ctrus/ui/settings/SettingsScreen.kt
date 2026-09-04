@@ -74,6 +74,8 @@ import java.util.Date
 fun SettingsScreen(
     themeManager: ThemeManager,
     isUsageAccessGranted: Boolean,
+    isBatteryOptimizationExempt: Boolean,
+    onRequestBatteryOptimizationExemption: () -> Unit,
     appVersion: String,
     selectedAppIcon: AppIcon,
     onSelectAppIcon: (AppIcon) -> Unit,
@@ -251,6 +253,34 @@ fun SettingsScreen(
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 stringResource(if (isUsageAccessGranted) R.string.settings_authorized else R.string.settings_not_authorized),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    SettingsDivider()
+                    // Tapping always relaunches the system's own "exempt this app" dialog — even
+                    // when already exempt, that's a harmless no-op there, and simpler than making
+                    // the row conditionally clickable.
+                    SettingsRow(
+                        title = stringResource(R.string.settings_battery_optimization),
+                        onClick = onRequestBatteryOptimizationExemption,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        if (isBatteryOptimizationExempt) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                        CircleShape
+                                    )
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                // "Authorized"/"Not Authorized" reads backwards paired with this
+                                // row's title — being exempt means optimization is OFF, so this
+                                // states that directly instead.
+                                stringResource(if (isBatteryOptimizationExempt) R.string.settings_battery_optimization_off else R.string.settings_battery_optimization_on),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

@@ -55,18 +55,20 @@ import mo.dev.ctrus.network.RecoveryCodeVerification
 import mo.dev.ctrus.settings.AppPreferences
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
+import mo.dev.ctrus.permissions.BatteryOptimizationUtil
 import mo.dev.ctrus.session.SessionOrchestrator
 import mo.dev.ctrus.strategy.StrategyCapabilities
 import mo.dev.ctrus.strategy.StrategyInput
 import mo.dev.ctrus.strategy.StrategyRequirement
 import mo.dev.ctrus.theme.CtrusTheme
 import mo.dev.ctrus.theme.ThemeManager
-import mo.dev.ctrus.ui.home.AccessibilityAlertSheet
+import mo.dev.ctrus.ui.home.PermissionsAlertSheet
 import mo.dev.ctrus.ui.home.HomeScreen
 import mo.dev.ctrus.ui.home.ManageProfilesScreen
 import mo.dev.ctrus.ui.home.StartProfilePickerView
 import mo.dev.ctrus.ui.insights.ProfileInsightsScreen
 import mo.dev.ctrus.ui.intro.AccessibilityDisclosureDialog
+import mo.dev.ctrus.ui.intro.BatteryOptimizationDialog
 import mo.dev.ctrus.ui.intro.AccessibilityPermissionScreen
 import mo.dev.ctrus.ui.profile.GuidedProfileCreationScreen
 import mo.dev.ctrus.ui.profile.ProfileFormScreen
@@ -126,12 +128,17 @@ private fun CtrusNavHost(
     // so re-checking on resume is the only way Home's alert banner (and Settings' own status row)
     // ever finds out a previously-granted service was revoked.
     var isAccessibilityEnabled by remember { mutableStateOf(true) }
+    // Re-checked on every resume too — mainly so returning from the system's own "exempt this
+    // app" dialog (or from having toggled it manually in system Settings) updates Settings' own
+    // status row without needing to reopen it.
+    var isBatteryOptimizationExempt by remember { mutableStateOf(true) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val enabled = AccessibilityPermissionUtil.isEnabled(context)
                 isAccessibilityEnabled = enabled
+                isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
                 if (showIntroScreen == true && enabled) {
                     showIntroScreen = false
                     coroutineScope.launch { app.preferences.setShowIntroScreen(false) }
@@ -156,6 +163,30 @@ private fun CtrusNavHost(
             return
         }
         false -> Unit
+    }
+
+    // Shown once, right after accessibility onboarding — see BatteryOptimizationUtil's kdoc for
+    // why this matters on several OEM skins. Not shown again once dismissed either way, but the
+    // Settings row below stays available for the user to grant it later.
+    var showBatteryOptimizationPrompt by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
+        if (!isBatteryOptimizationExempt && !app.preferences.hasShownBatteryOptimizationPrompt()) {
+            showBatteryOptimizationPrompt = true
+        }
+    }
+    if (showBatteryOptimizationPrompt) {
+        BatteryOptimizationDialog(
+            onAllow = {
+                showBatteryOptimizationPrompt = false
+                coroutineScope.launch { app.preferences.setHasShownBatteryOptimizationPrompt(true) }
+                BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context)
+            },
+            onDismiss = {
+                showBatteryOptimizationPrompt = false
+                coroutineScope.launch { app.preferences.setHasShownBatteryOptimizationPrompt(true) }
+            },
+        )
     }
 
     // Mirrors HomeView presenting ActiveProfileSessionView as a fullScreenCover whenever a
@@ -265,6 +296,8 @@ private fun CtrusNavHost(
             SettingsScreen(
                 themeManager = themeManager,
                 isUsageAccessGranted = isAccessibilityEnabled,
+                isBatteryOptimizationExempt = isBatteryOptimizationExempt,
+                onRequestBatteryOptimizationExemption = { BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context) },
                 appVersion = "1.0",
                 deviceId = deviceId,
                 selectedAppIcon = selectedAppIcon,
@@ -366,20 +399,27 @@ private fun CtrusNavHost(
 
     // Mirrors AlertsManager.presentScreenTimeAccessAlertIfNeeded(), called as a guard before
     // every "start a profile" action: shows the alert sheet instead of starting when access is
-    // currently missing.
-    var showAccessibilityAlertSheet by remember { mutableStateOf(false) }
+    // currently missing. Only Accessibility gates the action itself — battery-optimization
+    // exemption is surfaced in the same sheet as a secondary, non-blocking recommendation (see
+    // BatteryOptimizationUtil's kdoc), never something that prevents starting a session.
+    var showPermissionsAlertSheet by remember { mutableStateOf(false) }
     var showAccessibilityDisclosureFromHome by remember { mutableStateOf(false) }
     fun requireAccessibility(action: () -> Unit) {
-        if (isAccessibilityEnabled) action() else showAccessibilityAlertSheet = true
+        if (isAccessibilityEnabled) action() else showPermissionsAlertSheet = true
     }
 
-    if (showAccessibilityAlertSheet) {
-        AccessibilityAlertSheet(
-            themeColor = themeManager.selectedColorOption.color,
-            onDismiss = { showAccessibilityAlertSheet = false },
-            onAllowTapped = {
-                showAccessibilityAlertSheet = false
+    if (showPermissionsAlertSheet) {
+        PermissionsAlertSheet(
+            isAccessibilityEnabled = isAccessibilityEnabled,
+            isBatteryOptimizationExempt = isBatteryOptimizationExempt,
+            onDismiss = { showPermissionsAlertSheet = false },
+            onFixAccessibility = {
+                showPermissionsAlertSheet = false
                 showAccessibilityDisclosureFromHome = true
+            },
+            onFixBattery = {
+                showPermissionsAlertSheet = false
+                BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context)
             },
         )
     }
@@ -426,8 +466,9 @@ private fun CtrusNavHost(
                         profiles.size > 1 -> requireAccessibility { showStartPicker = true }
                     }
                 },
-                showAccessibilityAlert = !isAccessibilityEnabled,
-                onAccessibilityAlertTapped = { showAccessibilityAlertSheet = true },
+                isAccessibilityEnabled = isAccessibilityEnabled,
+                isBatteryOptimizationExempt = isBatteryOptimizationExempt,
+                onPermissionsAlertTapped = { showPermissionsAlertSheet = true },
             )
         }
 

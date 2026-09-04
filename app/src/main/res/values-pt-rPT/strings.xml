@@ -34,9 +34,10 @@
     <string name="home_getting_started_title">Começar</string>
     <string name="home_getting_started_body">Vamos começar por criar o teu primeiro perfil. Podes personalizá-lo tanto quanto quiseres.</string>
     <string name="home_create_profile_button">Criar Perfil</string>
-    <string name="home_accessibility_alert_title">Acesso de Acessibilidade necessário</string>
     <string name="home_accessibility_alert_message">O bloqueio está em pausa até o acesso ser restaurado.</string>
-    <string name="home_accessibility_alert_detail">O Ctrus precisa de Acesso de Acessibilidade para bloquear apps e sites. Concede o acesso novamente para restaurar o bloqueio.</string>
+    <string name="home_permissions_alert_pill">Permissões necessárias</string>
+    <string name="home_permissions_alert_sheet_title">Permissões necessárias</string>
+    <string name="home_permissions_alert_sheet_detail">O Ctrus precisa destas permissões para continuar a bloquear de forma fiável.</string>
     <string name="home_manage_profiles_content_description">Gerir %1$s</string>
     <string name="home_show_insights_content_description">Mostrar estatísticas de %1$s</string>
     <string name="home_edit_profile_content_description">Editar %1$s</string>
@@ -90,6 +91,14 @@
     <string name="a11y_disclosure_body">O Ctrus usa o serviço de Acessibilidade do Android para saber qual app está em primeiro plano, para poder mostrar o ecrã de bloqueio quando abres algo que um perfil está a bloquear. Só lê o nome da app atualmente no ecrã — não lê palavras-passe, mensagens, nem nada que escrevas, e nada sai do teu dispositivo.</string>
     <string name="a11y_disclosure_agree_checkbox">Compreendo e concordo</string>
     <string name="a11y_disclosure_continue">Continuar para Definições</string>
+    <string name="battery_optimization_title">Mantém o bloqueio a funcionar de forma fiável</string>
+    <string name="battery_optimization_body">Algumas marcas de telemóveis param apps em segundo plano de forma agressiva para poupar bateria, o que pode desligar o bloqueio silenciosamente a meio de uma sessão. Isto afeta só o Ctrus — as definições de bateria das tuas outras apps não mudam.</string>
+    <string name="battery_optimization_allow">Permitir</string>
+    <string name="battery_optimization_not_now">Agora Não</string>
+    <string name="settings_battery_optimization">Otimização de Bateria</string>
+    <string name="settings_battery_optimization_disable_button">Desativar</string>
+    <string name="settings_battery_optimization_off">Desativada</string>
+    <string name="settings_battery_optimization_on">Ativa</string>
     <string name="intro_welcome_title">Bem-vindo ao Ctrus</string>
     <string name="intro_welcome_subtitle">Precisamos de Acesso de Acessibilidade para começar</string>
     <string name="intro_open_source_prefix">O Ctrus é 100% open source,</string>

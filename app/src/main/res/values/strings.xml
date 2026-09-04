@@ -34,9 +34,10 @@
     <string name="home_getting_started_title">Getting Started</string>
     <string name="home_getting_started_body">Let\'s get you started by creating your first profile. You can customize it as much or as little as you\'d like.</string>
     <string name="home_create_profile_button">Create Profile</string>
-    <string name="home_accessibility_alert_title">Accessibility Access needed</string>
     <string name="home_accessibility_alert_message">Blocking is paused until access is restored.</string>
-    <string name="home_accessibility_alert_detail">Ctrus needs Accessibility access to block apps and websites. Grant access again to restore blocking.</string>
+    <string name="home_permissions_alert_pill">Permissions needed</string>
+    <string name="home_permissions_alert_sheet_title">Permissions needed</string>
+    <string name="home_permissions_alert_sheet_detail">Ctrus needs these permissions to keep blocking working reliably.</string>
     <string name="home_manage_profiles_content_description">Manage %1$s</string>
     <string name="home_show_insights_content_description">Show %1$s insights</string>
     <string name="home_edit_profile_content_description">Edit %1$s</string>
@@ -91,6 +92,14 @@
     <string name="a11y_disclosure_body">Ctrus uses Android\'s Accessibility service to know which app is in the foreground, so it can show the block screen when you open something a profile is blocking. It only reads the name of the app currently on screen — it does not read passwords, messages, or anything you type, and nothing leaves your device.</string>
     <string name="a11y_disclosure_agree_checkbox">I understand and agree</string>
     <string name="a11y_disclosure_continue">Continue to Settings</string>
+    <string name="battery_optimization_title">Keep blocking running reliably</string>
+    <string name="battery_optimization_body">Some phone brands aggressively stop apps running in the background to save battery, which can silently turn off blocking mid-session. This only affects Ctrus — your other apps\' battery settings won\'t change.</string>
+    <string name="battery_optimization_allow">Allow</string>
+    <string name="battery_optimization_not_now">Not Now</string>
+    <string name="settings_battery_optimization">Battery Optimization</string>
+    <string name="settings_battery_optimization_disable_button">Turn Off</string>
+    <string name="settings_battery_optimization_off">Off</string>
+    <string name="settings_battery_optimization_on">On</string>
     <string name="intro_welcome_title">Welcome to Ctrus</string>
     <string name="intro_welcome_subtitle">We need Accessibility Access to get started</string>
     <string name="intro_open_source_prefix">Ctrus is 100% open source,</string>
