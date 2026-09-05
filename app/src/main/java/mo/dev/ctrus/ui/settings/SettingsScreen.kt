@@ -39,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -201,6 +202,11 @@ fun SettingsScreen(
                             placeholder = { Text(stringResource(R.string.settings_enter_code_placeholder)) },
                             singleLine = true,
                             enabled = !isVerifying && hasUnlockRemaining,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent,
+                                disabledBorderColor = Color.Transparent,
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(8.dp))

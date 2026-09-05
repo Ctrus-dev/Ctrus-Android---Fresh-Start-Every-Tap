@@ -1,13 +1,21 @@
 package mo.dev.ctrus.ui.settings
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -15,11 +23,16 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -130,7 +143,55 @@ fun CustomToggleRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        Spacer(modifier = Modifier.width(16.dp))
+        IosStyleSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+    }
+}
+
+/**
+ * Recreates SwiftUI's native `Toggle` proportions (51x31pt pill track, thumb nearly filling its
+ * height) instead of Material3's `Switch`, which uses a visibly smaller thumb inside a wider
+ * track. Keeps standard switch semantics/accessibility (Role.Switch) via [Modifier.toggleable].
+ */
+@Composable
+fun IosStyleSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    tint: Color = MaterialTheme.colorScheme.primary,
+) {
+    val trackWidth = 51.dp
+    val trackHeight = 31.dp
+    val thumbDiameter = trackHeight - 4.dp
+    val trackOffColor = if (isSystemInDarkTheme()) Color(0xFF39393D) else Color(0xFFE9E9EA)
+    val trackColor by animateColorAsState(if (checked) tint else trackOffColor, label = "toggleTrackColor")
+    val thumbOffset by animateDpAsState(
+        if (checked) trackWidth - thumbDiameter - 2.dp else 2.dp,
+        label = "toggleThumbOffset",
+    )
+
+    Box(
+        modifier = modifier
+            .size(trackWidth, trackHeight)
+            .clip(CircleShape)
+            .background(trackColor)
+            .toggleable(
+                value = checked,
+                onValueChange = onCheckedChange,
+                enabled = enabled,
+                role = Role.Switch,
+            )
+            .alpha(if (enabled) 1f else 0.4f),
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(start = thumbOffset)
+                .size(thumbDiameter)
+                .align(Alignment.CenterStart)
+                .shadow(2.dp, CircleShape)
+                .background(Color.White, CircleShape),
+        )
     }
 }
 

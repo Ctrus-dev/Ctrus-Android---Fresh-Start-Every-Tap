@@ -12,9 +12,9 @@ import android.graphics.Color as AndroidColor
  * the app icon fills, so keep both in sync if the palette ever changes.
  */
 enum class ThemeColorOption(@StringRes val displayNameRes: Int, val color: Color) {
-    Orange(R.string.color_orange, Color(0xFFF3A641)),
-    Lime(R.string.color_lime, Color(0xFF4CB65F)),
-    Lemon(R.string.color_lemon, Color(0xFFF7D045)),
+    Orange(R.string.color_orange, Color(0xFFFF9016)),
+    Lemon(R.string.color_lemon, Color(0xFFFEC600)),
+    Lime(R.string.color_lime, Color(0xFF00AE42)),
 }
 
 val DefaultThemeColorOption = ThemeColorOption.Orange

@@ -33,7 +33,7 @@ private const val FRAGMENT_SHADER = """
         vec3 fillDir = normalize(vec3(-0.5, -0.3, 0.6));
         float keyDiffuse = max(dot(normal, keyDir), 0.0);
         float fillDiffuse = max(dot(normal, fillDir), 0.0);
-        float lighting = min(0.6 + 0.3 * keyDiffuse + 0.2 * fillDiffuse, 1.0);
+        float lighting = min(1.0 + 0.3 * keyDiffuse + 0.2 * fillDiffuse, 1.0);
         gl_FragColor = vec4(u_Color.rgb * lighting, u_Color.a);
     }
 """

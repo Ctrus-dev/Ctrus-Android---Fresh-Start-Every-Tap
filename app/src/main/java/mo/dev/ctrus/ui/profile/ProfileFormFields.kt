@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -59,6 +61,11 @@ fun NameField(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabl
         placeholder = { Text(stringResource(R.string.field_profile_name_placeholder)) },
         singleLine = true,
         enabled = !disabled,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            disabledBorderColor = Color.Transparent,
+        ),
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -152,6 +159,11 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
             singleLine = true,
             enabled = !disabled,
             isError = domainError != null,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                disabledBorderColor = Color.Transparent,
+            ),
             modifier = Modifier.weight(1f),
         )
         TextButton(

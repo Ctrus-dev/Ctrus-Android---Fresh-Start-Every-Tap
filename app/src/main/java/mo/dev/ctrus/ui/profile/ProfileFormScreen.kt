@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -270,7 +272,17 @@ fun ProfileFormScreen(
             onDismissRequest = { showDuplicatePrompt = false },
             title = { Text(stringResource(R.string.profile_form_duplicate_title)) },
             text = {
-                OutlinedTextField(value = duplicateName, onValueChange = { duplicateName = it }, placeholder = { Text(stringResource(R.string.field_profile_name_placeholder)) }, singleLine = true)
+                OutlinedTextField(
+                    value = duplicateName,
+                    onValueChange = { duplicateName = it },
+                    placeholder = { Text(stringResource(R.string.field_profile_name_placeholder)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        disabledBorderColor = Color.Transparent,
+                    ),
+                )
             },
             confirmButton = {
                 TextButton(enabled = duplicateName.isNotBlank(), onClick = { showDuplicatePrompt = false; onDuplicate(duplicateName.trim()) }) { Text(stringResource(R.string.common_create)) }
