@@ -11,6 +11,9 @@ data class InstalledApp(
     val packageName: String,
     val label: String,
     val icon: Drawable?,
+    // Raw android.content.pm.ApplicationInfo.CATEGORY_* value (or CATEGORY_UNDEFINED = -1 when
+    // the app's manifest never declared one — common; grouping falls back to "Other" for those).
+    val category: Int,
 )
 
 /**
@@ -36,6 +39,7 @@ class InstalledAppsRepository(private val context: Context) {
                         packageName = packageName,
                         label = pm.getApplicationLabel(appInfo).toString(),
                         icon = pm.getApplicationIcon(appInfo),
+                        category = appInfo.category,
                     )
                 }.getOrNull()
             }

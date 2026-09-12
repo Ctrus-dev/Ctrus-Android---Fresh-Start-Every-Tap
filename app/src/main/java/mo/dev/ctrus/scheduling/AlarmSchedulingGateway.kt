@@ -19,7 +19,7 @@ class AlarmSchedulingGateway(private val context: Context) : SchedulingGateway {
     }
 
     override fun cancelBreakExpiry(sessionId: String) {
-        cancel(requestCode(ExpiryReceiver.KIND_BREAK, sessionId))
+        cancel(ExpiryReceiver.KIND_BREAK, sessionId)
     }
 
     override fun scheduleBreakWarning(sessionId: String, profileName: String, triggerAtEpochMilli: Long) {
@@ -38,14 +38,19 @@ class AlarmSchedulingGateway(private val context: Context) : SchedulingGateway {
     }
 
     override fun cancelBreakWarning(sessionId: String) {
-        cancel(requestCode(ExpiryReceiver.KIND_BREAK_WARNING, sessionId))
+        cancel(ExpiryReceiver.KIND_BREAK_WARNING, sessionId)
     }
 
-    private fun cancel(requestCode: Int) {
+    private fun cancel(kind: String, sessionId: String) {
+        // Must match the action set on the Intent used when scheduling (see pendingIntent() and
+        // scheduleBreakWarning() below) — PendingIntent lookup under FLAG_NO_CREATE matches via
+        // Intent.filterEquals(), which compares action, so an action-less lookup Intent never
+        // finds the originally-armed alarm and silently no-ops instead of cancelling it.
+        val intent = Intent(context, ExpiryReceiver::class.java).apply { action = kind }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            requestCode,
-            Intent(context, ExpiryReceiver::class.java),
+            requestCode(kind, sessionId),
+            intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         ) ?: return
         alarmManager.cancel(pendingIntent)

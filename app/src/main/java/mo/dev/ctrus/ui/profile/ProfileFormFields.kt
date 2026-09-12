@@ -1,20 +1,25 @@
 package mo.dev.ctrus.ui.profile
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -22,6 +27,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,15 +36,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.data.PhysicalUnblockType
-import mo.dev.ctrus.nfc.NfcAvailability
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
+import mo.dev.ctrus.ui.common.NfcScanDialog
 import mo.dev.ctrus.ui.settings.CustomToggleRow
 import mo.dev.ctrus.ui.settings.SettingsDivider
 import mo.dev.ctrus.ui.settings.SettingsRow
@@ -66,27 +73,46 @@ fun NameField(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabl
             unfocusedBorderColor = Color.Transparent,
             disabledBorderColor = Color.Transparent,
         ),
-        modifier = Modifier.fillMaxWidth(),
+        // Without a border to visually contain it, the default 56dp-tall field reads as an
+        // oversized blank pill — trimmed down now that nothing else frames its empty space.
+        modifier = Modifier.fillMaxWidth().height(52.dp),
     )
 }
+
+// RadioButton's default 48dp touch target (way past its own 20dp circle) was stretching this
+// row's height, pushing the description below it far away from the title it belongs to.
+private val StrategyRadioBoxSize = 24.dp
+private val StrategyRadioToTitleGap = 8.dp
 
 @Composable
 fun StrategyFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, availableStrategies: List<BlockingStrategy>, disabled: Boolean) {
     availableStrategies.forEachIndexed { index, strategy ->
         if (index > 0) SettingsDivider()
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RadioButton(
-                selected = strategy.id == draft.strategyId,
-                onClick = { onDraftChange(draft.copy(strategyId = strategy.id)) },
-                enabled = !disabled,
-            )
-            Column {
+        // Matches SettingsDivider's own 16dp inset — this column had none, so the radio circle
+        // started to the left of where the divider above/below it begins.
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides StrategyRadioBoxSize) {
+                    RadioButton(
+                        selected = strategy.id == draft.strategyId,
+                        onClick = { onDraftChange(draft.copy(strategyId = strategy.id)) },
+                        enabled = !disabled,
+                    )
+                }
+                Spacer(Modifier.width(StrategyRadioToTitleGap))
                 Text(stringResource(strategy.displayNameRes), style = MaterialTheme.typography.bodyLarge)
-                Text(stringResource(strategy.descriptionRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Spacer(Modifier.height(4.dp))
+            // Starts under the radio ball itself now, not indented to the title — the ball is
+            // the thing being described just as much as the title text next to it is.
+            Text(
+                stringResource(strategy.descriptionRes),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -98,7 +124,11 @@ fun AppsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disab
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp)
+            // Asymmetric on purpose: 10dp above keeps a comfortable tap target for this
+            // clickable row, but a matching 10dp below was pushing the subtitle text far away
+            // from the title it describes — 4dp there instead matches CustomToggleRow's own
+            // title-to-description gap.
+            .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)
             .let { if (disabled) it else it.clickable { showPicker = true } },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -113,6 +143,9 @@ fun AppsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disab
         if (draft.selectedPackages.isEmpty()) stringResource(R.string.app_picker_no_apps_selected) else pluralStringResource(R.plurals.apps_selected_count, draft.selectedPackages.size, draft.selectedPackages.size),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+        // Matches CustomToggleRow's and SettingsDivider's own 16dp inset below — this row and
+        // its subtitle had none, so they started to the left of where the divider begins.
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
     )
     SettingsDivider()
     CustomToggleRow(
@@ -209,6 +242,7 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
 
 @Composable
 fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, nfcScanController: NfcScanController, disabled: Boolean) {
+    val context = LocalContext.current
     var isScanningTag by remember { mutableStateOf(false) }
     var scanError by remember { mutableStateOf<String?>(null) }
     val scanEmptyError = stringResource(R.string.field_nfc_scan_empty)
@@ -253,25 +287,23 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
         SettingsDivider()
     }
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        TextButton(enabled = !disabled, onClick = { isScanningTag = true }) { Text("+ " + stringResource(R.string.field_add_tag)) }
+        // TextButton otherwise enforces a 48dp minimum touch target on top of its own content
+        // padding, which read as a big blank balloon around this short "+ Add Tag" label.
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+            TextButton(
+                enabled = !disabled,
+                onClick = { isScanningTag = true },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) { Text("+ " + stringResource(R.string.field_add_tag)) }
+        }
     }
 
     if (isScanningTag || scanError != null) {
-        AlertDialog(
-            onDismissRequest = { isScanningTag = false; scanError = null },
-            title = { Text(stringResource(R.string.field_scan_tag_title)) },
-            text = {
-                when {
-                    nfcScanController.availability == NfcAvailability.NO_HARDWARE -> Text(stringResource(R.string.field_nfc_no_hardware))
-                    nfcScanController.availability == NfcAvailability.DISABLED -> Text(stringResource(R.string.field_nfc_disabled))
-                    scanError != null -> Text(scanError!!)
-                    else -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                        Text(stringResource(R.string.field_nfc_hold_near_tag), modifier = Modifier.padding(start = 12.dp))
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { isScanningTag = false; scanError = null }) { Text(stringResource(R.string.common_ok)) } },
+        NfcScanDialog(
+            availability = nfcScanController.availability,
+            onDismiss = { isScanningTag = false; scanError = null },
+            onOpenNfcSettings = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) },
+            errorMessage = scanError,
         )
     }
 }

@@ -57,12 +57,17 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 import mo.dev.ctrus.icon.AppIcon
+import mo.dev.ctrus.permissions.BackgroundLaunchHelpUtil
 import mo.dev.ctrus.ui.common.GlassIconButton
 import mo.dev.ctrus.theme.ThemeColorOption
 import mo.dev.ctrus.theme.ThemeManager
@@ -86,11 +91,15 @@ fun SettingsScreen(
     remainingRecoveryUnlocks: Int,
     recoveryResetDateMillis: Long? = null,
     deviceId: String? = null,
+    useLeftHandedLayout: Boolean = false,
+    onUseLeftHandedLayoutChange: (Boolean) -> Unit = {},
 ) {
     var showInvalidCodeAlert by remember { mutableStateOf(false) }
     var unlockCode by remember { mutableStateOf("") }
     var isVerifying by remember { mutableStateOf(false) }
+    var showBackgroundLaunchHelp by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -207,7 +216,14 @@ fun SettingsScreen(
                                 unfocusedBorderColor = Color.Transparent,
                                 disabledBorderColor = Color.Transparent,
                             ),
-                            modifier = Modifier.weight(1f)
+                            // OutlinedTextField's own default ~16dp start content padding stacks
+                            // on top of this row's 16dp inset, landing the placeholder a further
+                            // 16dp in — noticeably adrift from every other row's text, which all
+                            // start flush at that same 16dp. Nothing else here is asked to line
+                            // up against the field's actual layout bounds, so an offset (purely
+                            // visual — the touch target moves with it) is enough to cancel that
+                            // built-in padding out without rebuilding this as a bare BasicTextField.
+                            modifier = Modifier.weight(1f).offset(x = (-16).dp)
                         )
                         Spacer(Modifier.width(8.dp))
                         if (isVerifying) {
@@ -236,6 +252,17 @@ fun SettingsScreen(
                     RecoveryUnlockStatusRow(
                         remainingUnlocks = remainingRecoveryUnlocks,
                         resetDateMillis = recoveryResetDateMillis,
+                    )
+                }
+            }
+
+            item {
+                SettingsSection(title = stringResource(R.string.settings_section_accessibility)) {
+                    CustomToggleRow(
+                        title = stringResource(R.string.settings_left_handed_layout_title),
+                        description = stringResource(R.string.settings_left_handed_layout_desc),
+                        checked = useLeftHandedLayout,
+                        onCheckedChange = onUseLeftHandedLayoutChange,
                     )
                 }
             }
@@ -293,12 +320,40 @@ fun SettingsScreen(
                         }
                     }
                     SettingsDivider()
+                    SettingsLinkRow(title = stringResource(R.string.settings_background_launch_help)) {
+                        showBackgroundLaunchHelp = true
+                    }
+                    SettingsDivider()
                     SettingsRow(title = stringResource(R.string.settings_made_in)) {
                         Text("🇵🇹")
                     }
                 }
             }
+
+            item {
+                OpenSourceFooter(
+                    themeColor = themeManager.selectedColorOption.color,
+                    onOpenUrl = onOpenUrl,
+                )
+            }
         }
+    }
+
+    if (showBackgroundLaunchHelp) {
+        AlertDialog(
+            onDismissRequest = { showBackgroundLaunchHelp = false },
+            title = { Text(stringResource(R.string.background_launch_help_title)) },
+            text = { Text(stringResource(R.string.background_launch_help_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBackgroundLaunchHelp = false
+                    BackgroundLaunchHelpUtil.openSettings(context)
+                }) { Text(stringResource(R.string.background_launch_help_open_settings)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBackgroundLaunchHelp = false }) { Text(stringResource(R.string.common_cancel)) }
+            },
+        )
     }
 
     if (showInvalidCodeAlert) {
@@ -363,21 +418,58 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
     }
 }
 
+/**
+ * Mirrors SettingsView's footer: open-source attribution, sitting in the normal scroll flow
+ * right after About rather than floating over whatever section is on screen while scrolling.
+ * Moved here from the required-permissions screen (see AccessibilityPermissionScreen's kdoc).
+ */
+@Composable
+private fun OpenSourceFooter(themeColor: Color, onOpenUrl: (String) -> Unit) {
+    val text = buildAnnotatedString {
+        append(stringResource(R.string.intro_open_source_prefix))
+        append(" ")
+        withStyle(SpanStyle(color = themeColor)) {
+            append(stringResource(R.string.intro_open_source_link))
+        }
+    }
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 12.dp)
+            .clickableNoRipple { onOpenUrl("https://github.com/Ctrus-dev/Ctrus-Android---Fresh-Start-Every-Tap") },
+    )
+}
+
 /** Mirrors SettingsView's recoveryUnlockStatusText: red once at most 1 unlock remains. */
 @Composable
 private fun RecoveryUnlockStatusRow(remainingUnlocks: Int, resetDateMillis: Long?) {
     val isLow = remainingUnlocks <= 1
     val statusText = when {
-        remainingUnlocks == 1 -> stringResource(R.string.settings_recovery_one_left)
         remainingUnlocks > 1 -> stringResource(R.string.settings_recovery_default_status)
-        resetDateMillis == null -> stringResource(R.string.settings_recovery_default_status)
+        resetDateMillis == null -> {
+            if (remainingUnlocks == 1) {
+                stringResource(R.string.settings_recovery_one_left)
+            } else {
+                stringResource(R.string.settings_recovery_default_status)
+            }
+        }
         else -> {
             val diffMillis = resetDateMillis - System.currentTimeMillis()
-            if (diffMillis <= 24 * 3_600_000L) {
-                val hoursRemaining = kotlin.math.ceil(diffMillis / 3_600_000.0).toInt().coerceAtLeast(1)
+            val hoursRemaining = kotlin.math.ceil(diffMillis / 3_600_000.0).toInt().coerceAtLeast(1)
+            val date = DateFormatters.formatMonthDay(Date(resetDateMillis))
+            if (remainingUnlocks == 1) {
+                if (diffMillis <= 24 * 3_600_000L) {
+                    stringResource(R.string.settings_recovery_one_left_hours, hoursRemaining)
+                } else {
+                    stringResource(R.string.settings_recovery_one_left_date, date)
+                }
+            } else if (diffMillis <= 24 * 3_600_000L) {
                 stringResource(R.string.settings_recovery_resets_in_hours, hoursRemaining)
             } else {
-                val date = DateFormatters.formatMonthDay(Date(resetDateMillis))
                 stringResource(R.string.settings_recovery_resets_on_date, date)
             }
         }

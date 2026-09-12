@@ -44,8 +44,8 @@ class CtrusApp : Application() {
         super.onCreate()
         database = CtrusDatabase.getInstance(this)
         profileRepository = ProfileRepository(database.blockedProfileDao())
-        sessionRepository = SessionRepository(database.sessionDao())
         schedulingGateway = AlarmSchedulingGateway(this)
+        sessionRepository = SessionRepository(database.sessionDao(), schedulingGateway)
         strategyRegistry = StrategyRegistry(sessionRepository)
         preferences = AppPreferences(this)
 

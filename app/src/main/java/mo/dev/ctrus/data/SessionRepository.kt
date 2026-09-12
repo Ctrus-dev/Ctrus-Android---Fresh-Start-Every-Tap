@@ -1,10 +1,11 @@
 package mo.dev.ctrus.data
 
 import kotlinx.coroutines.flow.Flow
+import mo.dev.ctrus.scheduling.SchedulingGateway
 import java.time.Instant
 
 /** Mirrors the static + instance methods on BlockedProfileSessions.swift, backed by Room. */
-class SessionRepository(private val dao: BlockedProfileSessionDao) {
+class SessionRepository(private val dao: BlockedProfileSessionDao, private val scheduling: SchedulingGateway) {
     fun observeMostRecentActive(): Flow<BlockedProfileSessionEntity?> = dao.observeMostRecentActive()
 
     suspend fun mostRecentActive(): BlockedProfileSessionEntity? = dao.getMostRecentActive()
@@ -24,6 +25,11 @@ class SessionRepository(private val dao: BlockedProfileSessionDao) {
     suspend fun endSession(session: BlockedProfileSessionEntity): BlockedProfileSessionEntity {
         val ended = session.copy(endTimeEpochMilli = Instant.now().toEpochMilli())
         dao.update(ended)
+        // A session can end (strategy stop, emergency unblock) while a break's expiry/warning
+        // alarms are still pending — without this, e.g. the "1 minute left" notification fires
+        // later regardless, well after the session it refers to no longer exists.
+        scheduling.cancelBreakExpiry(session.id)
+        scheduling.cancelBreakWarning(session.id)
         return ended
     }
 

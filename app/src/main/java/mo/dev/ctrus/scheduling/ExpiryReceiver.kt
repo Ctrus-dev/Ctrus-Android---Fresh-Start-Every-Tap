@@ -54,20 +54,35 @@ class ExpiryReceiver : BroadcastReceiver() {
         val profileName = intent.getStringExtra(EXTRA_PROFILE_NAME) ?: return
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
 
-        val contentIntent = PendingIntent.getActivity(
-            context,
-            0,
-            Intent(context, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val notification = NotificationCompat.Builder(context, CtrusApp.BREAK_WARNING_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_popup_reminder)
-            .setContentTitle(context.getString(R.string.break_notification_title))
-            .setContentText(context.getString(R.string.break_notification_body, profileName))
-            .setAutoCancel(true)
-            .setContentIntent(contentIntent)
-            .build()
-        NotificationManagerCompat.from(context).notify(sessionId.hashCode(), notification)
+        // Cancelling this alarm from AlarmSchedulingGateway used to be a no-op (mismatched
+        // PendingIntent lookup), so this guard mirrors onBreakExpired()'s: without it, a break
+        // that ended early/manually — or a whole session that was stopped — still fires this
+        // notification later, unconditionally, at its original schedule time.
+        val app = CtrusApp.from(context)
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                val session = app.sessionRepository.find(sessionId) ?: return@launch
+                if (session.breakStartTimeEpochMilli == null || session.breakEndTimeEpochMilli != null) return@launch
+
+                val contentIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    Intent(context, MainActivity::class.java),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+                val notification = NotificationCompat.Builder(context, CtrusApp.BREAK_WARNING_CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                    .setContentTitle(context.getString(R.string.break_notification_title))
+                    .setContentText(context.getString(R.string.break_notification_body, profileName))
+                    .setAutoCancel(true)
+                    .setContentIntent(contentIntent)
+                    .build()
+                NotificationManagerCompat.from(context).notify(sessionId.hashCode(), notification)
+            } finally {
+                pendingResult.finish()
+            }
+        }
     }
 
     companion object {

@@ -65,28 +65,26 @@ import mo.dev.ctrus.theme.ThemeManager
 import mo.dev.ctrus.ui.home.PermissionsAlertSheet
 import mo.dev.ctrus.ui.home.HomeScreen
 import mo.dev.ctrus.ui.home.ManageProfilesScreen
-import mo.dev.ctrus.ui.home.StartProfilePickerView
 import mo.dev.ctrus.ui.insights.ProfileInsightsScreen
 import mo.dev.ctrus.ui.intro.AccessibilityDisclosureDialog
 import mo.dev.ctrus.ui.intro.BatteryOptimizationDialog
 import mo.dev.ctrus.ui.intro.AccessibilityPermissionScreen
 import mo.dev.ctrus.ui.profile.GuidedProfileCreationScreen
 import mo.dev.ctrus.ui.profile.ProfileFormScreen
-import mo.dev.ctrus.ui.session.ActiveSessionScreen
-import mo.dev.ctrus.ui.session.ActiveSessionUiState
 import mo.dev.ctrus.ui.session.EmergencyView
 import mo.dev.ctrus.ui.settings.SettingsScreen
 import mo.dev.ctrus.ui.strategy.PendingRequirementDialog
-import mo.dev.ctrus.util.DateFormatters
 import mo.dev.ctrus.util.resolve
 
 class MainActivity : ComponentActivity() {
+    private lateinit var nfcScanController: NfcScanController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val themeManager = ThemeManager.getInstance(applicationContext)
-        val nfcScanController = NfcScanController(this, lifecycleScope)
+        nfcScanController = NfcScanController(this, lifecycleScope)
 
         setContent {
             CtrusTheme(themeManager) {
@@ -94,6 +92,18 @@ class MainActivity : ComponentActivity() {
                 CtrusNavHost(navController, themeManager, nfcScanController)
             }
         }
+    }
+
+    // Claims NFC reads for the entire time Ctrus is in the foreground, not just while a scan
+    // dialog is open — see NfcScanController's kdoc.
+    override fun onResume() {
+        super.onResume()
+        nfcScanController.attach()
+    }
+
+    override fun onPause() {
+        nfcScanController.detach()
+        super.onPause()
     }
 }
 
@@ -122,6 +132,23 @@ private fun CtrusNavHost(
     // this screen again.
     var showIntroScreen by remember { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(Unit) { showIntroScreen = app.preferences.showIntroScreen() }
+
+    // Mirrors HomeProfilesListView's `@AppStorage("useLeftHandedLayout")` and HomeView's
+    // `@AppStorage("hasCompletedFirstSession")`.
+    var useLeftHandedLayout by remember { mutableStateOf(false) }
+    var hasCompletedFirstSession by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        useLeftHandedLayout = app.preferences.useLeftHandedLayout()
+        hasCompletedFirstSession = app.preferences.hasCompletedFirstSession()
+    }
+    // Any of the three ways a session can end — Stop, Emergency unblock, or a recovery-code
+    // unlock — counts as "completed a first session" for dismissing the how-to hint for good.
+    fun markFirstSessionCompleted() {
+        if (!hasCompletedFirstSession) {
+            hasCompletedFirstSession = true
+            coroutineScope.launch { app.preferences.setHasCompletedFirstSession(true) }
+        }
+    }
 
     // Mirrors HomeView's `.onChange(of: scenePhase)` refreshing authorization status on every
     // foreground — Android has no push notification for "the user flipped this off in Settings",
@@ -165,13 +192,14 @@ private fun CtrusNavHost(
         false -> Unit
     }
 
-    // Shown once, right after accessibility onboarding — see BatteryOptimizationUtil's kdoc for
-    // why this matters on several OEM skins. Not shown again once dismissed either way, but the
-    // Settings row below stays available for the user to grant it later.
+    // Shown once, right after the first profile exists (not on the empty First Steps screen —
+    // nothing to protect yet) — see BatteryOptimizationUtil's kdoc for why this matters on several
+    // OEM skins. Not shown again once dismissed either way, but the Settings row below stays
+    // available for the user to grant it later.
     var showBatteryOptimizationPrompt by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(profiles.isEmpty()) {
         isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
-        if (!isBatteryOptimizationExempt && !app.preferences.hasShownBatteryOptimizationPrompt()) {
+        if (profiles.isNotEmpty() && !isBatteryOptimizationExempt && !app.preferences.hasShownBatteryOptimizationPrompt()) {
             showBatteryOptimizationPrompt = true
         }
     }
@@ -189,20 +217,9 @@ private fun CtrusNavHost(
         )
     }
 
-    // Mirrors HomeView presenting ActiveProfileSessionView as a fullScreenCover whenever a
-    // session is active, and dismissing it the moment the session ends.
-    LaunchedEffect(activeSession?.id, activeSession?.endTimeEpochMilli) {
-        val isBlocking = activeSession?.endTimeEpochMilli == null && activeSession != null
-        val onSessionRoute = navController.currentBackStackEntry?.destination?.route == "session"
-        if (isBlocking && !onSessionRoute) {
-            navController.navigate("session")
-        } else if (!isBlocking && onSessionRoute) {
-            navController.popBackStack("home", inclusive = false)
-        }
-    }
-
-    // Runs NFC reader mode for exactly as long as a scan is actually pending — see
-    // NfcScanController's kdoc for why this replaces iOS's system NFC sheet.
+    // Reader mode itself is always on while the Activity is resumed (see MainActivity's
+    // onResume/onPause); this only registers which handler reacts to the next tag while a scan
+    // is actually pending here — see NfcScanController's kdoc.
     DisposableEffect(pendingRequirement?.requirement) {
         if (pendingRequirement?.requirement == StrategyRequirement.ScanNfcTag) {
             nfcScanController.startScan { code ->
@@ -248,21 +265,6 @@ private fun CtrusNavHost(
     var showCreateProfile by remember { mutableStateOf(false) }
     var editingProfileId by remember { mutableStateOf<String?>(null) }
     var insightsProfileId by remember { mutableStateOf<String?>(null) }
-
-    var showStartPicker by remember { mutableStateOf(false) }
-    if (showStartPicker) {
-        StartProfilePickerView(
-            profiles = profiles,
-            themeColor = themeManager.selectedColorOption.color,
-            isBlocking = activeSession != null,
-            activeProfileId = activeProfile?.id,
-            onDismiss = { showStartPicker = false },
-            onProfileChosen = { profile ->
-                showStartPicker = false
-                orchestrator.requestStart(profile)
-            },
-        )
-    }
 
     if (showManageProfiles) {
         ModalBottomSheet(onDismissRequest = { showManageProfiles = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -343,6 +345,11 @@ private fun CtrusNavHost(
                 onOpenUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
                 remainingRecoveryUnlocks = remainingUnlocks,
                 recoveryResetDateMillis = recoveryResetDateMillis,
+                useLeftHandedLayout = useLeftHandedLayout,
+                onUseLeftHandedLayoutChange = { enabled ->
+                    useLeftHandedLayout = enabled
+                    coroutineScope.launch { app.preferences.setUseLeftHandedLayout(enabled) }
+                },
                 onValidateUnlockCode = { code ->
                     if (remainingUnlocks <= 0) {
                         false
@@ -352,6 +359,7 @@ private fun CtrusNavHost(
                             is RecoveryCodeVerification.Valid -> {
                                 app.preferences.consumeRecoveryUnlock()
                                 orchestrator.emergencyUnblock()
+                                markFirstSessionCompleted()
                                 remainingUnlocks = app.preferences.remainingRecoveryUnlocks()
                                 recoveryResetDateMillis = app.preferences.nextRecoveryResetDate()?.toEpochMilli()
                                 true
@@ -466,6 +474,65 @@ private fun CtrusNavHost(
         )
     }
 
+    // Mirrors HomeProfilesListView's break/emergency wiring, now driven from the profile's own
+    // expanded balloon card instead of a separate full-screen ActiveProfileSessionView.
+    val currentSession = activeSession
+    val currentProfile = activeProfile
+    val allowsBreaks = currentProfile?.let { StrategyCapabilities.allowsTimedBreaks(it.blockingStrategyId) } ?: false
+    val isBreakActive = currentSession != null && currentProfile != null && currentSession.isBreakActive(currentProfile, allowsBreaks)
+    val isBreakAvailable = currentSession != null && currentProfile != null && currentSession.isBreakAvailable(currentProfile, allowsBreaks)
+
+    // Mirrors StrategyManager's TimersUtil.scheduleNotification, which asks for notification
+    // authorization every time a break-end reminder is scheduled — the OS itself only shows the
+    // system dialog once and silently remembers the answer.
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* no-op: the reminder is simply skipped if denied, same as iOS */ }
+    val onBreakHeldWithNotificationPrompt: () -> Unit = {
+        if (!isBreakActive &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        orchestrator.toggleBreak()
+    }
+
+    // Mirrors ActiveProfileSessionView's `showEmergencyView` sheet: the "Emergency" button used
+    // to call emergencyUnblock() directly on tap, with no confirmation and no visibility into
+    // the limited-use count iOS enforces via EmergencyView.
+    var showEmergencySheet by remember { mutableStateOf(false) }
+    var emergencyRemaining by remember { mutableStateOf(AppPreferences.DEFAULT_EMERGENCY_UNBLOCKS) }
+    var emergencyResetWeeks by remember { mutableStateOf(AppPreferences.DEFAULT_RESET_PERIOD_WEEKS) }
+    var emergencyResetDateMillis by remember { mutableStateOf<Long?>(null) }
+    suspend fun refreshEmergencyState() {
+        emergencyRemaining = app.preferences.remainingEmergencyUnblocks()
+        emergencyResetWeeks = app.preferences.resetPeriodWeeksEmergency()
+        emergencyResetDateMillis = app.preferences.nextEmergencyResetDate()?.toEpochMilli()
+    }
+    // Mirrors EmergencyView's `.onAppear { strategyManager.checkAndResetEmergencyUnblocks() }`.
+    LaunchedEffect(showEmergencySheet) { if (showEmergencySheet) refreshEmergencyState() }
+
+    if (showEmergencySheet) {
+        EmergencyView(
+            remaining = emergencyRemaining,
+            resetPeriodWeeks = emergencyResetWeeks,
+            resetDateMillis = emergencyResetDateMillis,
+            onResetPeriodSelected = { weeks ->
+                coroutineScope.launch {
+                    app.preferences.setResetPeriodWeeksEmergency(weeks)
+                    refreshEmergencyState()
+                }
+            },
+            onConfirmUnblock = {
+                orchestrator.emergencyUnblock()
+                markFirstSessionCompleted()
+                showEmergencySheet = false
+            },
+            onDismiss = { showEmergencySheet = false },
+        )
+    }
+
     // No animated enter/exit: with one, leaving "home" keeps its GLSurfaceView (the 3D mascot,
     // setZOrderOnTop so its translucent format composites correctly) on-screen for the whole
     // crossfade — on a real device, slow enough to read as the model lingering into Settings for
@@ -485,100 +552,26 @@ private fun CtrusNavHost(
                 activeProfile = activeProfile,
                 isBlocking = activeSession != null,
                 displaySeconds = displaySeconds,
+                isBreakActive = isBreakActive,
+                isBreakAvailable = isBreakAvailable,
+                useLeftHandedLayout = useLeftHandedLayout,
+                hasCompletedFirstSession = hasCompletedFirstSession,
                 onOpenSettings = { showSettings = true },
                 onAddProfile = { showCreateProfile = true },
                 onEditProfile = { profile -> editingProfileId = profile.id },
                 onStartProfile = { profile -> requireAccessibility { orchestrator.requestStart(profile) } },
-                onStopProfile = { orchestrator.requestStop() },
+                onStopProfile = {
+                    orchestrator.requestStop()
+                    markFirstSessionCompleted()
+                },
+                onBreakTapped = onBreakHeldWithNotificationPrompt,
+                onEmergencyTapped = { showEmergencySheet = true },
                 onInsightsTapped = { profile -> insightsProfileId = profile.id },
                 onManageTapped = { showManageProfiles = true },
-                onLauncherTapped = {
-                    when {
-                        activeProfile != null -> navController.navigate("session") { launchSingleTop = true }
-                        profiles.size == 1 -> requireAccessibility { orchestrator.requestStart(profiles.first()) }
-                        profiles.size > 1 -> requireAccessibility { showStartPicker = true }
-                    }
-                },
                 isAccessibilityEnabled = isAccessibilityEnabled,
                 isBatteryOptimizationExempt = isBatteryOptimizationExempt,
                 onPermissionsAlertTapped = { showPermissionsAlertSheet = true },
             )
-        }
-
-        composable("session") {
-            val session = activeSession
-            val profile = activeProfile
-            if (session != null && profile != null) {
-                val focusMessageIndex by orchestrator.focusMessage.collectAsState()
-                val allowsBreaks = StrategyCapabilities.allowsTimedBreaks(profile.blockingStrategyId)
-                val isBreakActive = session.isBreakActive(profile, allowsBreaks)
-
-                // Mirrors ActiveProfileSessionView's `showEmergencyView` sheet: the "Emergency"
-                // button used to call emergencyUnblock() directly on tap, with no confirmation
-                // and no visibility into the limited-use count iOS enforces via EmergencyView.
-                // Mirrors StrategyManager's TimersUtil.scheduleNotification, which asks for
-                // notification authorization every time a break-end reminder is scheduled — the
-                // OS itself only shows the system dialog once and silently remembers the answer.
-                val notificationPermissionLauncher = rememberLauncherForActivityResult(
-                    ActivityResultContracts.RequestPermission()
-                ) { /* no-op: the reminder is simply skipped if denied, same as iOS */ }
-                val onBreakHeldWithNotificationPrompt: () -> Unit = {
-                    if (!isBreakActive &&
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                    ) {
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                    orchestrator.toggleBreak()
-                }
-
-                var showEmergencySheet by remember { mutableStateOf(false) }
-                var emergencyRemaining by remember { mutableStateOf(AppPreferences.DEFAULT_EMERGENCY_UNBLOCKS) }
-                var emergencyResetWeeks by remember { mutableStateOf(AppPreferences.DEFAULT_RESET_PERIOD_WEEKS) }
-                var emergencyResetDateMillis by remember { mutableStateOf<Long?>(null) }
-                suspend fun refreshEmergencyState() {
-                    emergencyRemaining = app.preferences.remainingEmergencyUnblocks()
-                    emergencyResetWeeks = app.preferences.resetPeriodWeeksEmergency()
-                    emergencyResetDateMillis = app.preferences.nextEmergencyResetDate()?.toEpochMilli()
-                }
-                // Mirrors EmergencyView's `.onAppear { strategyManager.checkAndResetEmergencyUnblocks() }`.
-                LaunchedEffect(showEmergencySheet) { if (showEmergencySheet) refreshEmergencyState() }
-
-                if (showEmergencySheet) {
-                    EmergencyView(
-                        remaining = emergencyRemaining,
-                        resetPeriodWeeks = emergencyResetWeeks,
-                        resetDateMillis = emergencyResetDateMillis,
-                        onResetPeriodSelected = { weeks ->
-                            coroutineScope.launch {
-                                app.preferences.setResetPeriodWeeksEmergency(weeks)
-                                refreshEmergencyState()
-                            }
-                        },
-                        onConfirmUnblock = {
-                            orchestrator.emergencyUnblock()
-                            showEmergencySheet = false
-                        },
-                        onDismiss = { showEmergencySheet = false },
-                    )
-                }
-
-                ActiveSessionScreen(
-                    state = ActiveSessionUiState(
-                        profileName = profile.name,
-                        displayTime = DateFormatters.formatDurationClock(displaySeconds),
-                        focusMessageIndex = focusMessageIndex,
-                        isBreakActive = isBreakActive,
-                        isBreakAvailable = session.isBreakAvailable(profile, allowsBreaks),
-                    ),
-                    themeColor = themeManager.selectedColorOption.color,
-                    onChartTapped = { insightsProfileId = profile.id },
-                    onCloseTapped = { navController.popBackStack("home", inclusive = false) },
-                    onBreakHeld = onBreakHeldWithNotificationPrompt,
-                    onEmergencyTapped = { showEmergencySheet = true },
-                    onStopTapped = orchestrator::requestStop,
-                )
-            }
         }
     }
 }

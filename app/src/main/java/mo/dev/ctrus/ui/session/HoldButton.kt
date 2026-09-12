@@ -6,18 +6,19 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -31,9 +32,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import mo.dev.ctrus.ui.common.AutoSizeText
 
 private const val HOLD_DURATION_MS = 800
+
+// Keeps long, localized labels (e.g. Portuguese's "Pressiona para começar a pausa") from
+// crowding — let alone clipping against — this pill's rounded ends.
+private val LabelHorizontalPadding = 16.dp
 
 /**
  * Mirrors ActiveSessionActionButton(requiresLongPress: true) on iOS: the user must
@@ -52,6 +59,7 @@ fun HoldToConfirmButton(
     fillColor: Color = backgroundColor,
     fillAlpha: Float = 0.45f,
     borderColor: Color? = null,
+    borderWidth: Dp = 1.dp,
     iconSize: Dp = 18.dp,
     onConfirm: () -> Unit
 ) {
@@ -64,7 +72,7 @@ fun HoldToConfirmButton(
             .height(height)
             .clip(RoundedCornerShape(28.dp))
             .background(backgroundColor.copy(alpha = restingAlpha))
-            .then(if (borderColor != null) Modifier.border(1.dp, borderColor, RoundedCornerShape(28.dp)) else Modifier)
+            .then(if (borderColor != null) Modifier.border(borderWidth, borderColor, RoundedCornerShape(28.dp)) else Modifier)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -91,14 +99,25 @@ fun HoldToConfirmButton(
                 .fillMaxWidth(fraction = animatable.value.coerceIn(0f, 1f))
                 .background(fillColor.copy(alpha = fillAlpha))
         )
-        if (icon != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = LabelHorizontalPadding),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
                 Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(iconSize))
                 Spacer(Modifier.width(6.dp))
-                Text(title, color = contentColor, style = textStyle)
             }
-        } else {
-            Text(title, color = contentColor, style = textStyle)
+            // weight(fill = false): short titles keep their natural size (so the icon+text pair
+            // stays centered as a unit via the Row's own Arrangement.Center), while a title too
+            // long to fit the remaining space shrinks via AutoSizeText instead of overflowing.
+            AutoSizeText(
+                text = title,
+                color = contentColor,
+                style = textStyle,
+                minFontSize = 12.sp,
+                modifier = Modifier.weight(1f, fill = false),
+            )
         }
     }
 }

@@ -31,8 +31,8 @@
     <string name="common_min_short">%1$d min</string>
     <string name="home_manage_content_description">Manage</string>
     <string name="home_settings_content_description">Settings</string>
-    <string name="home_getting_started_title">Getting Started</string>
-    <string name="home_getting_started_body">Let\'s get you started by creating your first profile. You can customize it as much or as little as you\'d like.</string>
+    <string name="home_getting_started_title">First Steps</string>
+    <string name="home_getting_started_body">Let\'s get you started by creating your first profile</string>
     <string name="home_create_profile_button">Create Profile</string>
     <string name="home_accessibility_alert_message">Blocking is paused until access is restored.</string>
     <string name="home_permissions_alert_pill">Permissions needed</string>
@@ -46,6 +46,7 @@
     <string name="home_menu_edit">Edit</string>
     <string name="home_menu_stop">Stop</string>
     <string name="home_menu_start">Start</string>
+    <string name="home_first_session_hint">Press and hold your profile to start a session. Tap it while it\'s active to reveal Break, Emergency and Stop.</string>
     <string name="home_launcher_start">Hold to Start</string>
     <string name="manage_title">Profiles</string>
     <string name="manage_close_content_description">Close</string>
@@ -113,6 +114,16 @@
     <string name="app_picker_done_content_description">Done</string>
     <string name="app_picker_search_placeholder">Search apps</string>
     <string name="app_picker_no_apps_selected">No apps selected</string>
+    <string name="app_picker_select_category_content_description">Select all apps in %1$s</string>
+    <string name="app_category_game">Games</string>
+    <string name="app_category_social">Social</string>
+    <string name="app_category_productivity">Productivity</string>
+    <string name="app_category_news">News &amp; Magazines</string>
+    <string name="app_category_maps">Maps &amp; Navigation</string>
+    <string name="app_category_audio">Music &amp; Audio</string>
+    <string name="app_category_video">Video &amp; Entertainment</string>
+    <string name="app_category_image">Photography</string>
+    <string name="app_category_other">Other</string>
     <string name="guided_step_name">Name</string>
     <string name="guided_step_method">Method</string>
     <string name="guided_step_apps">Apps</string>
@@ -170,10 +181,6 @@
     <string name="field_remove_tag_content_description">Remove %1$s</string>
     <string name="field_add_tag_button">+ %1$s</string>
     <string name="field_add_tag">Add Tag</string>
-    <string name="field_scan_tag_title">Scan your Ctrus tag</string>
-    <string name="field_nfc_no_hardware">This device doesn\'t support NFC.</string>
-    <string name="field_nfc_disabled">NFC is turned off. Enable it in system settings, then try again.</string>
-    <string name="field_nfc_hold_near_tag">Bring the back of your phone close to your Ctrus.</string>
     <string name="field_nfc_scan_empty">The scanned code was empty.</string>
     <string name="field_nfc_scan_duplicate">That tag is already in this list.</string>
     <string name="field_allow_timed_breaks_title">Allow Timed Breaks</string>
@@ -260,10 +267,19 @@
     <string name="settings_recovery_resets_in_hours">No unlocks remaining. Resets in %1$dh.</string>
     <string name="settings_recovery_resets_on_date">No unlocks remaining. Resets %1$s.</string>
     <string name="settings_recovery_default_status">You have access to 2 unlocks every 4 weeks.</string>
+    <string name="settings_recovery_one_left_hours">You only have 1 unlock left. Resets in %1$dh.</string>
+    <string name="settings_recovery_one_left_date">You only have 1 unlock left. Resets %1$s.</string>
+    <string name="settings_section_accessibility">Accessibility</string>
+    <string name="settings_left_handed_layout_title">Left-Handed Layout</string>
+    <string name="settings_left_handed_layout_desc">Moves the profile and settings buttons to the left</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_version_value">v%1$s</string>
     <string name="settings_accessibility_access">Accessibility Access</string>
+    <string name="settings_background_launch_help">Blocking not working reliably?</string>
+    <string name="background_launch_help_title">Blocking not working reliably?</string>
+    <string name="background_launch_help_body">Some phone brands restrict apps from showing screens while running in the background, which can stop the block screen from appearing even though Accessibility and Battery are both fine above. If you\'re running into this, tap below to check a related permission in your phone\'s settings — look for something like \"Display pop-up windows while running in the background\", \"Start activities in the background\", or \"Autostart\", and enable it for Ctrus.</string>
+    <string name="background_launch_help_open_settings">Open Settings</string>
     <string name="settings_authorized">Authorized</string>
     <string name="settings_not_authorized">Not Authorized</string>
     <string name="settings_made_in">Made in</string>
@@ -308,8 +324,9 @@
         <item quantity="other">%1$d minutes</item>
     </plurals>
 
-    <!-- Shown on the full-screen block surface (BlockerActivity), one of 8 variants chosen
-         deterministically per app per day, mirroring ShieldConfigurationExtension.swift. -->
+    <!-- Shown on the full-screen block surface (BlockerScreen, hosted by BlockerActivity), one of
+         8 variants chosen deterministically per app per day, mirroring
+         ShieldConfigurationExtension.swift. -->
     <string-array name="shield_titles">
         <item>Not ripe yet</item>
         <item>Juicy trap</item>

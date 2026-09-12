@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -121,7 +122,11 @@ fun SettingsLinkRow(title: String, modifier: Modifier = Modifier, onClick: () ->
     }
 }
 
-/** Mirrors CustomToggle.swift: title + description + switch, used throughout the profile form. */
+/**
+ * Mirrors CustomToggle.swift: title + switch share the title's own line (switch trailing), with
+ * the description as its own full-width line below — not a title+description block centered
+ * against the switch, which read as the switch belonging to neither line in particular.
+ */
 @Composable
 fun CustomToggleRow(
     title: String,
@@ -131,20 +136,26 @@ fun CustomToggleRow(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
             )
+            Spacer(modifier = Modifier.width(16.dp))
+            IosStyleSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        IosStyleSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

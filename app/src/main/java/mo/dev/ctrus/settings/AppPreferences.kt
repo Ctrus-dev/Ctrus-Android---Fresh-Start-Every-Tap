@@ -38,6 +38,8 @@ class AppPreferences(private val context: Context) {
         val LAUNCH_COUNT = intPreferencesKey("launch_count")
         val SELECTED_APP_ICON = stringPreferencesKey("selected_app_icon")
         val LAST_REVIEW_PROMPT_VERSION = stringPreferencesKey("last_review_prompt_version")
+        val USE_LEFT_HANDED_LAYOUT = booleanPreferencesKey("use_left_handed_layout")
+        val HAS_COMPLETED_FIRST_SESSION = booleanPreferencesKey("has_completed_first_session")
     }
 
     private val weekMillis = 7L * 24 * 60 * 60 * 1000
@@ -101,11 +103,11 @@ class AppPreferences(private val context: Context) {
         return context.dataStore.data.first()[Keys.RECOVERY_REMAINING] ?: DEFAULT_RECOVERY_UNLOCKS
     }
 
+    // Available as soon as the first unlock of the cycle is used, not just once they're all
+    // gone — the "1 left" status text needs this too, not only "0 left".
     suspend fun nextRecoveryResetDate(): Instant? {
         val prefs = context.dataStore.data.first()
         val last = prefs[Keys.RECOVERY_LAST_UNLOCK] ?: return null
-        val remaining = prefs[Keys.RECOVERY_REMAINING] ?: DEFAULT_RECOVERY_UNLOCKS
-        if (remaining > 0) return null
         val weeks = prefs[Keys.RECOVERY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
         return Instant.ofEpochMilli(last + weeks * weekMillis)
     }
@@ -115,7 +117,11 @@ class AppPreferences(private val context: Context) {
         if (remaining <= 0) return false
         context.dataStore.edit {
             it[Keys.RECOVERY_REMAINING] = remaining - 1
-            it[Keys.RECOVERY_LAST_UNLOCK] = Instant.now().toEpochMilli()
+            // The 4-week cooldown starts on the first unlock of the cycle — using the second
+            // one shouldn't push the reset date back further.
+            if (it[Keys.RECOVERY_LAST_UNLOCK] == null) {
+                it[Keys.RECOVERY_LAST_UNLOCK] = Instant.now().toEpochMilli()
+            }
         }
         return true
     }
@@ -152,6 +158,20 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setSelectedAppIcon(icon: AppIcon) {
         context.dataStore.edit { it[Keys.SELECTED_APP_ICON] = icon.name }
+    }
+
+    suspend fun useLeftHandedLayout(): Boolean =
+        context.dataStore.data.first()[Keys.USE_LEFT_HANDED_LAYOUT] ?: false
+
+    suspend fun setUseLeftHandedLayout(useLeftHanded: Boolean) {
+        context.dataStore.edit { it[Keys.USE_LEFT_HANDED_LAYOUT] = useLeftHanded }
+    }
+
+    suspend fun hasCompletedFirstSession(): Boolean =
+        context.dataStore.data.first()[Keys.HAS_COMPLETED_FIRST_SESSION] ?: false
+
+    suspend fun setHasCompletedFirstSession(completed: Boolean) {
+        context.dataStore.edit { it[Keys.HAS_COMPLETED_FIRST_SESSION] = completed }
     }
 
     /** Mirrors RatingManager.swift: prompt after 3 launches, once per app version. */
