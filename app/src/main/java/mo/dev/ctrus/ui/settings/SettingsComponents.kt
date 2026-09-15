@@ -60,8 +60,19 @@ fun SettingsSection(
                 .padding(horizontal = 16.dp)
                 .background(
                     MaterialTheme.colorScheme.surfaceVariant,
-                    RoundedCornerShape(14.dp)
-                ),
+                    // 20.dp is this app's standard "bubble" corner radius — used uniformly across
+                    // cards, sheets, and pill buttons instead of the mix of ad-hoc values (14/18/28dp,
+                    // or a height-derived full stadium) that made corners look inconsistent between
+                    // screens, and between one card's own left/right vs top/bottom edges.
+                    RoundedCornerShape(20.dp)
+                )
+                // This card contributed nothing vertically before (the 16dp above is a horizontal
+                // margin outside the background, not content padding), leaving edge-to-content gap
+                // much tighter top/bottom than left/right once combined with each row's own smaller
+                // vertical padding — unlike iOS's bubbles, which keep the same inset on all sides.
+                // 12.dp on all four sides, matching GuidedCard's own so a field looks the same
+                // here as it does mid-wizard.
+                .padding(12.dp),
             content = content
         )
     }
@@ -79,7 +90,7 @@ fun SettingsRow(
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -105,7 +116,7 @@ fun SettingsLinkRow(title: String, modifier: Modifier = Modifier, onClick: () ->
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -136,7 +147,7 @@ fun CustomToggleRow(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -211,7 +222,7 @@ fun SettingsDivider() {
     // Inset on both ends — matching the row content's own horizontal padding — instead of
     // running flush to the card's raw right edge.
     HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = Modifier.padding(horizontal = 12.dp),
         color = if (isSystemInDarkTheme()) CtrusSystemColors.separatorDark else CtrusSystemColors.separatorLight,
     )
 }

@@ -40,7 +40,8 @@
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.Ctrus">
+            android:theme="@style/Theme.Ctrus"
+            android:configChanges="screenLayout|smallestScreenSize|screenSize|orientation|uiMode|density">
             <!-- Mirrors the iOS ctrus.net/profile/<id> deep link used by NFC tags & the widget -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />

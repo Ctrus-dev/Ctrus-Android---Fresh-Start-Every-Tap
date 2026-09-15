@@ -186,58 +186,45 @@ fun ProfileFormScreen(
                 }
             }
 
+            // No extra Modifier.padding(horizontal = ...) wrapper around any field below —
+            // SettingsSection already gives its content a uniform 12.dp inset on every side, and
+            // each field's own row padding is already normalized to match; adding another
+            // horizontal-only layer here (as before) pushed these fields further in from the
+            // sides than from the top/bottom, unlike their identical counterparts mid-wizard.
             item {
                 SettingsSection(title = stringResource(R.string.profile_form_section_name)) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-                        NameField(draft, { draft = it }, disabled)
-                    }
+                    NameField(draft, { draft = it }, disabled)
                 }
             }
             item {
                 SettingsSection(title = stringResource(R.string.profile_form_section_strategy)) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        StrategyFields(draft, { draft = it }, availableStrategies, disabled)
-                    }
+                    StrategyFields(draft, { draft = it }, availableStrategies, disabled)
                 }
             }
             item {
                 SettingsSection(title = stringResource(if (draft.enableAllowMode) R.string.profile_form_section_apps_allowed else R.string.profile_form_section_apps_blocked)) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        AppsFields(draft, { draft = it }, disabled)
-                    }
+                    AppsFields(draft, { draft = it }, disabled)
                 }
             }
             item {
                 SettingsSection(title = stringResource(if (draft.enableAllowModeDomains) R.string.profile_form_section_domains_allowed else R.string.profile_form_section_domains_blocked)) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        DomainsFields(draft, { draft = it }, disabled)
-                    }
+                    DomainsFields(draft, { draft = it }, disabled)
                 }
             }
             item {
                 SettingsSection(title = stringResource(R.string.profile_form_section_unlocks)) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        PhysicalUnlocksFields(draft, { draft = it }, nfcScanController, disabled)
-                    }
+                    PhysicalUnlocksFields(draft, { draft = it }, nfcScanController, disabled)
                 }
             }
             item {
                 SettingsSection(title = stringResource(R.string.profile_form_section_breaks)) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        BreaksFields(draft, { draft = it }, disabled)
-                    }
+                    BreaksFields(draft, { draft = it }, disabled)
                 }
             }
             item {
                 SettingsSection(title = stringResource(R.string.profile_form_section_protection)) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        SafeguardsFields(draft, { draft = it }, disabled)
-                    }
+                    SafeguardsFields(draft, { draft = it }, disabled)
                 }
-                // Sits outside the section card itself, matching GuidedProfileCreationScreen's
-                // Protection step — this form has no per-step trailing gap to piggyback on, so
-                // the disclaimer supplies its own small top padding instead.
-                AppDeletionOemDisclaimer(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 12.dp))
             }
         }
     }

@@ -85,7 +85,7 @@ fun BlockerScreen(appLabel: String, variantIndex: Int, onDismiss: () -> Unit) {
         Spacer(Modifier.height(28.dp))
         Button(
             onClick = onDismiss,
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
             modifier = Modifier.fillMaxWidth().height(56.dp),
         ) {

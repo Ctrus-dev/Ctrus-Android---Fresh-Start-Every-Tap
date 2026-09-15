@@ -55,7 +55,7 @@ fun CenteredActionBlock(
         aboveButtonContent()
         Button(
             onClick = onButtonClick,
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(containerColor = themeColor, contentColor = Color.White),
             modifier = Modifier.fillMaxWidth().height(56.dp),
         ) {

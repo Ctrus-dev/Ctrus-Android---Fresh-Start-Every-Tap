@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,6 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -99,6 +101,12 @@ private val EmergencyRed = Color(0xFFFF3B30)
 private const val HOLD_TO_START_MS = 800
 private val BaseBorderWidth = 3.5.dp
 private val HeldBorderWidth = 5.dp
+
+// Caps the profile card / action buttons at roughly phone width on a foldable's much wider
+// unfolded inner display, instead of letting them stretch edge-to-edge — a normal phone (or a
+// foldable's cover screen) is already narrower than this, so the constraint is a no-op there and
+// only kicks in once the available width goes past what a folded/cover screen would offer.
+private val HomeContentMaxWidth = 480.dp
 
 // The same spring physics driving the balloon's press-scale feedback, reused for the
 // expand/collapse of its Break/Emergency/Stop actions so the whole card feels like one
@@ -192,77 +200,96 @@ fun HomeScreen(
 ) {
     val themeColor = themeManager.selectedColorOption.color
 
-    Box(modifier = Modifier.fillMaxSize().background(pastelBackground(themeColor))) {
-        Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
+    Box(
+        modifier = Modifier.fillMaxSize().background(pastelBackground(themeColor)),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        // One scrollable list for the whole page — the 3D model, icon row, and profile cards all
+        // scroll together instead of the model staying pinned above a separately-scrolling list,
+        // which on a short screen left the cards (and their expanded Break/Emergency/Stop actions)
+        // fighting a cramped, separately-clipped region below a fixed header.
+        LazyColumn(
+            // widthIn MUST come before fillMaxWidth: fillMaxWidth first pins min=max=the parent's
+            // full width, and a widthIn(max=...) applied after that can no longer shrink it back
+            // down since the minimum is already locked at the larger value — widthIn has to narrow
+            // the constraint *before* fillMaxWidth turns "at most this wide" into "exactly this wide".
+            modifier = Modifier
+                .fillMaxHeight()
+                .widthIn(max = HomeContentMaxWidth)
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.systemBars),
+            contentPadding = PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             // Only surfaced once there's something to actually protect — the empty First Steps
             // screen shouldn't nag about permissions before a profile even exists to use them.
             // Accessibility only: it's the sole permission the app can't function without.
             // Battery-optimization exemption is a separate, non-blocking recommendation — see its
             // own one-time dialog (MainActivity's showBatteryOptimizationPrompt) and Settings row.
             if (profiles.isNotEmpty() && !isAccessibilityEnabled) {
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    AccessibilityAlertPill(onClick = onPermissionsAlertTapped)
+                item {
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        AccessibilityAlertPill(onClick = onPermissionsAlertTapped)
+                    }
                 }
             }
 
-            RotatingModel3DView(
-                themeColor = themeColor,
-                modifier = Modifier.size(DefaultModel3DSize).align(Alignment.CenterHorizontally).padding(top = 16.dp),
-            )
+            item {
+                // LazyItemScope's own `align` takes a full (2-axis) Alignment rather than
+                // ColumnScope's Alignment.Horizontal, so centering here goes through a Box instead.
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    RotatingModel3DView(themeColor = themeColor, modifier = Modifier.size(DefaultModel3DSize))
+                }
+            }
 
             if (profiles.isEmpty()) {
-                WelcomeSection(themeColor = themeColor, onAddProfile = onAddProfile)
+                item { WelcomeSection(themeColor = themeColor, onAddProfile = onAddProfile) }
             } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = if (useLeftHandedLayout) Arrangement.Start else Arrangement.End,
+                    ) {
+                        if (useLeftHandedLayout) {
+                            HomeGlassIconButton(onClick = onOpenSettings, icon = Icons.Filled.Settings, contentDescription = stringResource(R.string.home_settings_content_description))
+                            Spacer(Modifier.width(8.dp))
+                            HomeGlassIconButton(onClick = onManageTapped, icon = Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.home_manage_content_description))
+                        } else {
+                            HomeGlassIconButton(onClick = onManageTapped, icon = Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.home_manage_content_description))
+                            Spacer(Modifier.width(8.dp))
+                            HomeGlassIconButton(onClick = onOpenSettings, icon = Icons.Filled.Settings, contentDescription = stringResource(R.string.home_settings_content_description))
+                        }
+                    }
+                }
+                items(profiles, key = { it.id }) { profile ->
+                    val isActive = profile.id == activeProfile?.id
+                    ProfileBalloonCard(
+                        profile = profile,
+                        sessionRepository = sessionRepository,
+                        isActive = isActive,
+                        isBlocking = isBlocking,
+                        themeColor = themeColor,
+                        displaySeconds = displaySeconds,
+                        isBreakActive = isActive && isBreakActive,
+                        isBreakAvailable = isActive && isBreakAvailable,
+                        onEdit = { onEditProfile(profile) },
+                        onStart = { onStartProfile(profile) },
+                        onStop = { onStopProfile(profile) },
+                        onBreak = onBreakTapped,
+                        onEmergency = onEmergencyTapped,
+                        onInsights = { onInsightsTapped(profile) },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+                if (!hasCompletedFirstSession) {
                     item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                            horizontalArrangement = if (useLeftHandedLayout) Arrangement.Start else Arrangement.End,
-                        ) {
-                            if (useLeftHandedLayout) {
-                                HomeGlassIconButton(onClick = onOpenSettings, icon = Icons.Filled.Settings, contentDescription = stringResource(R.string.home_settings_content_description))
-                                Spacer(Modifier.width(8.dp))
-                                HomeGlassIconButton(onClick = onManageTapped, icon = Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.home_manage_content_description))
-                            } else {
-                                HomeGlassIconButton(onClick = onManageTapped, icon = Icons.Filled.AccountCircle, contentDescription = stringResource(R.string.home_manage_content_description))
-                                Spacer(Modifier.width(8.dp))
-                                HomeGlassIconButton(onClick = onOpenSettings, icon = Icons.Filled.Settings, contentDescription = stringResource(R.string.home_settings_content_description))
-                            }
-                        }
-                    }
-                    items(profiles, key = { it.id }) { profile ->
-                        val isActive = profile.id == activeProfile?.id
-                        ProfileBalloonCard(
-                            profile = profile,
-                            sessionRepository = sessionRepository,
-                            isActive = isActive,
-                            isBlocking = isBlocking,
-                            themeColor = themeColor,
-                            displaySeconds = displaySeconds,
-                            isBreakActive = isActive && isBreakActive,
-                            isBreakAvailable = isActive && isBreakAvailable,
-                            onEdit = { onEditProfile(profile) },
-                            onStart = { onStartProfile(profile) },
-                            onStop = { onStopProfile(profile) },
-                            onBreak = onBreakTapped,
-                            onEmergency = onEmergencyTapped,
-                            onInsights = { onInsightsTapped(profile) },
+                        Text(
+                            stringResource(R.string.home_first_session_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = HomeOnPastelVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                         )
-                    }
-                    if (!hasCompletedFirstSession) {
-                        item {
-                            Text(
-                                stringResource(R.string.home_first_session_hint),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = HomeOnPastelVariant,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                            )
-                        }
                     }
                 }
             }
@@ -339,6 +366,7 @@ private fun ProfileBalloonCard(
     onBreak: () -> Unit,
     onEmergency: () -> Unit,
     onInsights: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var isExpanded by remember(profile.id) { mutableStateOf(false) }
     val canStart = !isBlocking
@@ -356,7 +384,7 @@ private fun ProfileBalloonCard(
     val borderWidth = if (isActive) BaseBorderWidth else lerp(BaseBorderWidth, HeldBorderWidth, hold.progress)
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .scale(scale)
             .clip(RoundedCornerShape(20.dp))
@@ -613,9 +641,9 @@ private fun BreakHoldButton(title: String, themeColor: Color, onConfirm: () -> U
             .fillMaxWidth()
             .height(56.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
-            .border(borderWidth, themeColor, RoundedCornerShape(28.dp))
+            .border(borderWidth, themeColor, RoundedCornerShape(20.dp))
             .then(hold.gestureModifier)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.Center,
@@ -646,9 +674,12 @@ private fun SessionPillButton(
     Row(
         modifier = modifier
             .height(56.dp)
-            .clip(RoundedCornerShape(50))
+            // 20.dp, matching this app's other buttons/cards — was a full 50% stadium shape,
+            // whose rounded semicircle ends read as much heavier than the corners on every other
+            // "bubble" in the app.
+            .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
-            .border(BaseBorderWidth, borderColor, RoundedCornerShape(50))
+            .border(BaseBorderWidth, borderColor, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.Center,

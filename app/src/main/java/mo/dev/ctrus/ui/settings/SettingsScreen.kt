@@ -3,6 +3,7 @@ package mo.dev.ctrus.ui.settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -137,7 +138,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -177,7 +178,7 @@ fun SettingsScreen(
                         val clipboard = LocalClipboard.current
                         val deviceIdLabel = stringResource(R.string.settings_device_id)
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -203,7 +204,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
@@ -299,42 +300,43 @@ fun SettingsScreen(
                         }
                     }
                     SettingsDivider()
-                    // Tapping always relaunches the system's own "exempt this app" dialog — even
-                    // when already exempt, that's a harmless no-op there, and simpler than making
-                    // the row conditionally clickable.
-                    SettingsRow(
-                        title = stringResource(R.string.settings_battery_optimization),
-                        onClick = onRequestBatteryOptimizationExemption,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(
-                                        if (isBatteryOptimizationExempt) Color(0xFF34C759) else Color(0xFFFF3B30),
-                                        CircleShape
-                                    )
-                            )
-                            Spacer(Modifier.width(8.dp))
+                    // Tapping anywhere in this block — title row or caption — relaunches the
+                    // system's own "exempt this app" dialog; even when already exempt, that's a
+                    // harmless no-op there, and simpler than making it conditionally clickable.
+                    // Wrapped in one clickable Column instead of leaving SettingsRow's own onClick
+                    // in place, so the caption below shares the same tap target and ripple.
+                    Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onRequestBatteryOptimizationExemption)) {
+                        SettingsRow(title = stringResource(R.string.settings_battery_optimization)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            if (isBatteryOptimizationExempt) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                            CircleShape
+                                        )
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    // "Authorized"/"Not Authorized" reads backwards paired with this
+                                    // row's title — being exempt means optimization is OFF, so this
+                                    // states that directly instead.
+                                    stringResource(if (isBatteryOptimizationExempt) R.string.settings_battery_optimization_off else R.string.settings_battery_optimization_on),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        // Only relevant while the setting still needs fixing — once exempt (green/
+                        // "Off"), the recommendation is moot and stays hidden.
+                        if (!isBatteryOptimizationExempt) {
                             Text(
-                                // "Authorized"/"Not Authorized" reads backwards paired with this
-                                // row's title — being exempt means optimization is OFF, so this
-                                // states that directly instead.
-                                stringResource(if (isBatteryOptimizationExempt) R.string.settings_battery_optimization_off else R.string.settings_battery_optimization_on),
+                                stringResource(R.string.settings_battery_optimization_caption),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
                             )
                         }
-                    }
-                    // Only relevant while the setting still needs fixing — once exempt (green/
-                    // "Off"), the recommendation is moot and stays hidden.
-                    if (!isBatteryOptimizationExempt) {
-                        Text(
-                            stringResource(R.string.settings_battery_optimization_caption),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-                        )
                     }
                     SettingsDivider()
                     SettingsLinkRow(title = stringResource(R.string.settings_background_launch_help)) {
@@ -393,7 +395,7 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.settings_theme_color), modifier = Modifier.weight(1f))
@@ -496,7 +498,7 @@ private fun RecoveryUnlockStatusRow(remainingUnlocks: Int, resetDateMillis: Long
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -515,7 +517,7 @@ private fun AppIconRow(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         AppIcon.entries.forEach { option ->

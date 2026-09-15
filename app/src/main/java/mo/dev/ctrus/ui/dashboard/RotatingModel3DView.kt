@@ -48,11 +48,17 @@ fun RotatingModel3DView(themeColor: Color, modifier: Modifier = Modifier.size(De
 
                 var lastX = 0f
                 var lastY = 0f
-                setOnTouchListener { _, event ->
+                setOnTouchListener { view, event ->
                     when (event.action) {
                         MotionEvent.ACTION_DOWN -> {
                             lastX = event.x
                             lastY = event.y
+                            // Now that this view sits inside Home's scrollable list, the drag
+                            // would otherwise get cut short after a few pixels once the ancestor
+                            // LazyColumn recognizes it as a vertical scroll and steals the rest of
+                            // the gesture — this is the standard fix for a drag-to-rotate/pan view
+                            // nested in a scrollable container.
+                            view.parent?.requestDisallowInterceptTouchEvent(true)
                         }
                         MotionEvent.ACTION_MOVE -> {
                             val dx = event.x - lastX
@@ -62,6 +68,9 @@ fun RotatingModel3DView(themeColor: Color, modifier: Modifier = Modifier.size(De
                             lastX = event.x
                             lastY = event.y
                             requestRender()
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            view.parent?.requestDisallowInterceptTouchEvent(false)
                         }
                     }
                     true

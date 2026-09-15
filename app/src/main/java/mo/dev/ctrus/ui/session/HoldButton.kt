@@ -70,9 +70,9 @@ fun HoldToConfirmButton(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(backgroundColor.copy(alpha = restingAlpha))
-            .then(if (borderColor != null) Modifier.border(borderWidth, borderColor, RoundedCornerShape(28.dp)) else Modifier)
+            .then(if (borderColor != null) Modifier.border(borderWidth, borderColor, RoundedCornerShape(20.dp)) else Modifier)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {

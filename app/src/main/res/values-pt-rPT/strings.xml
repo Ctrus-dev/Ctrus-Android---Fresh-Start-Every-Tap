@@ -192,6 +192,7 @@
     <string name="field_prevent_app_deletion_desc">Impede que as apps sejam eliminadas durante as sessões, incluindo o Ctrus.</string>
     <string name="field_prevent_installs_title">Impedir Instalação de Novas Apps</string>
     <string name="field_prevent_installs_desc">Impede que novas apps sejam instaladas durante as sessões.</string>
+    <string name="field_prevent_app_deletion_oem_disclaimer_prefix">Aviso</string>
     <string name="field_prevent_app_deletion_oem_disclaimer">Esta opção pode não funcionar de forma eficaz em determinadas marcas de telemóveis Android.</string>
     <string name="profile_form_title">Editar Perfil</string>
     <string name="profile_form_cancel_content_description">Cancelar</string>
@@ -280,7 +281,7 @@
     <string name="settings_accessibility_access">Acesso de Acessibilidade</string>
     <string name="settings_background_launch_help">O bloqueio não está a funcionar bem?</string>
     <string name="background_launch_help_title">O bloqueio não está a funcionar bem?</string>
-    <string name="background_launch_help_body">Algumas marcas de telemóveis impedem as apps de mostrar ecrãs em segundo plano, o que pode impedir o ecrã de bloqueio de aparecer mesmo com as outras definições aprovadas. Toca abaixo e ativa uma definição como \"Mostrar pop-ups em segundo plano\", \"Iniciar atividades em segundo plano\" ou \"Início automático\" para o Ctrus.</string>
+    <string name="background_launch_help_body">Algumas marcas de telemóveis impedem as apps de mostrar ecrãs em segundo plano, o que pode impedir o ecrã de bloqueio de aparecer mesmo com as outras definições aprovadas. Toca em \"Abrir Definições\" e ativa uma definição como \"Mostrar pop-ups em segundo plano\", \"Iniciar atividades em segundo plano\" ou \"Início automático\" para o Ctrus.</string>
     <string name="background_launch_help_open_settings">Abrir Definições</string>
     <string name="settings_authorized">Autorizado</string>
     <string name="settings_not_authorized">Não Autorizado</string>

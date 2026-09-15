@@ -186,7 +186,7 @@ private fun ManageProfileRow(
             onClick = onClick,
             enabled = !editMode,
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(20.dp),
             border = androidx.compose.foundation.BorderStroke(3.5.dp, themeColor),
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {

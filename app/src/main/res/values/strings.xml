@@ -193,6 +193,7 @@
     <string name="field_prevent_app_deletion_desc">Stop apps from being deleted during sessions, including Ctrus.</string>
     <string name="field_prevent_installs_title">Prevent New App Installs</string>
     <string name="field_prevent_installs_desc">Stop new apps from being installed during sessions.</string>
+    <string name="field_prevent_app_deletion_oem_disclaimer_prefix">Warning</string>
     <string name="field_prevent_app_deletion_oem_disclaimer">This option may not work effectively on certain Android phone brands.</string>
     <string name="profile_form_title">Edit Profile</string>
     <string name="profile_form_cancel_content_description">Cancel</string>
@@ -281,7 +282,7 @@
     <string name="settings_accessibility_access">Accessibility Access</string>
     <string name="settings_background_launch_help">Blocking not working reliably?</string>
     <string name="background_launch_help_title">Blocking not working reliably?</string>
-    <string name="background_launch_help_body">Some phone brands block apps from showing screens in the background, which can stop the block screen from appearing even with the other settings approved. Tap below and enable a setting like \"Display pop-up windows while running in the background\", \"Start activities in the background\", or \"Autostart\" for Ctrus.</string>
+    <string name="background_launch_help_body">Some phone brands block apps from showing screens in the background, which can stop the block screen from appearing even with the other settings approved. Tap \"Open Settings\" and enable a setting like \"Display pop-up windows while running in the background\", \"Start activities in the background\", or \"Autostart\" for Ctrus.</string>
     <string name="background_launch_help_open_settings">Open Settings</string>
     <string name="settings_authorized">Authorized</string>
     <string name="settings_not_authorized">Not Authorized</string>

@@ -157,18 +157,11 @@ fun GuidedProfileCreationScreen(
             ) { index ->
                 val step = steps[index]
                 // The 36dp trailing gap before the Next button lives here (not inside GuidedCard)
-                // so it trails whatever this step renders last — the card itself normally, or the
-                // disclaimer below it on the Protection step — instead of always hugging the card.
+                // so it trails whatever this step renders last, instead of always hugging the card.
                 Column(modifier = Modifier.fillMaxWidth().padding(bottom = 36.dp)) {
                     StepHeader(index = index, total = steps.size, step = step, draft = draft)
                     GuidedCard {
                         StepContent(step, draft, { draft = it }, availableStrategies, nfcScanController)
-                    }
-                    // Sits outside the card itself, not squeezed in under the toggle it qualifies.
-                    if (step == GuidedStep.STRICT_SAFEGUARDS) {
-                        AppDeletionOemDisclaimer(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 10.dp),
-                        )
                     }
                 }
             }
@@ -176,7 +169,11 @@ fun GuidedProfileCreationScreen(
             Button(
                 onClick = { if (isLastStep) createProfile() else stepIndex++ },
                 enabled = canContinue,
-                shape = RoundedCornerShape(28.dp),
+                // 20.dp app-wide "bubble" radius — was 28.dp, which on this 56.dp-tall button was
+                // exactly half its height, so both ends drew as full semicircles (a stadium/pill)
+                // rather than a normal rounded rectangle with the same corner treatment as the
+                // cards around it. See SettingsSection's kdoc.
+                shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = themeColor, contentColor = Color.White),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 12.dp, bottom = 16.dp).height(56.dp),
             ) {
@@ -199,17 +196,18 @@ private fun StepHeader(index: Int, total: Int, step: GuidedStep, draft: ProfileD
 
 @Composable
 private fun GuidedCard(content: @Composable () -> Unit) {
-    // No vertical padding here on purpose: every field composable this hosts (NameField,
-    // StrategyFields, AppsFields, CustomToggleRow, ...) is shared with ProfileFormScreen's
-    // SettingsSection, which already supplies its own top/bottom padding per row — adding 18dp
-    // more here on top of that doubled up the gap from this card's edge to the text, well past
-    // what the same fields look like in the edit screen.
+    // 12.dp on all four sides (matching SettingsSection's own) — every field composable this
+    // hosts (NameField, StrategyFields, AppsFields, CustomToggleRow, ...) already supplies its
+    // own top/bottom padding per row, but that alone left this card's edge-to-content gap much
+    // tighter top/bottom than left/right, unlike iOS's bubbles, which keep the same inset on all
+    // four sides. Kept equal to SettingsSection's own so guided-flow fields still match their
+    // edit-screen counterparts.
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(28.dp))
-            .padding(horizontal = 20.dp),
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp))
+            .padding(12.dp),
     ) {
         content()
     }
@@ -273,12 +271,15 @@ private fun ReviewContent(draft: ProfileDraft, availableStrategies: List<Blockin
 
 @Composable
 private fun ReviewRow(title: String, value: String, showDivider: Boolean = true) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(end = 12.dp))
         Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
     if (showDivider) {
+        // Inset to match this row's own 12.dp padding above — a flush, edge-to-edge divider
+        // started/ended past where "Nome"/"Estratégia"/etc. actually begin and end.
         androidx.compose.material3.HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 12.dp),
             color = if (isSystemInDarkTheme()) CtrusSystemColors.separatorDark else CtrusSystemColors.separatorLight,
         )
     }

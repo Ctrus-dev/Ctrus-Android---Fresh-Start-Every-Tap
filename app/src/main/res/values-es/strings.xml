@@ -192,6 +192,7 @@
     <string name="field_prevent_app_deletion_desc">Evita que las apps se eliminen durante las sesiones, incluyendo Ctrus.</string>
     <string name="field_prevent_installs_title">Impedir Instalación de Nuevas Apps</string>
     <string name="field_prevent_installs_desc">Evita que se instalen nuevas apps durante las sesiones.</string>
+    <string name="field_prevent_app_deletion_oem_disclaimer_prefix">Aviso</string>
     <string name="field_prevent_app_deletion_oem_disclaimer">Esta opción puede no funcionar de forma eficaz en determinadas marcas de teléfonos Android.</string>
     <string name="profile_form_title">Editar Perfil</string>
     <string name="profile_form_cancel_content_description">Cancelar</string>
@@ -280,7 +281,7 @@
     <string name="settings_accessibility_access">Acceso de Accesibilidad</string>
     <string name="settings_background_launch_help">¿El bloqueo no funciona bien?</string>
     <string name="background_launch_help_title">¿El bloqueo no funciona bien?</string>
-    <string name="background_launch_help_body">Algunas marcas de móviles impiden que las apps muestren pantallas en segundo plano, lo que puede evitar que aparezca la pantalla de bloqueo aunque los demás ajustes estén aprobados. Toca abajo y activa un ajuste como \"Mostrar ventanas emergentes en segundo plano\", \"Iniciar actividades en segundo plano\" o \"Inicio automático\" para Ctrus.</string>
+    <string name="background_launch_help_body">Algunas marcas de móviles impiden que las apps muestren pantallas en segundo plano, lo que puede evitar que aparezca la pantalla de bloqueo aunque los demás ajustes estén aprobados. Toca en \"Abrir Ajustes\" y activa un ajuste como \"Mostrar ventanas emergentes en segundo plano\", \"Iniciar actividades en segundo plano\" o \"Inicio automático\" para Ctrus.</string>
     <string name="background_launch_help_open_settings">Abrir Ajustes</string>
     <string name="settings_authorized">Autorizado</string>
     <string name="settings_not_authorized">No Autorizado</string>

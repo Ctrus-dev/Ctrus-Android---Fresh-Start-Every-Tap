@@ -7,6 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import mo.dev.ctrus.R
 import mo.dev.ctrus.theme.CtrusTheme
@@ -29,6 +32,15 @@ import mo.dev.ctrus.theme.ThemeManager
  * BlockingAccessibilityService's showBlocker()/verifyBlockerVisible().
  */
 class BlockerActivity : ComponentActivity() {
+    // Held as Compose state (not plain onCreate-local vals) because this Activity is
+    // launchMode="singleInstance" and every later blocked-app tap reuses the same instance via
+    // onNewIntent rather than a fresh onCreate — without state here, setContent's closure kept
+    // showing whichever app/message variant was current the first time this Activity was ever
+    // created, no matter which app the *next* block was actually for.
+    // Named blockedPackageName (not packageName) to avoid clashing with Context.getPackageName().
+    private var blockedPackageName: String? by mutableStateOf(null)
+    private var appLabel: String? by mutableStateOf(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Without this, the status bar area shows the system's own default background instead of
@@ -36,10 +48,7 @@ class BlockerActivity : ComponentActivity() {
         // content away from the system bars via windowInsetsPadding(WindowInsets.systemBars).
         enableEdgeToEdge()
 
-        val packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME)
-        val appLabel = packageName
-            ?.let { runCatching { packageManager.getApplicationInfo(it, 0) }.getOrNull() }
-            ?.let { packageManager.getApplicationLabel(it).toString() }
+        updateForIntent(intent)
         val themeManager = ThemeManager.getInstance(applicationContext)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -50,7 +59,7 @@ class BlockerActivity : ComponentActivity() {
             CtrusTheme(themeManager) {
                 BlockerScreen(
                     appLabel = appLabel ?: stringResource(R.string.blocker_app_fallback),
-                    variantIndex = blockerScreenVariantIndex(appLabel ?: packageName.orEmpty()),
+                    variantIndex = blockerScreenVariantIndex(appLabel ?: blockedPackageName.orEmpty()),
                     onDismiss = ::goHome,
                 )
             }
@@ -60,6 +69,15 @@ class BlockerActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        updateForIntent(intent)
+    }
+
+    private fun updateForIntent(intent: Intent) {
+        val pkg = intent.getStringExtra(EXTRA_PACKAGE_NAME)
+        blockedPackageName = pkg
+        appLabel = pkg
+            ?.let { runCatching { packageManager.getApplicationInfo(it, 0) }.getOrNull() }
+            ?.let { packageManager.getApplicationLabel(it).toString() }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
