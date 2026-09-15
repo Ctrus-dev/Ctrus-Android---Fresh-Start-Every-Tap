@@ -38,6 +38,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -45,6 +46,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -138,7 +140,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -178,7 +180,7 @@ fun SettingsScreen(
                         val clipboard = LocalClipboard.current
                         val deviceIdLabel = stringResource(R.string.settings_device_id)
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -186,16 +188,22 @@ fun SettingsScreen(
                                 Spacer(Modifier.height(2.dp))
                                 Text(deviceId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = {
-                                coroutineScope.launch {
-                                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(deviceIdLabel, deviceId)))
+                            // IconButton's default 48dp minimum touch target left its icon
+                            // sitting well short of the row's own edge, unlike every other
+                            // row's trailing content — see "+ Add Tag"'s own kdoc for the
+                            // same fix applied there.
+                            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                                IconButton(onClick = {
+                                    coroutineScope.launch {
+                                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(deviceIdLabel, deviceId)))
+                                    }
+                                }) {
+                                    Icon(
+                                        Icons.Filled.ContentCopy,
+                                        contentDescription = stringResource(R.string.settings_copy_device_id_content_description),
+                                        tint = themeManager.selectedColorOption.color,
+                                    )
                                 }
-                            }) {
-                                Icon(
-                                    Icons.Filled.ContentCopy,
-                                    contentDescription = stringResource(R.string.settings_copy_device_id_content_description),
-                                    tint = themeManager.selectedColorOption.color,
-                                )
                             }
                         }
                     }
@@ -204,7 +212,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
@@ -231,22 +239,28 @@ fun SettingsScreen(
                         if (isVerifying) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp))
                         } else {
-                            TextButton(
-                                enabled = unlockCode.isNotEmpty() && hasUnlockRemaining,
-                                onClick = {
-                                    isVerifying = true
-                                    coroutineScope.launch {
-                                        val valid = onValidateUnlockCode(unlockCode)
-                                        isVerifying = false
-                                        if (valid) {
-                                            unlockCode = ""
-                                        } else {
-                                            showInvalidCodeAlert = true
+                            // Same fix as the copy button above and "+ Add Tag": TextButton's own
+                            // minimum touch target and content padding otherwise leave "Desbloquear"
+                            // stopping well short of the row's actual right edge.
+                            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                                TextButton(
+                                    enabled = unlockCode.isNotEmpty() && hasUnlockRemaining,
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    onClick = {
+                                        isVerifying = true
+                                        coroutineScope.launch {
+                                            val valid = onValidateUnlockCode(unlockCode)
+                                            isVerifying = false
+                                            if (valid) {
+                                                unlockCode = ""
+                                            } else {
+                                                showInvalidCodeAlert = true
+                                            }
                                         }
                                     }
+                                ) {
+                                    Text(stringResource(R.string.settings_unlock_button), color = themeManager.selectedColorOption.color)
                                 }
-                            ) {
-                                Text(stringResource(R.string.settings_unlock_button), color = themeManager.selectedColorOption.color)
                             }
                         }
                     }
@@ -334,7 +348,7 @@ fun SettingsScreen(
                                 stringResource(R.string.settings_battery_optimization_caption),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                                modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
                             )
                         }
                     }
@@ -395,7 +409,7 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp),
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.settings_theme_color), modifier = Modifier.weight(1f))
@@ -498,7 +512,7 @@ private fun RecoveryUnlockStatusRow(remainingUnlocks: Int, resetDateMillis: Long
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp),
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -517,7 +531,7 @@ private fun AppIconRow(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp),
+            .padding(10.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         AppIcon.entries.forEach { option ->

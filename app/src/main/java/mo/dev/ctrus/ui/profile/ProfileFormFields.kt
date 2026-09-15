@@ -91,9 +91,9 @@ private val StrategyRadioToTitleGap = 8.dp
 fun StrategyFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, availableStrategies: List<BlockingStrategy>, disabled: Boolean) {
     availableStrategies.forEachIndexed { index, strategy ->
         if (index > 0) SettingsDivider()
-        // Matches SettingsDivider's own 12dp inset — this column had none, so the radio circle
+        // Matches SettingsDivider's own 10dp inset — this column had none, so the radio circle
         // started to the left of where the divider above/below it begins.
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -127,11 +127,11 @@ fun AppsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disab
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // Top matches the app's standard 12.dp card-edge inset (this is the card's first
+            // Top matches the app's standard 10.dp card-edge inset (this is the card's first
             // row); bottom stays intentionally tighter — 4dp, matching CustomToggleRow's own
-            // title-to-description gap — since a matching 12dp there would push the subtitle
+            // title-to-description gap — since a matching 10dp there would push the subtitle
             // text far away from the title it describes instead of reading as one group.
-            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 4.dp)
+            .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 4.dp)
             .let { if (disabled) it else it.clickable { showPicker = true } },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -146,9 +146,9 @@ fun AppsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disab
         if (draft.selectedPackages.isEmpty()) stringResource(R.string.app_picker_no_apps_selected) else pluralStringResource(R.plurals.apps_selected_count, draft.selectedPackages.size, draft.selectedPackages.size),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        // Matches CustomToggleRow's and SettingsDivider's own 12dp inset below — this row and
+        // Matches CustomToggleRow's and SettingsDivider's own 10dp inset below — this row and
         // its subtitle had none, so they started to the left of where the divider begins.
-        modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp),
+        modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 6.dp),
     )
     SettingsDivider()
     CustomToggleRow(
@@ -187,11 +187,11 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
     val domainAlreadyExists = stringResource(R.string.field_domain_already_exists)
     val domainInvalid = stringResource(R.string.field_domain_invalid)
 
-    // 12.dp vertical (was 4.dp) — this row has no horizontal padding of its own since the
-    // OutlinedTextField's own internal start padding already reads about the same as the 12.dp
+    // 10.dp vertical (was 4.dp) — this row has no horizontal padding of its own since the
+    // OutlinedTextField's own internal start padding already reads about the same as the 10.dp
     // inset other rows add explicitly, but 4.dp vertical left far less gap to the card's top
     // edge than that, top vs sides.
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
             value = newDomainText,
             onValueChange = { newDomainText = it; domainError = null },
@@ -293,7 +293,7 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
         }
         SettingsDivider()
     }
-    Row(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
         // TextButton otherwise enforces a 48dp minimum touch target on top of its own content
         // padding, which read as a big blank balloon around this short "+ Add Tag" label.
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
@@ -355,17 +355,21 @@ val ProtectionDisclaimerRed = Color(0xFFFF3B30)
  */
 @Composable
 fun AppDeletionOemDisclaimer(modifier: Modifier = Modifier) {
+    val normalColor = MaterialTheme.colorScheme.onSurfaceVariant
+    // The ": " and the rest get their own explicit withStyle too (not just the Text-level
+    // `color` fallback) so nothing past "Aviso"/"Warning" can pick up the red span's color.
     val text = buildAnnotatedString {
         withStyle(SpanStyle(color = ProtectionDisclaimerRed)) {
             append(stringResource(R.string.field_prevent_app_deletion_oem_disclaimer_prefix))
         }
-        append(": ")
-        append(stringResource(R.string.field_prevent_app_deletion_oem_disclaimer))
+        withStyle(SpanStyle(color = normalColor)) {
+            append(": ")
+            append(stringResource(R.string.field_prevent_app_deletion_oem_disclaimer))
+        }
     }
     Text(
         text,
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
 }
@@ -386,5 +390,5 @@ fun SafeguardsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit,
         enabled = !disabled,
         onCheckedChange = { onDraftChange(draft.copy(enableStrictMode = it)) },
     )
-    AppDeletionOemDisclaimer(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp))
+    AppDeletionOemDisclaimer(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp))
 }

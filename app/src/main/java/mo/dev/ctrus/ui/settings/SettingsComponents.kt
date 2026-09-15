@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,9 +71,9 @@ fun SettingsSection(
                 // margin outside the background, not content padding), leaving edge-to-content gap
                 // much tighter top/bottom than left/right once combined with each row's own smaller
                 // vertical padding — unlike iOS's bubbles, which keep the same inset on all sides.
-                // 12.dp on all four sides, matching GuidedCard's own so a field looks the same
+                // 10.dp on all four sides, matching GuidedCard's own so a field looks the same
                 // here as it does mid-wizard.
-                .padding(12.dp),
+                .padding(10.dp),
             content = content
         )
     }
@@ -90,7 +91,7 @@ fun SettingsRow(
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(12.dp),
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -116,7 +117,7 @@ fun SettingsLinkRow(title: String, modifier: Modifier = Modifier, onClick: () ->
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -133,6 +134,11 @@ fun SettingsLinkRow(title: String, modifier: Modifier = Modifier, onClick: () ->
     }
 }
 
+// MaterialTheme.typography.bodyLarge's line height (16sp font, unspecified lineHeight here falls
+// back to Material3's default bodyLarge value) — used below to make this row's edge padding land
+// relative to the title text rather than the taller switch beside it.
+private val ToggleTitleLineHeight = 24.dp
+
 /**
  * Mirrors CustomToggle.swift: title + switch share the title's own line (switch trailing), with
  * the description as its own full-width line below — not a title+description block centered
@@ -147,7 +153,7 @@ fun CustomToggleRow(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(12.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -159,7 +165,24 @@ fun CustomToggleRow(
                 modifier = Modifier.weight(1f),
             )
             Spacer(modifier = Modifier.width(16.dp))
-            IosStyleSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+            IosStyleSwitch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled,
+                // The switch's 31dp track is taller than the title's own ~24dp line, so measuring
+                // this row's height by the switch (Compose's default) put the outer 10dp inset
+                // relative to the toggle, not the title text next to it. Reporting this switch's
+                // layout height as the title's own bodyLarge line height — while still measuring
+                // and drawing it at full size, centered on that shorter box — makes the 10dp
+                // padding land relative to the title like every other (non-toggle) row's does.
+                modifier = Modifier.layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    val reportedHeight = ToggleTitleLineHeight.roundToPx()
+                    layout(placeable.width, reportedHeight) {
+                        placeable.placeRelative(0, (reportedHeight - placeable.height) / 2)
+                    }
+                },
+            )
         }
         Spacer(Modifier.height(4.dp))
         Text(
@@ -222,7 +245,7 @@ fun SettingsDivider() {
     // Inset on both ends — matching the row content's own horizontal padding — instead of
     // running flush to the card's raw right edge.
     HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 12.dp),
+        modifier = Modifier.padding(horizontal = 10.dp),
         color = if (isSystemInDarkTheme()) CtrusSystemColors.separatorDark else CtrusSystemColors.separatorLight,
     )
 }

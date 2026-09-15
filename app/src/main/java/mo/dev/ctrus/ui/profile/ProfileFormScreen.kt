@@ -187,7 +187,7 @@ fun ProfileFormScreen(
             }
 
             // No extra Modifier.padding(horizontal = ...) wrapper around any field below —
-            // SettingsSection already gives its content a uniform 12.dp inset on every side, and
+            // SettingsSection already gives its content a uniform 10.dp inset on every side, and
             // each field's own row padding is already normalized to match; adding another
             // horizontal-only layer here (as before) pushed these fields further in from the
             // sides than from the top/bottom, unlike their identical counterparts mid-wizard.
