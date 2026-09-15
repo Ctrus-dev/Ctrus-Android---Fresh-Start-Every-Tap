@@ -81,6 +81,7 @@ fun SettingsScreen(
     themeManager: ThemeManager,
     isUsageAccessGranted: Boolean,
     isBatteryOptimizationExempt: Boolean,
+    onRequestAccessibility: () -> Unit,
     onRequestBatteryOptimizationExemption: () -> Unit,
     appVersion: String,
     selectedAppIcon: AppIcon,
@@ -273,7 +274,13 @@ fun SettingsScreen(
                         Text(stringResource(R.string.settings_version_value, appVersion), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     SettingsDivider()
-                    SettingsRow(title = stringResource(R.string.settings_accessibility_access)) {
+                    // Tapping always re-shows the disclosure-then-Settings flow — even when already
+                    // granted, that's a harmless way to jump straight to the system Accessibility
+                    // page, and simpler than making the row conditionally clickable.
+                    SettingsRow(
+                        title = stringResource(R.string.settings_accessibility_access),
+                        onClick = onRequestAccessibility,
+                    ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
@@ -318,6 +325,16 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                    }
+                    // Only relevant while the setting still needs fixing — once exempt (green/
+                    // "Off"), the recommendation is moot and stays hidden.
+                    if (!isBatteryOptimizationExempt) {
+                        Text(
+                            stringResource(R.string.settings_battery_optimization_caption),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                        )
                     }
                     SettingsDivider()
                     SettingsLinkRow(title = stringResource(R.string.settings_background_launch_help)) {

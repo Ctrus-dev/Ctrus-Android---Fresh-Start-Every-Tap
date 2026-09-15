@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -157,10 +156,19 @@ fun GuidedProfileCreationScreen(
                 label = "guided-step",
             ) { index ->
                 val step = steps[index]
-                Column(modifier = Modifier.fillMaxWidth()) {
+                // The 36dp trailing gap before the Next button lives here (not inside GuidedCard)
+                // so it trails whatever this step renders last — the card itself normally, or the
+                // disclaimer below it on the Protection step — instead of always hugging the card.
+                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 36.dp)) {
                     StepHeader(index = index, total = steps.size, step = step, draft = draft)
                     GuidedCard {
                         StepContent(step, draft, { draft = it }, availableStrategies, nfcScanController)
+                    }
+                    // Sits outside the card itself, not squeezed in under the toggle it qualifies.
+                    if (step == GuidedStep.STRICT_SAFEGUARDS) {
+                        AppDeletionOemDisclaimer(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 10.dp),
+                        )
                     }
                 }
             }
@@ -191,13 +199,17 @@ private fun StepHeader(index: Int, total: Int, step: GuidedStep, draft: ProfileD
 
 @Composable
 private fun GuidedCard(content: @Composable () -> Unit) {
+    // No vertical padding here on purpose: every field composable this hosts (NameField,
+    // StrategyFields, AppsFields, CustomToggleRow, ...) is shared with ProfileFormScreen's
+    // SettingsSection, which already supplies its own top/bottom padding per row — adding 18dp
+    // more here on top of that doubled up the gap from this card's edge to the text, well past
+    // what the same fields look like in the edit screen.
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .padding(bottom = 36.dp)
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(28.dp))
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(horizontal = 20.dp),
     ) {
         content()
     }

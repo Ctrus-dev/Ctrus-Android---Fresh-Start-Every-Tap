@@ -1,6 +1,7 @@
 package mo.dev.ctrus.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,37 +13,39 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.RemoveCircle
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -54,12 +57,10 @@ import mo.dev.ctrus.ui.common.GlassIconButton
 /**
  * Android equivalent of BlockedProfileListView.swift's "Manage" sheet: tap a row to edit, "+" to
  * create (disabled while a profile is actively blocking, matching iOS's `canCreateProfiles`), and
- * a pencil toggle that turns on a delete-and-reorder edit mode. **Simplified vs. iOS**: reordering
- * uses up/down arrow buttons per row instead of iOS's native drag handle — this project has no
- * drag-reorder library dependency, and a hand-rolled pointer-drag reimplementation was judged not
- * worth the fragility for what's a rarely-used affordance; `ProfileRepository.reorder` (already
- * used here) is the same call either way, so upgrading to real drag-and-drop later is a pure UI
- * swap. Delete still guards against removing the currently-active profile, matching iOS's alert.
+ * a pencil toggle that turns on a delete edit mode (no reordering — dropped in favor of keeping
+ * each row visually identical between modes). Delete still guards against removing the currently-
+ * active profile, matching iOS's alert, and closes this sheet automatically once the last profile
+ * is gone.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,12 +71,17 @@ fun ManageProfilesScreen(
     onDismiss: () -> Unit,
     onEditProfile: (BlockedProfileEntity) -> Unit,
     onAddProfile: () -> Unit,
-    onReorder: (List<BlockedProfileEntity>) -> Unit,
     onDeleteProfile: (BlockedProfileEntity) -> Unit,
 ) {
     var editMode by remember { mutableStateOf(false) }
     var showActiveProfileError by remember { mutableStateOf(false) }
     val canCreateProfiles = activeProfileId == null
+
+    // Nothing left to manage — close instead of leaving an empty sheet open behind whatever
+    // deleted the last profile.
+    LaunchedEffect(profiles) {
+        if (profiles.isEmpty()) onDismiss()
+    }
 
     Scaffold(
         topBar = {
@@ -118,15 +124,13 @@ fun ManageProfilesScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             items(profiles, key = { it.id }) { profile ->
-                val index = profiles.indexOf(profile)
                 ManageProfileRow(
                     profile = profile,
                     isActive = profile.id == activeProfileId,
                     themeColor = themeColor,
                     editMode = editMode,
-                    canMoveUp = index > 0,
-                    canMoveDown = index < profiles.lastIndex,
                     onClick = { if (!editMode) onEditProfile(profile) },
+                    onEdit = { onEditProfile(profile) },
                     onDelete = {
                         if (profile.id == activeProfileId) {
                             showActiveProfileError = true
@@ -134,8 +138,6 @@ fun ManageProfilesScreen(
                             onDeleteProfile(profile)
                         }
                     },
-                    onMoveUp = { onReorder(profiles.toMutableList().apply { add(index - 1, removeAt(index)) }) },
-                    onMoveDown = { onReorder(profiles.toMutableList().apply { add(index + 1, removeAt(index)) }) },
                 )
             }
         }
@@ -157,31 +159,37 @@ private fun ManageProfileRow(
     isActive: Boolean,
     themeColor: Color,
     editMode: Boolean,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
     onClick: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
 ) {
-    Card(
-        onClick = onClick,
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(3.5.dp, themeColor),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (editMode) {
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.RemoveCircle, contentDescription = stringResource(R.string.manage_delete_content_description, profile.name), tint = MaterialTheme.colorScheme.error)
-                }
-                Spacer(Modifier.width(4.dp))
-            }
+        // Matches BlockedProfileListView.swift's edit-mode row: the pencil/delete controls sit
+        // outside the card, flanking it, rather than sharing its own internal Row. The pencil
+        // needs its own onEdit — reusing the card's onClick (guarded by `!editMode` so a browsing
+        // tap doesn't fire while these controls are showing) would make it a silent no-op here,
+        // since editMode is always true while this button is visible at all.
+        if (editMode) {
+            ManageCircleIconButton(
+                onClick = onEdit,
+                icon = Icons.Filled.Edit,
+                contentDescription = stringResource(R.string.manage_edit_profile_content_description, profile.name),
+                backgroundColor = Color(0xFF48484A),
+            )
+        }
 
-            Column(modifier = Modifier.weight(1f)) {
+        Card(
+            onClick = onClick,
+            enabled = !editMode,
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(18.dp),
+            border = androidx.compose.foundation.BorderStroke(3.5.dp, themeColor),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(profile.name, style = MaterialTheme.typography.titleMedium)
                     if (isActive) {
@@ -203,17 +211,32 @@ private fun ManageProfileRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
-            if (editMode) {
-                Column {
-                    IconButton(onClick = onMoveUp, enabled = canMoveUp) {
-                        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.manage_move_up_content_description))
-                    }
-                    IconButton(onClick = onMoveDown, enabled = canMoveDown) {
-                        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.manage_move_down_content_description))
-                    }
-                }
-            }
         }
+
+        if (editMode) {
+            ManageCircleIconButton(
+                onClick = onDelete,
+                icon = Icons.Filled.Remove,
+                contentDescription = stringResource(R.string.manage_delete_content_description, profile.name),
+                // A more saturated red than MaterialTheme's own error color, which read as too
+                // muted/dark next to the pencil circle's neutral grey.
+                backgroundColor = Color(0xFFFF3B30),
+            )
+        }
+    }
+}
+
+/** The solid grey (edit) / red (delete) circle flanking a row in edit mode. */
+@Composable
+private fun ManageCircleIconButton(onClick: () -> Unit, icon: ImageVector, contentDescription: String, backgroundColor: Color) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(backgroundColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = contentDescription, tint = Color.White, modifier = Modifier.size(18.dp))
     }
 }

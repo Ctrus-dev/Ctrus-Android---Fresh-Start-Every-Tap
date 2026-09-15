@@ -37,7 +37,7 @@
     <string name="home_accessibility_alert_message">Blocking is paused until access is restored.</string>
     <string name="home_permissions_alert_pill">Permissions needed</string>
     <string name="home_permissions_alert_sheet_title">Permissions needed</string>
-    <string name="home_permissions_alert_sheet_detail">Ctrus needs these permissions to keep blocking working reliably.</string>
+    <string name="home_permissions_alert_sheet_detail">Ctrus needs this permission to keep blocking working.</string>
     <string name="home_manage_profiles_content_description">Manage %1$s</string>
     <string name="home_show_insights_content_description">Show %1$s insights</string>
     <string name="home_edit_profile_content_description">Edit %1$s</string>
@@ -54,6 +54,7 @@
     <string name="manage_done_content_description">Done</string>
     <string name="manage_add_profile_content_description">Add Profile</string>
     <string name="manage_delete_content_description">Delete %1$s</string>
+    <string name="manage_edit_profile_content_description">Edit %1$s</string>
     <string name="manage_move_up_content_description">Move up</string>
     <string name="manage_move_down_content_description">Move down</string>
     <string name="manage_cannot_delete_active_title">Cannot Delete Active Profile</string>
@@ -90,17 +91,18 @@
         <item>Sat</item>
     </string-array>
     <string name="a11y_disclosure_title">Accessibility access</string>
-    <string name="a11y_disclosure_body">Ctrus uses Android\'s Accessibility service to know which app is in the foreground, so it can show the block screen when you open something a profile is blocking. It only reads the name of the app currently on screen — it does not read passwords, messages, or anything you type, and nothing leaves your device.</string>
+    <string name="a11y_disclosure_body">Ctrus uses Android\'s Accessibility service to detect the app you have open, so it can show the block screen when needed. It only reads the app\'s name, never passwords, messages, or anything you type, and nothing leaves your device.\n\nOn the next screen, find Ctrus under \"Downloaded apps\", tap it, and approve it. You won\'t need the shortcut option.</string>
     <string name="a11y_disclosure_agree_checkbox">I understand and agree</string>
     <string name="a11y_disclosure_continue">Continue to Settings</string>
     <string name="battery_optimization_title">Keep blocking running reliably</string>
-    <string name="battery_optimization_body">Some phone brands aggressively stop apps running in the background to save battery, which can silently turn off blocking mid-session. This only affects Ctrus — your other apps\' battery settings won\'t change.</string>
+    <string name="battery_optimization_body">Some phone brands aggressively stop background apps to save battery, which can silently turn off blocking mid-session. This only changes Ctrus\'s battery settings, not your other apps.</string>
     <string name="battery_optimization_allow">Allow</string>
     <string name="battery_optimization_not_now">Not Now</string>
     <string name="settings_battery_optimization">Battery Optimization</string>
     <string name="settings_battery_optimization_disable_button">Turn Off</string>
     <string name="settings_battery_optimization_off">Off</string>
     <string name="settings_battery_optimization_on">On</string>
+    <string name="settings_battery_optimization_caption">Some phone brands need the app set to unrestricted battery usage for blocking to keep running reliably.</string>
     <string name="intro_welcome_title">Welcome to Ctrus</string>
     <string name="intro_welcome_subtitle">We need Accessibility Access to get started</string>
     <string name="intro_open_source_prefix">Ctrus is 100% open source,</string>
@@ -145,7 +147,7 @@
     <string name="guided_intro_title_breaks">Allow breaks</string>
     <string name="guided_intro_desc_breaks">Timed breaks let you pause once during a session without ending the profile.</string>
     <string name="guided_intro_title_protection">Choose session protection</string>
-    <string name="guided_intro_desc_protection">These settings make it harder to work around restrictions by deleting or installing apps.</string>
+    <string name="guided_intro_desc_protection">This setting makes it harder to work around restrictions by deleting apps.</string>
     <string name="guided_intro_title_review">Review your profile</string>
     <string name="guided_intro_desc_review">Create the profile now, or go back to adjust any section.</string>
     <string name="guided_back_content_description">Back</string>
@@ -191,6 +193,7 @@
     <string name="field_prevent_app_deletion_desc">Stop apps from being deleted during sessions, including Ctrus.</string>
     <string name="field_prevent_installs_title">Prevent New App Installs</string>
     <string name="field_prevent_installs_desc">Stop new apps from being installed during sessions.</string>
+    <string name="field_prevent_app_deletion_oem_disclaimer">This option may not work effectively on certain Android phone brands.</string>
     <string name="profile_form_title">Edit Profile</string>
     <string name="profile_form_cancel_content_description">Cancel</string>
     <string name="profile_form_insights_content_description">Insights</string>
@@ -244,7 +247,7 @@
     <string name="nfc_scan_title">Scan your Ctrus tag</string>
     <string name="nfc_no_hardware">This device doesn\'t support NFC, so this strategy can\'t start or stop here.</string>
     <string name="nfc_disabled">NFC is turned off. Enable it in system settings, then try again.</string>
-    <string name="nfc_hold_near_tag">Bring the back of your phone close to your Ctrus.</string>
+    <string name="nfc_hold_near_tag">Tap the back of your phone on the Ctrus.</string>
     <string name="nfc_open_settings">Open Settings</string>
     <string name="strategy_nfc_name">Ctrus NFC</string>
     <string name="strategy_nfc_description">Start and stop by tapping your Ctrus.</string>
@@ -278,7 +281,7 @@
     <string name="settings_accessibility_access">Accessibility Access</string>
     <string name="settings_background_launch_help">Blocking not working reliably?</string>
     <string name="background_launch_help_title">Blocking not working reliably?</string>
-    <string name="background_launch_help_body">Some phone brands restrict apps from showing screens while running in the background, which can stop the block screen from appearing even though Accessibility and Battery are both fine above. If you\'re running into this, tap below to check a related permission in your phone\'s settings — look for something like \"Display pop-up windows while running in the background\", \"Start activities in the background\", or \"Autostart\", and enable it for Ctrus.</string>
+    <string name="background_launch_help_body">Some phone brands block apps from showing screens in the background, which can stop the block screen from appearing even with the other settings approved. Tap below and enable a setting like \"Display pop-up windows while running in the background\", \"Start activities in the background\", or \"Autostart\" for Ctrus.</string>
     <string name="background_launch_help_open_settings">Open Settings</string>
     <string name="settings_authorized">Authorized</string>
     <string name="settings_not_authorized">Not Authorized</string>

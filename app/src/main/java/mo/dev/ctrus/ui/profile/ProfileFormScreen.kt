@@ -234,6 +234,10 @@ fun ProfileFormScreen(
                         SafeguardsFields(draft, { draft = it }, disabled)
                     }
                 }
+                // Sits outside the section card itself, matching GuidedProfileCreationScreen's
+                // Protection step — this form has no per-step trailing gap to piggyback on, so
+                // the disclaimer supplies its own small top padding instead.
+                AppDeletionOemDisclaimer(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 12.dp))
             }
         }
     }

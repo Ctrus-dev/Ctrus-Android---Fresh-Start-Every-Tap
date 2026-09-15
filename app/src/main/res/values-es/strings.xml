@@ -37,7 +37,7 @@
     <string name="home_accessibility_alert_message">El bloqueo está en pausa hasta que se restaure el acceso.</string>
     <string name="home_permissions_alert_pill">Permisos necesarios</string>
     <string name="home_permissions_alert_sheet_title">Permisos necesarios</string>
-    <string name="home_permissions_alert_sheet_detail">Ctrus necesita estos permisos para seguir bloqueando de forma fiable.</string>
+    <string name="home_permissions_alert_sheet_detail">Ctrus necesita este permiso para seguir bloqueando.</string>
     <string name="home_manage_profiles_content_description">Gestionar %1$s</string>
     <string name="home_show_insights_content_description">Mostrar estadísticas de %1$s</string>
     <string name="home_edit_profile_content_description">Editar %1$s</string>
@@ -54,6 +54,7 @@
     <string name="manage_done_content_description">Hecho</string>
     <string name="manage_add_profile_content_description">Añadir Perfil</string>
     <string name="manage_delete_content_description">Eliminar %1$s</string>
+    <string name="manage_edit_profile_content_description">Editar %1$s</string>
     <string name="manage_move_up_content_description">Mover hacia arriba</string>
     <string name="manage_move_down_content_description">Mover hacia abajo</string>
     <string name="manage_cannot_delete_active_title">No Se Puede Eliminar el Perfil Activo</string>
@@ -89,17 +90,18 @@
         <item>Sáb</item>
     </string-array>
     <string name="a11y_disclosure_title">Acceso de Accesibilidad</string>
-    <string name="a11y_disclosure_body">Ctrus usa el servicio de Accesibilidad de Android para saber qué app está en primer plano, para poder mostrar la pantalla de bloqueo cuando abres algo que un perfil está bloqueando. Solo lee el nombre de la app actualmente en pantalla — no lee contraseñas, mensajes ni nada que escribas, y nada sale de tu dispositivo.</string>
+    <string name="a11y_disclosure_body">Ctrus usa el servicio de Accesibilidad de Android para saber qué app tienes abierta, para poder mostrar la pantalla de bloqueo cuando haga falta. Solo lee el nombre de la app, nunca contraseñas, mensajes ni lo que escribes, y nada sale de tu dispositivo.\n\nEn la siguiente pantalla, busca Ctrus en \"Apps descargadas\", tócala y apruébala. No necesitas el acceso directo.</string>
     <string name="a11y_disclosure_agree_checkbox">Entiendo y acepto</string>
     <string name="a11y_disclosure_continue">Continuar a Ajustes</string>
     <string name="battery_optimization_title">Mantén el bloqueo funcionando de forma fiable</string>
-    <string name="battery_optimization_body">Algunas marcas de teléfonos detienen apps en segundo plano de forma agresiva para ahorrar batería, lo que puede desactivar el bloqueo silenciosamente a mitad de una sesión. Esto solo afecta a Ctrus — la configuración de batería de tus otras apps no cambia.</string>
+    <string name="battery_optimization_body">Algunas marcas de teléfonos detienen apps en segundo plano de forma agresiva para ahorrar batería, lo que puede desactivar el bloqueo a mitad de una sesión. Esto solo cambia la configuración de batería de Ctrus, no la de tus otras apps.</string>
     <string name="battery_optimization_allow">Permitir</string>
     <string name="battery_optimization_not_now">Ahora No</string>
     <string name="settings_battery_optimization">Optimización de Batería</string>
     <string name="settings_battery_optimization_disable_button">Desactivar</string>
     <string name="settings_battery_optimization_off">Desactivada</string>
     <string name="settings_battery_optimization_on">Activa</string>
+    <string name="settings_battery_optimization_caption">Algunas marcas de teléfonos necesitan que la app esté sin restricciones de uso de batería para que el bloqueo siga funcionando de forma fiable.</string>
     <string name="intro_welcome_title">Bienvenido a Ctrus</string>
     <string name="intro_welcome_subtitle">Necesitamos Acceso de Accesibilidad para empezar</string>
     <string name="intro_open_source_prefix">Ctrus es 100% de código abierto,</string>
@@ -144,7 +146,7 @@
     <string name="guided_intro_title_breaks">Permitir descansos</string>
     <string name="guided_intro_desc_breaks">Los descansos cronometrados te permiten pausar una vez durante una sesión sin terminar el perfil.</string>
     <string name="guided_intro_title_protection">Elige la protección de la sesión</string>
-    <string name="guided_intro_desc_protection">Esta configuración dificulta eludir las restricciones eliminando o instalando apps.</string>
+    <string name="guided_intro_desc_protection">Esta configuración dificulta eludir las restricciones eliminando apps.</string>
     <string name="guided_intro_title_review">Revisa tu perfil</string>
     <string name="guided_intro_desc_review">Crea el perfil ahora, o vuelve atrás para ajustar alguna sección.</string>
     <string name="guided_back_content_description">Atrás</string>
@@ -190,6 +192,7 @@
     <string name="field_prevent_app_deletion_desc">Evita que las apps se eliminen durante las sesiones, incluyendo Ctrus.</string>
     <string name="field_prevent_installs_title">Impedir Instalación de Nuevas Apps</string>
     <string name="field_prevent_installs_desc">Evita que se instalen nuevas apps durante las sesiones.</string>
+    <string name="field_prevent_app_deletion_oem_disclaimer">Esta opción puede no funcionar de forma eficaz en determinadas marcas de teléfonos Android.</string>
     <string name="profile_form_title">Editar Perfil</string>
     <string name="profile_form_cancel_content_description">Cancelar</string>
     <string name="profile_form_insights_content_description">Estadísticas</string>
@@ -243,7 +246,7 @@
     <string name="nfc_scan_title">Escanea tu etiqueta Ctrus</string>
     <string name="nfc_no_hardware">Este dispositivo no admite NFC, así que esta estrategia no puede iniciarse ni detenerse aquí.</string>
     <string name="nfc_disabled">El NFC está desactivado. Actívalo en los ajustes del sistema e inténtalo de nuevo.</string>
-    <string name="nfc_hold_near_tag">Acerca la parte trasera del teléfono a tu Ctrus.</string>
+    <string name="nfc_hold_near_tag">Toca con la parte trasera de tu teléfono en el Ctrus.</string>
     <string name="nfc_open_settings">Abrir Ajustes</string>
     <string name="strategy_nfc_name">Ctrus NFC</string>
     <string name="strategy_nfc_description">Inicia y detén tocando tu Ctrus.</string>
@@ -277,7 +280,7 @@
     <string name="settings_accessibility_access">Acceso de Accesibilidad</string>
     <string name="settings_background_launch_help">¿El bloqueo no funciona bien?</string>
     <string name="background_launch_help_title">¿El bloqueo no funciona bien?</string>
-    <string name="background_launch_help_body">Algunas marcas de móviles impiden que las apps muestren pantallas mientras se ejecutan en segundo plano, lo que puede evitar que aparezca la pantalla de bloqueo aunque el Acceso de Accesibilidad y la Batería estén bien arriba. Si tienes este problema, toca abajo para revisar un permiso relacionado en los ajustes de tu teléfono — busca algo como \"Mostrar ventanas emergentes en segundo plano\", \"Iniciar actividades en segundo plano\" o \"Inicio automático\", y actívalo para Ctrus.</string>
+    <string name="background_launch_help_body">Algunas marcas de móviles impiden que las apps muestren pantallas en segundo plano, lo que puede evitar que aparezca la pantalla de bloqueo aunque los demás ajustes estén aprobados. Toca abajo y activa un ajuste como \"Mostrar ventanas emergentes en segundo plano\", \"Iniciar actividades en segundo plano\" o \"Inicio automático\" para Ctrus.</string>
     <string name="background_launch_help_open_settings">Abrir Ajustes</string>
     <string name="settings_authorized">Autorizado</string>
     <string name="settings_not_authorized">No Autorizado</string>

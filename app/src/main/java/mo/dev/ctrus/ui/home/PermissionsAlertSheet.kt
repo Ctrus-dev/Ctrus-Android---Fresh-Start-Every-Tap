@@ -30,20 +30,19 @@ import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 
 /**
- * Android equivalent of HomeAlertDetailView.swift's `.screenTimeAccess` case, generalized into a
- * two-item checklist since blocking reliability now depends on two independent OS permissions —
- * Accessibility access (iOS's Screen Time equivalent) and battery-optimization exemption (no iOS
- * equivalent; see BatteryOptimizationUtil's kdoc for why several OEM skins make this necessary).
- * Reached by tapping the red pill on Home, or by tapping Start while either is missing.
+ * Android equivalent of HomeAlertDetailView.swift's `.screenTimeAccess` case. Accessibility access
+ * (iOS's Screen Time equivalent) is the only OS permission the app can't function without, so this
+ * sheet only ever covers that one — battery-optimization exemption is a separate, non-blocking
+ * recommendation surfaced through its own one-time dialog and a Settings row (see
+ * BatteryOptimizationUtil's kdoc). Reached by tapping the red pill on Home, or by tapping Start
+ * while accessibility is missing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionsAlertSheet(
     isAccessibilityEnabled: Boolean,
-    isBatteryOptimizationExempt: Boolean,
     onDismiss: () -> Unit,
     onFixAccessibility: () -> Unit,
-    onFixBattery: () -> Unit,
 ) {
     // skipPartiallyExpanded avoids an intermediate "half open" resting state — without it, on a
     // device with the 3-button navigation bar the sheet can first settle partially behind that
@@ -80,14 +79,6 @@ fun PermissionsAlertSheet(
                 granted = isAccessibilityEnabled,
                 actionLabel = stringResource(R.string.battery_optimization_allow),
                 onFix = onFixAccessibility,
-            )
-            PermissionChecklistRow(
-                title = stringResource(R.string.settings_battery_optimization),
-                granted = isBatteryOptimizationExempt,
-                // "Allow" would read backwards here ("Allow Battery Optimization") — the action
-                // actually turns optimization off for this app, so the button says so directly.
-                actionLabel = stringResource(R.string.settings_battery_optimization_disable_button),
-                onFix = onFixBattery,
             )
         }
     }

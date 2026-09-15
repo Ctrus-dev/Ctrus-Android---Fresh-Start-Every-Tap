@@ -265,6 +265,10 @@ private fun CtrusNavHost(
     var showCreateProfile by remember { mutableStateOf(false) }
     var editingProfileId by remember { mutableStateOf<String?>(null) }
     var insightsProfileId by remember { mutableStateOf<String?>(null) }
+    // Shared by every entry point that needs the disclosure-then-Settings flow — Home's alert
+    // pill/sheet and Settings' own Accessibility Access row (Play policy requires this consent
+    // screen before every trip to the system Accessibility settings, not just the first one).
+    var showAccessibilityDisclosure by remember { mutableStateOf(false) }
 
     if (showManageProfiles) {
         ModalBottomSheet(onDismissRequest = { showManageProfiles = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -275,7 +279,6 @@ private fun CtrusNavHost(
                 onDismiss = { showManageProfiles = false },
                 onEditProfile = { profile -> showManageProfiles = false; editingProfileId = profile.id },
                 onAddProfile = { showManageProfiles = false; showCreateProfile = true },
-                onReorder = { reordered -> coroutineScope.launch { app.profileRepository.reorder(reordered) } },
                 onDeleteProfile = { profile -> coroutineScope.launch { app.profileRepository.delete(profile) } },
             )
         }
@@ -332,6 +335,7 @@ private fun CtrusNavHost(
                 themeManager = themeManager,
                 isUsageAccessGranted = isAccessibilityEnabled,
                 isBatteryOptimizationExempt = isBatteryOptimizationExempt,
+                onRequestAccessibility = { showAccessibilityDisclosure = true },
                 onRequestBatteryOptimizationExemption = { BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context) },
                 appVersion = "1.0",
                 deviceId = deviceId,
@@ -440,11 +444,10 @@ private fun CtrusNavHost(
 
     // Mirrors AlertsManager.presentScreenTimeAccessAlertIfNeeded(), called as a guard before
     // every "start a profile" action: shows the alert sheet instead of starting when access is
-    // currently missing. Only Accessibility gates the action itself — battery-optimization
-    // exemption is surfaced in the same sheet as a secondary, non-blocking recommendation (see
+    // currently missing. Accessibility is the only permission that gates the action itself —
+    // battery-optimization exemption is a separate, non-blocking recommendation (see
     // BatteryOptimizationUtil's kdoc), never something that prevents starting a session.
     var showPermissionsAlertSheet by remember { mutableStateOf(false) }
-    var showAccessibilityDisclosureFromHome by remember { mutableStateOf(false) }
     fun requireAccessibility(action: () -> Unit) {
         if (isAccessibilityEnabled) action() else showPermissionsAlertSheet = true
     }
@@ -452,25 +455,20 @@ private fun CtrusNavHost(
     if (showPermissionsAlertSheet) {
         PermissionsAlertSheet(
             isAccessibilityEnabled = isAccessibilityEnabled,
-            isBatteryOptimizationExempt = isBatteryOptimizationExempt,
             onDismiss = { showPermissionsAlertSheet = false },
             onFixAccessibility = {
                 showPermissionsAlertSheet = false
-                showAccessibilityDisclosureFromHome = true
-            },
-            onFixBattery = {
-                showPermissionsAlertSheet = false
-                BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context)
+                showAccessibilityDisclosure = true
             },
         )
     }
-    if (showAccessibilityDisclosureFromHome) {
+    if (showAccessibilityDisclosure) {
         AccessibilityDisclosureDialog(
             onAgree = {
-                showAccessibilityDisclosureFromHome = false
+                showAccessibilityDisclosure = false
                 context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             },
-            onDismiss = { showAccessibilityDisclosureFromHome = false },
+            onDismiss = { showAccessibilityDisclosure = false },
         )
     }
 
@@ -569,7 +567,6 @@ private fun CtrusNavHost(
                 onInsightsTapped = { profile -> insightsProfileId = profile.id },
                 onManageTapped = { showManageProfiles = true },
                 isAccessibilityEnabled = isAccessibilityEnabled,
-                isBatteryOptimizationExempt = isBatteryOptimizationExempt,
                 onPermissionsAlertTapped = { showPermissionsAlertSheet = true },
             )
         }

@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
@@ -338,6 +339,32 @@ fun BreaksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, dis
     }
 }
 
+/** Matches the delete-button red in ManageProfilesScreen/HomeScreen's EmergencyRed. */
+val ProtectionDisclaimerRed = Color(0xFFFF3B30)
+
+/**
+ * The "may not work on every Android brand" caption for "Prevent App Deletion" — shown by both
+ * callers of [SafeguardsFields] below the card/section, not squeezed in under the toggle's own
+ * grey description text.
+ */
+@Composable
+fun AppDeletionOemDisclaimer(modifier: Modifier = Modifier) {
+    Text(
+        stringResource(R.string.field_prevent_app_deletion_oem_disclaimer),
+        style = MaterialTheme.typography.bodySmall,
+        color = ProtectionDisclaimerRed,
+        textAlign = TextAlign.Center,
+        modifier = modifier,
+    )
+}
+
+/**
+ * "Prevent New App Installs" (`enableBlockAppInstallation`) has no UI here anymore — dropped from
+ * both the guided flow and Edit Profile since it's the toggle least likely to hold up, per
+ * [AppDeletionOemDisclaimer]. The underlying `ProfileDraft`/entity field is untouched (still
+ * plumbed through create/save) so a profile that already had it set from before this change keeps
+ * that value; new/edited profiles just can't turn it on anymore.
+ */
 @Composable
 fun SafeguardsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
     CustomToggleRow(
@@ -346,13 +373,5 @@ fun SafeguardsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit,
         checked = draft.enableStrictMode,
         enabled = !disabled,
         onCheckedChange = { onDraftChange(draft.copy(enableStrictMode = it)) },
-    )
-    SettingsDivider()
-    CustomToggleRow(
-        title = stringResource(R.string.field_prevent_installs_title),
-        description = stringResource(R.string.field_prevent_installs_desc),
-        checked = draft.enableBlockAppInstallation,
-        enabled = !disabled,
-        onCheckedChange = { onDraftChange(draft.copy(enableBlockAppInstallation = it)) },
     )
 }
