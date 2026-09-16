@@ -102,12 +102,10 @@ fun ProfileFormScreen(
     }
 
     fun attemptSave() {
-        // TODO TEMP: NFC gate disabled for testing on hardware without NFC — restore this guard
-        // before shipping.
-        // if (draft.physicalUnblockItems.isEmpty()) {
-        //     showMissingUnlockAlert = true
-        //     return
-        // }
+        if (draft.physicalUnblockItems.isEmpty()) {
+            showMissingUnlockAlert = true
+            return
+        }
         onSave(
             draft.name.trim(), draft.selectedPackages.toList(), draft.strategyId, draft.domains,
             draft.enableAllowMode, draft.enableBrowserBlocking, draft.enableAllowModeDomains, draft.enableAdultContentBlocking,

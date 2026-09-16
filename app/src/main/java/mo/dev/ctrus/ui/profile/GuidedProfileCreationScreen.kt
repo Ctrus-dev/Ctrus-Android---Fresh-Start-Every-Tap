@@ -106,11 +106,9 @@ fun GuidedProfileCreationScreen(
     val isFirstStep = stepIndex == 0
     val isLastStep = stepIndex == steps.lastIndex
 
-    // TODO TEMP: NFC gate disabled for testing on hardware without NFC — restore
-    // `draft.physicalUnblockItems.isNotEmpty()` before shipping.
     val canContinue = when (currentStep) {
         GuidedStep.NAME -> draft.name.isNotBlank()
-        GuidedStep.STRICT_UNLOCKS -> true
+        GuidedStep.STRICT_UNLOCKS -> draft.physicalUnblockItems.isNotEmpty()
         else -> true
     }
 
