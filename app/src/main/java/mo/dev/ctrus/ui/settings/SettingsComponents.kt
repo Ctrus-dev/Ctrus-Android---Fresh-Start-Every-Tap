@@ -34,8 +34,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mo.dev.ctrus.theme.CtrusSystemColors
@@ -137,14 +139,17 @@ fun SettingsLinkRow(title: String, modifier: Modifier = Modifier, onClick: () ->
     }
 }
 
-// IosStyleSwitch's fixed 31dp track is taller than the title's own ~24dp bodyLarge line by 7dp;
-// centered next to it (CenterVertically), the title sits 3.5dp below the row's true top edge.
-// Shrinking just this row's own top inset by that half-difference — instead of the padding trick
-// tried earlier, which under-reported the switch's height to the layout system and let its real,
-// unreported bottom edge overlap the description below it — lands the title's top at the same
-// 16.dp every other row's text gets, using the row's real (uninflated) height throughout, so nothing
-// can ever overlap by construction.
-private val ToggleRowTopInset = 12.5.dp
+// MaterialTheme.typography.bodyLarge's line height (16sp font, unspecified lineHeight here falls
+// back to Material3's default bodyLarge value) — the height this row's switch is made to report
+// to the layout system below, instead of its own taller, true 31.dp track height.
+private val ToggleTitleLineHeight = 24.dp
+
+// IosStyleSwitch's own 51.dp track width, plus the 16.dp spacer before it — reserved on the
+// description's end side so its text wraps before ever reaching that column, instead of flowing
+// full-width underneath where the switch sits above it. This is what makes it safe to under-report
+// the switch's height below: its true, unreported bottom edge can only ever extend into this same
+// reserved column, which no description text ever reaches anyway.
+private val ToggleSwitchColumnWidth = 16.dp + 51.dp
 
 /**
  * Mirrors CustomToggle.swift: title + switch share the title's own line (switch trailing), with
@@ -159,8 +164,12 @@ fun CustomToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    // Overridable for the rare row a caption directly follows (e.g. SafeguardsFields' own OEM
+    // disclaimer) — that pairing reads as one group and wants a tighter gap than this row's usual
+    // 16.dp edge inset, which would otherwise put too much air between the two.
+    bottomPadding: Dp = 16.dp,
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = ToggleRowTopInset, bottom = 16.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = bottomPadding)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -172,7 +181,26 @@ fun CustomToggleRow(
                 modifier = Modifier.weight(1f),
             )
             Spacer(modifier = Modifier.width(16.dp))
-            IosStyleSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+            IosStyleSwitch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled,
+                // Reports this switch's height to the layout system as the title's own line
+                // height (not its own taller 31.dp track) so this row's total measured height
+                // matches the title text's, and the 2.dp Spacer below lands relative to the
+                // title's true bottom edge — not 3.5dp further down, where the switch's real
+                // height (still drawn in full, just top-aligned within that shorter box) would
+                // otherwise have pushed it. Safe only because the description below reserves the
+                // switch's own column (see ToggleSwitchColumnWidth) — nothing ever renders in the
+                // space this switch quietly overflows into.
+                modifier = Modifier.layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    val reportedHeight = ToggleTitleLineHeight.roundToPx()
+                    layout(placeable.width, reportedHeight) {
+                        placeable.placeRelative(0, 0)
+                    }
+                },
+            )
         }
         // Tight, matching Device ID's own title-to-subtitle gap — this description is describing
         // the title right above it, not a separate block.
@@ -181,6 +209,9 @@ fun CustomToggleRow(
             description,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Wraps before reaching the switch's own column — without this, a long description
+            // used the row's full width and its wrapped lines ran directly under the switch.
+            modifier = Modifier.padding(end = ToggleSwitchColumnWidth),
         )
     }
 }

@@ -357,7 +357,9 @@ fun SettingsScreen(
                                 stringResource(R.string.settings_battery_optimization_caption),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                                // Extra end padding reserves the "On" status label's own column
+                                // above, so this caption wraps before ever running under it.
+                                modifier = Modifier.padding(start = 16.dp, end = 48.dp, bottom = 16.dp),
                             )
                         }
                     }

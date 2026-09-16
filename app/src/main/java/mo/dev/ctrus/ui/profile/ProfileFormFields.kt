@@ -401,8 +401,12 @@ fun SafeguardsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit,
         checked = draft.enableStrictMode,
         enabled = !disabled,
         onCheckedChange = { onDraftChange(draft.copy(enableStrictMode = it)) },
+        // Tighter than this row's usual 16.dp bottom — the disclaimer right below reads as part
+        // of the same group, not a separate block with a full card-edge gap before it.
+        bottomPadding = 4.dp,
     )
-    // Bottom matches the app's standard 16.dp card-edge inset (this is the card's last element);
-    // top stays tight — 4.dp — since it's still describing the toggle right above it.
+    // Top stays tight too — matches the row's own reduced bottom above — since it's still
+    // describing the toggle right above it; bottom matches the app's standard 16.dp card-edge
+    // inset (this is the card's last element).
     AppDeletionOemDisclaimer(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp))
 }
