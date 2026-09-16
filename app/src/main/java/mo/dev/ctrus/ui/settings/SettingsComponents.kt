@@ -8,6 +8,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,7 +34,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,14 +66,13 @@ fun SettingsSection(
                     // or a height-derived full stadium) that made corners look inconsistent between
                     // screens, and between one card's own left/right vs top/bottom edges.
                     RoundedCornerShape(20.dp)
-                )
-                // This card contributed nothing vertically before (the 16dp above is a horizontal
-                // margin outside the background, not content padding), leaving edge-to-content gap
-                // much tighter top/bottom than left/right once combined with each row's own smaller
-                // vertical padding — unlike iOS's bubbles, which keep the same inset on all sides.
-                // 10.dp on all four sides, matching GuidedCard's own so a field looks the same
-                // here as it does mid-wizard.
-                .padding(10.dp),
+                ),
+            // No content padding here: every row hosted here (SettingsRow, CustomToggleRow,
+            // StrategyFields, ...) already carries its own uniform 16.dp on all four sides, which
+            // alone gives the first/last row that same 16.dp gap to this card's top/bottom edge —
+            // adding another 16.dp here on top of that doubled it to 20.dp. Between two rows this
+            // never showed, since each side of the divider between them supplies its own,
+            // independent 16.dp margin — only this card's own outer edges were affected.
             content = content
         )
     }
@@ -85,13 +84,17 @@ fun SettingsRow(
     modifier: Modifier = Modifier,
     showChevron: Boolean = false,
     onClick: (() -> Unit)? = null,
+    // Overridable for the rare row a caption directly follows (e.g. Battery Optimization's) —
+    // that pairing needs a tight bottom gap like a title-to-subtitle pair (see Device ID's own
+    // 2.dp), not this row's usual 16.dp edge inset, which would read as two unrelated blocks.
+    contentPadding: PaddingValues = PaddingValues(16.dp),
     trailing: @Composable (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(10.dp),
+            .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -117,7 +120,7 @@ fun SettingsLinkRow(title: String, modifier: Modifier = Modifier, onClick: () ->
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(10.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -134,10 +137,14 @@ fun SettingsLinkRow(title: String, modifier: Modifier = Modifier, onClick: () ->
     }
 }
 
-// MaterialTheme.typography.bodyLarge's line height (16sp font, unspecified lineHeight here falls
-// back to Material3's default bodyLarge value) — used below to make this row's edge padding land
-// relative to the title text rather than the taller switch beside it.
-private val ToggleTitleLineHeight = 24.dp
+// IosStyleSwitch's fixed 31dp track is taller than the title's own ~24dp bodyLarge line by 7dp;
+// centered next to it (CenterVertically), the title sits 3.5dp below the row's true top edge.
+// Shrinking just this row's own top inset by that half-difference — instead of the padding trick
+// tried earlier, which under-reported the switch's height to the layout system and let its real,
+// unreported bottom edge overlap the description below it — lands the title's top at the same
+// 16.dp every other row's text gets, using the row's real (uninflated) height throughout, so nothing
+// can ever overlap by construction.
+private val ToggleRowTopInset = 12.5.dp
 
 /**
  * Mirrors CustomToggle.swift: title + switch share the title's own line (switch trailing), with
@@ -153,7 +160,7 @@ fun CustomToggleRow(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(10.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = ToggleRowTopInset, bottom = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -165,26 +172,11 @@ fun CustomToggleRow(
                 modifier = Modifier.weight(1f),
             )
             Spacer(modifier = Modifier.width(16.dp))
-            IosStyleSwitch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                enabled = enabled,
-                // The switch's 31dp track is taller than the title's own ~24dp line, so measuring
-                // this row's height by the switch (Compose's default) put the outer 10dp inset
-                // relative to the toggle, not the title text next to it. Reporting this switch's
-                // layout height as the title's own bodyLarge line height — while still measuring
-                // and drawing it at full size, centered on that shorter box — makes the 10dp
-                // padding land relative to the title like every other (non-toggle) row's does.
-                modifier = Modifier.layout { measurable, constraints ->
-                    val placeable = measurable.measure(constraints)
-                    val reportedHeight = ToggleTitleLineHeight.roundToPx()
-                    layout(placeable.width, reportedHeight) {
-                        placeable.placeRelative(0, (reportedHeight - placeable.height) / 2)
-                    }
-                },
-            )
+            IosStyleSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
         }
-        Spacer(Modifier.height(4.dp))
+        // Tight, matching Device ID's own title-to-subtitle gap — this description is describing
+        // the title right above it, not a separate block.
+        Spacer(Modifier.height(2.dp))
         Text(
             description,
             style = MaterialTheme.typography.bodySmall,
@@ -245,7 +237,7 @@ fun SettingsDivider() {
     // Inset on both ends — matching the row content's own horizontal padding — instead of
     // running flush to the card's raw right edge.
     HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 10.dp),
+        modifier = Modifier.padding(horizontal = 16.dp),
         color = if (isSystemInDarkTheme()) CtrusSystemColors.separatorDark else CtrusSystemColors.separatorLight,
     )
 }

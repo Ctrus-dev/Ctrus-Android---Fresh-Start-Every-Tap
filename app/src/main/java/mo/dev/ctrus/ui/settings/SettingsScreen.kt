@@ -140,7 +140,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(10.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -180,7 +180,7 @@ fun SettingsScreen(
                         val clipboard = LocalClipboard.current
                         val deviceIdLabel = stringResource(R.string.settings_device_id)
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -212,7 +212,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(10.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
@@ -320,7 +320,16 @@ fun SettingsScreen(
                     // Wrapped in one clickable Column instead of leaving SettingsRow's own onClick
                     // in place, so the caption below shares the same tap target and ripple.
                     Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onRequestBatteryOptimizationExemption)) {
-                        SettingsRow(title = stringResource(R.string.settings_battery_optimization)) {
+                        SettingsRow(
+                            title = stringResource(R.string.settings_battery_optimization),
+                            // Tight bottom (matching Device ID's own title-to-subtitle gap) only
+                            // while the caption below is actually showing — otherwise this is a
+                            // standalone row like any other and keeps the normal 16.dp all around.
+                            contentPadding = PaddingValues(
+                                start = 16.dp, top = 16.dp, end = 16.dp,
+                                bottom = if (isBatteryOptimizationExempt) 16.dp else 2.dp,
+                            ),
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
@@ -348,7 +357,7 @@ fun SettingsScreen(
                                 stringResource(R.string.settings_battery_optimization_caption),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                             )
                         }
                     }
@@ -409,7 +418,7 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(10.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(stringResource(R.string.settings_theme_color), modifier = Modifier.weight(1f))
@@ -512,7 +521,7 @@ private fun RecoveryUnlockStatusRow(remainingUnlocks: Int, resetDateMillis: Long
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(10.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -531,7 +540,7 @@ private fun AppIconRow(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(10.dp),
+            .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         AppIcon.entries.forEach { option ->

@@ -106,9 +106,11 @@ fun GuidedProfileCreationScreen(
     val isFirstStep = stepIndex == 0
     val isLastStep = stepIndex == steps.lastIndex
 
+    // TODO TEMP: NFC gate disabled for testing on hardware without NFC — restore
+    // `draft.physicalUnblockItems.isNotEmpty()` before shipping.
     val canContinue = when (currentStep) {
         GuidedStep.NAME -> draft.name.isNotBlank()
-        GuidedStep.STRICT_UNLOCKS -> draft.physicalUnblockItems.isNotEmpty()
+        GuidedStep.STRICT_UNLOCKS -> true
         else -> true
     }
 
@@ -196,18 +198,16 @@ private fun StepHeader(index: Int, total: Int, step: GuidedStep, draft: ProfileD
 
 @Composable
 private fun GuidedCard(content: @Composable () -> Unit) {
-    // 10.dp on all four sides (matching SettingsSection's own) — every field composable this
-    // hosts (NameField, StrategyFields, AppsFields, CustomToggleRow, ...) already supplies its
-    // own top/bottom padding per row, but that alone left this card's edge-to-content gap much
-    // tighter top/bottom than left/right, unlike iOS's bubbles, which keep the same inset on all
-    // four sides. Kept equal to SettingsSection's own so guided-flow fields still match their
-    // edit-screen counterparts.
+    // No content padding here: every field composable this hosts (NameField, StrategyFields,
+    // AppsFields, CustomToggleRow, ...) already supplies its own uniform 16.dp on all four sides,
+    // matching SettingsSection's own — adding another 16.dp here on top of that doubled the gap
+    // from this card's top/bottom edge to 20.dp (see SettingsSection's own kdoc for why the
+    // horizontal edges and the gaps between rows were never affected the same way).
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp))
-            .padding(10.dp),
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp)),
     ) {
         content()
     }
@@ -271,15 +271,15 @@ private fun ReviewContent(draft: ProfileDraft, availableStrategies: List<Blockin
 
 @Composable
 private fun ReviewRow(title: String, value: String, showDivider: Boolean = true) {
-    Row(modifier = Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(end = 10.dp))
+    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(end = 16.dp))
         Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
     if (showDivider) {
-        // Inset to match this row's own 10.dp padding above — a flush, edge-to-edge divider
+        // Inset to match this row's own 16.dp padding above — a flush, edge-to-edge divider
         // started/ended past where "Nome"/"Estratégia"/etc. actually begin and end.
         androidx.compose.material3.HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 10.dp),
+            modifier = Modifier.padding(horizontal = 16.dp),
             color = if (isSystemInDarkTheme()) CtrusSystemColors.separatorDark else CtrusSystemColors.separatorLight,
         )
     }

@@ -102,10 +102,12 @@ fun ProfileFormScreen(
     }
 
     fun attemptSave() {
-        if (draft.physicalUnblockItems.isEmpty()) {
-            showMissingUnlockAlert = true
-            return
-        }
+        // TODO TEMP: NFC gate disabled for testing on hardware without NFC — restore this guard
+        // before shipping.
+        // if (draft.physicalUnblockItems.isEmpty()) {
+        //     showMissingUnlockAlert = true
+        //     return
+        // }
         onSave(
             draft.name.trim(), draft.selectedPackages.toList(), draft.strategyId, draft.domains,
             draft.enableAllowMode, draft.enableBrowserBlocking, draft.enableAllowModeDomains, draft.enableAdultContentBlocking,
@@ -187,7 +189,7 @@ fun ProfileFormScreen(
             }
 
             // No extra Modifier.padding(horizontal = ...) wrapper around any field below —
-            // SettingsSection already gives its content a uniform 10.dp inset on every side, and
+            // SettingsSection already gives its content a uniform 16.dp inset on every side, and
             // each field's own row padding is already normalized to match; adding another
             // horizontal-only layer here (as before) pushed these fields further in from the
             // sides than from the top/bottom, unlike their identical counterparts mid-wizard.
