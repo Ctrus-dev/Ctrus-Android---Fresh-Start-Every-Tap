@@ -41,12 +41,12 @@ fun blockerScreenVariantIndex(name: String): Int {
     val today = java.time.LocalDate.now()
     val dayKey = today.year * 10_000 + today.monthValue * 100 + today.dayOfMonth
     val seed = stableSeed(name) xor dayKey.toLong()
-    return (kotlin.math.abs(seed) % 8).toInt()
+    return (kotlin.math.abs(seed) % 10).toInt()
 }
 
 /**
  * Full-screen block surface shown in place of a blocked app, mirroring
- * ShieldConfigurationExtension.swift: solid theme-color background, a 🔒 icon, and one of 8
+ * ShieldConfigurationExtension.swift: solid theme-color background, a 🔒 icon, and one of 10
  * citrus-themed messages chosen deterministically per app per day (same FNV-1a-hash-of-name
  * XOR day-key scheme as [getFunBlockMessage] on iOS) — title/subtitle/button travel together.
  *

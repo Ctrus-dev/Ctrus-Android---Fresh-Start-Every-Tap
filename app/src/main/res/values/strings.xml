@@ -332,26 +332,32 @@
          8 variants chosen deterministically per app per day, mirroring
          ShieldConfigurationExtension.swift. -->
     <string-array name="shield_titles">
-        <item>Not ripe yet</item>
-        <item>Juicy trap</item>
-        <item>Protect the grove</item>
-        <item>Nothing to peel</item>
-        <item>Drop by drop</item>
-        <item>Sour now, sweet later</item>
-        <item>Make lemonade</item>
-        <item>Grow somewhere better</item>
+        <item>Life gave you lemons.</item>
+        <item>Someone said to squeeze the day.</item>
+        <item>100% juice, they say.</item>
+        <item>That\'s not how you take vitamin C.</item>
+        <item>When life gives you lemons.</item>
+        <item>The tree takes time to bear fruit.</item>
+        <item>Sweet on the outside.</item>
+        <item>Looks harmless on the outside.</item>
+        <item>Good things take time to ripen.</item>
+        <item>Here we are again.</item>
     </string-array>
     <string-array name="shield_subtitles">
-        <item>%1$s can wait until you\'re ready to pick it.</item>
-        <item>One click turns into twenty. Let\'s not squeeze this dry.</item>
-        <item>A few minutes ripen into an hour before you know it.</item>
-        <item>Relax, you\'re not missing anything.</item>
-        <item>Small squeezes of effort like this fill the glass fast.</item>
-        <item>This feeling fades faster than you think.</item>
-        <item>When life gives you lemons, close %1$s.</item>
-        <item>Your attention can bear more fruit elsewhere.</item>
+        <item>And you\'re turning them into infinite scroll.</item>
+        <item>Not to waste it on %1$s.</item>
+        <item>Your focus is running at 0%%.</item>
+        <item>A daily dose of %1$s won\'t do you any good.</item>
+        <item>You really think this is the lemonade?</item>
+        <item>You keep coming back to %1$s whenever you want — that\'s the problem.</item>
+        <item>Bitter once you realize how many hours you\'ve spent here.</item>
+        <item>You know it\'s bitter on the inside.</item>
+        <item>%1$s isn\'t one of them.</item>
+        <item>This is getting repetitive, and not in a sweet way.</item>
     </string-array>
     <string-array name="shield_buttons">
+        <item>Got it</item>
+        <item>Got it</item>
         <item>Got it</item>
         <item>Got it</item>
         <item>Got it</item>

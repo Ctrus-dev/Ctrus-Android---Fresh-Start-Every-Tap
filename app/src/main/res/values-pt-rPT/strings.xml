@@ -328,26 +328,32 @@
     </plurals>
 
     <string-array name="shield_titles">
-        <item>Ainda não está maduro</item>
-        <item>Armadilha sumarenta</item>
-        <item>Protege o pomar</item>
-        <item>Nada para descascar</item>
-        <item>Gota a gota</item>
-        <item>Azedo agora, doce depois</item>
-        <item>Faz limonada</item>
-        <item>Cresce noutro lado</item>
+        <item>A vida deu-te limões.</item>
+        <item>Alguém disse para espremeres o dia.</item>
+        <item>100% sumo, dizem eles.</item>
+        <item>Vitamina C não se toma assim.</item>
+        <item>Quando a vida dá limões.</item>
+        <item>A árvore demora a dar frutos.</item>
+        <item>Doce por fora.</item>
+        <item>Por fora parece inofensivo.</item>
+        <item>As coisas boas levam tempo a amadurecer.</item>
+        <item>Cá estamos outra vez.</item>
     </string-array>
     <string-array name="shield_subtitles">
-        <item>%1$s pode esperar até estares pronto para o colher.</item>
-        <item>Um clique vira vinte. Não vamos espremer isto até ao fim.</item>
-        <item>Uns minutos amadurecem numa hora sem dares por isso.</item>
-        <item>Descansa, não estás a perder nada.</item>
-        <item>Pequenas gotas de sumo como esta enchem o copo depressa.</item>
-        <item>Esta sensação passa mais depressa do que pensas.</item>
-        <item>Quando a vida te dá limões, fecha o %1$s.</item>
-        <item>A tua atenção pode dar mais frutos noutro lado.</item>
+        <item>E tu a querer transformá-los em scroll infinito.</item>
+        <item>Não para o desperdiçares no %1$s.</item>
+        <item>A tua concentração é que anda a 0%%.</item>
+        <item>Uma dose diária de %1$s não te vai fazer bem.</item>
+        <item>Achas mesmo que isto é a limonada?</item>
+        <item>Tu voltas ao %1$s sempre que queres, isso é que é o problema.</item>
+        <item>Amargo quando percebes as horas que já cá passaste.</item>
+        <item>Por dentro sabes que é amargo.</item>
+        <item>O %1$s não é uma delas.</item>
+        <item>Isto está a ficar repetitivo, e nada doce.</item>
     </string-array>
     <string-array name="shield_buttons">
+        <item>Entendido</item>
+        <item>Entendido</item>
         <item>Entendido</item>
         <item>Entendido</item>
         <item>Entendido</item>

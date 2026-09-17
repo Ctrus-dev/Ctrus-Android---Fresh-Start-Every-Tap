@@ -328,26 +328,32 @@
     </plurals>
 
     <string-array name="shield_titles">
-        <item>Todavía no está maduro</item>
-        <item>Trampa jugosa</item>
-        <item>Protege el huerto</item>
-        <item>Nada que pelar</item>
-        <item>Gota a gota</item>
-        <item>Agrio ahora, dulce después</item>
-        <item>Haz limonada</item>
-        <item>Crece en otro lado</item>
+        <item>La vida te dio limones.</item>
+        <item>Alguien dijo que exprimieras el día.</item>
+        <item>100% zumo, dicen ellos.</item>
+        <item>La vitamina C no se toma así.</item>
+        <item>Cuando la vida te da limones.</item>
+        <item>El árbol tarda en dar frutos.</item>
+        <item>Dulce por fuera.</item>
+        <item>Por fuera parece inofensivo.</item>
+        <item>Las cosas buenas tardan en madurar.</item>
+        <item>Aquí estamos otra vez.</item>
     </string-array>
     <string-array name="shield_subtitles">
-        <item>%1$s puede esperar hasta que estés listo para recogerlo.</item>
-        <item>Un clic se convierte en veinte. No exprimamos esto hasta el final.</item>
-        <item>Unos minutos maduran en una hora sin darte cuenta.</item>
-        <item>Relájate, no te estás perdiendo nada.</item>
-        <item>Pequeños chorritos de jugo como este llenan el vaso rápido.</item>
-        <item>Esta sensación pasa más rápido de lo que piensas.</item>
-        <item>Cuando la vida te da limones, cierra %1$s.</item>
-        <item>Tu atención puede dar más frutos en otro lado.</item>
+        <item>Y tú queriendo convertirlos en scroll infinito.</item>
+        <item>No que lo desperdiciaras en %1$s.</item>
+        <item>Tu concentración anda al 0%%.</item>
+        <item>Una dosis diaria de %1$s no te va a hacer bien.</item>
+        <item>¿De verdad crees que esto es la limonada?</item>
+        <item>Vuelves a %1$s siempre que quieres, ese es el problema.</item>
+        <item>Amargo cuando te das cuenta de las horas que ya pasaste aquí.</item>
+        <item>Por dentro sabes que es amargo.</item>
+        <item>%1$s no es una de ellas.</item>
+        <item>Esto se está volviendo repetitivo, y nada dulce.</item>
     </string-array>
     <string-array name="shield_buttons">
+        <item>Entendido</item>
+        <item>Entendido</item>
         <item>Entendido</item>
         <item>Entendido</item>
         <item>Entendido</item>
