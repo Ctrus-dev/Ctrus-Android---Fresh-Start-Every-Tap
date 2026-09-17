@@ -329,7 +329,6 @@
 
     <string-array name="shield_titles">
         <item>A vida deu-te limões.</item>
-        <item>Alguém disse para espremeres o dia.</item>
         <item>100% sumo, dizem eles.</item>
         <item>Vitamina C não se toma assim.</item>
         <item>Quando a vida dá limões.</item>
@@ -341,7 +340,6 @@
     </string-array>
     <string-array name="shield_subtitles">
         <item>E tu a querer transformá-los em scroll infinito.</item>
-        <item>Não para o desperdiçares no %1$s.</item>
         <item>A tua concentração é que anda a 0%%.</item>
         <item>Uma dose diária de %1$s não te vai fazer bem.</item>
         <item>Achas mesmo que isto é a limonada?</item>
@@ -352,7 +350,6 @@
         <item>Isto está a ficar repetitivo, e nada doce.</item>
     </string-array>
     <string-array name="shield_buttons">
-        <item>Entendido</item>
         <item>Entendido</item>
         <item>Entendido</item>
         <item>Entendido</item>

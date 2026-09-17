@@ -333,7 +333,6 @@
          ShieldConfigurationExtension.swift. -->
     <string-array name="shield_titles">
         <item>Life gave you lemons.</item>
-        <item>Someone said to squeeze the day.</item>
         <item>100% juice, they say.</item>
         <item>That\'s not how you take vitamin C.</item>
         <item>When life gives you lemons.</item>
@@ -345,7 +344,6 @@
     </string-array>
     <string-array name="shield_subtitles">
         <item>And you\'re turning them into infinite scroll.</item>
-        <item>Not to waste it on %1$s.</item>
         <item>Your focus is running at 0%%.</item>
         <item>A daily dose of %1$s won\'t do you any good.</item>
         <item>You really think this is the lemonade?</item>
@@ -356,7 +354,6 @@
         <item>This is getting repetitive, and not in a sweet way.</item>
     </string-array>
     <string-array name="shield_buttons">
-        <item>Got it</item>
         <item>Got it</item>
         <item>Got it</item>
         <item>Got it</item>
