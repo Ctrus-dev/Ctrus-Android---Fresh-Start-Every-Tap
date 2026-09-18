@@ -288,7 +288,7 @@
     <string name="settings_not_authorized">Not Authorized</string>
     <string name="settings_made_in">Made in</string>
     <string name="settings_invalid_code_title">Invalid Code</string>
-    <string name="settings_invalid_code_body">That unlock code isn\'t valid. Visit recover.ctrus.net to get one.</string>
+    <string name="settings_invalid_code_body">That unlock code isn\'t valid. Visit recover.ctrus.pt to get one.</string>
     <string name="color_orange">Orange</string>
     <string name="color_lime">Lime</string>
     <string name="color_lemon">Lemon</string>

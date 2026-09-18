@@ -9,7 +9,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Port of the read side of Ctrus/Utils/NFCScannerUtil.swift: prefers a single well-known-type
- * NDEF URI record whose host is `ctrus.net` (scheme `https`) — the same record iOS tags carry —
+ * NDEF URI record whose host is `ctrus.pt` (scheme `https`) — the same record iOS tags carry —
  * falling back to the tag's raw UID as uppercase hex when there's no such record (blank/foreign
  * tags, or a tag with no NDEF data at all). Only reading is ported: NFCWriter.swift/
  * NFCScannerUtil.writeURL have no real call site anywhere in the iOS Views/Components — nothing
@@ -33,14 +33,14 @@ object NfcTagDecoder {
         }
     }
 
-    /** Mirrors updateWithNDEFMessageURL: exactly one matching ctrus.net URI record, or none. */
+    /** Mirrors updateWithNDEFMessageURL: exactly one matching ctrus.pt URI record, or none. */
     private fun extractCtrusUrl(message: NdefMessage): String? {
         val matches = message.records.mapNotNull { record ->
             if (record.tnf != NdefRecord.TNF_WELL_KNOWN || !record.type.contentEquals(NdefRecord.RTD_URI)) {
                 return@mapNotNull null
             }
             val uri = record.toUri() ?: return@mapNotNull null
-            if (uri.scheme == "https" && uri.host == "ctrus.net") uri.toString() else null
+            if (uri.scheme == "https" && uri.host == "ctrus.pt") uri.toString() else null
         }
         return matches.singleOrNull()
     }

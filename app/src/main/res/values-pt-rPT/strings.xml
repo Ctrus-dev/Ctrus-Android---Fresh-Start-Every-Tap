@@ -287,7 +287,7 @@
     <string name="settings_not_authorized">Não Autorizado</string>
     <string name="settings_made_in">Feito em</string>
     <string name="settings_invalid_code_title">Código Inválido</string>
-    <string name="settings_invalid_code_body">Esse código de desbloqueio não é válido. Visita recover.ctrus.net para obteres um.</string>
+    <string name="settings_invalid_code_body">Esse código de desbloqueio não é válido. Visita recover.ctrus.pt para obteres um.</string>
     <string name="color_orange">Laranja</string>
     <string name="color_lime">Lima</string>
     <string name="color_lemon">Limão</string>

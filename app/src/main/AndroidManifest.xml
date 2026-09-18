@@ -23,7 +23,7 @@
          stock Android — see BatteryOptimizationUtil. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- Recovery-code verification against recover.ctrus.net -->
+    <!-- Recovery-code verification against recover.ctrus.pt -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -42,14 +42,14 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Ctrus"
             android:configChanges="screenLayout|smallestScreenSize|screenSize|orientation|uiMode|density">
-            <!-- Mirrors the iOS ctrus.net/profile/<id> deep link used by NFC tags & the widget -->
+            <!-- Mirrors the iOS ctrus.pt/profile/<id> deep link used by NFC tags & the widget -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="ctrus.net" />
+                    android:host="ctrus.pt" />
             </intent-filter>
         </activity>
 

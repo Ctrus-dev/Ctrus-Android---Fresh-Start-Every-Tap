@@ -18,12 +18,12 @@ sealed interface RecoveryCodeVerification {
 
 /**
  * Port of Ctrus/Utils/RecoveryCodeUtil.swift, calling the same production CtrusRecoveryWorker
- * backend (https://recover.ctrus.net) the iOS app already uses — a plain JSON/HTTPS API with no
+ * backend (https://recover.ctrus.pt) the iOS app already uses — a plain JSON/HTTPS API with no
  * platform-specific payload, so it needs no server-side changes for Android.
  */
 class RecoveryCodeClient(
     private val client: OkHttpClient = OkHttpClient(),
-    private val baseUrl: String = "https://recover.ctrus.net",
+    private val baseUrl: String = "https://recover.ctrus.pt",
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val jsonMediaType = "application/json".toMediaType()

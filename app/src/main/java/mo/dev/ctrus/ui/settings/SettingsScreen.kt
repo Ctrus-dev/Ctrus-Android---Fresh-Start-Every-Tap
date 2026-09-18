@@ -174,7 +174,7 @@ fun SettingsScreen(
 
             item {
                 SettingsSection(title = stringResource(R.string.settings_section_recovery)) {
-                    SettingsLinkRow(title = stringResource(R.string.settings_get_unlock_code)) { onOpenUrl("https://recover.ctrus.net") }
+                    SettingsLinkRow(title = stringResource(R.string.settings_get_unlock_code)) { onOpenUrl("https://recover.ctrus.pt") }
                     if (deviceId != null) {
                         SettingsDivider()
                         val clipboard = LocalClipboard.current
