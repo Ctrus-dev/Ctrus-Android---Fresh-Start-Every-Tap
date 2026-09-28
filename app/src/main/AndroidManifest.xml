@@ -17,6 +17,8 @@
     <!-- Session/break/pause/grant expiry alarms must fire on time even in Doze -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- AlarmManager alarms don't survive a reboot — ScheduleReceiver re-arms scheduled starts -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Lets the accessibility service survive Doze/App Standby on OEM skins (MIUI, ColorOS,
          FuntouchOS/OriginOS, OxygenOS) that kill background services more aggressively than
@@ -130,6 +132,19 @@
         <receiver
             android:name=".scheduling.ExpiryReceiver"
             android:exported="false" />
+
+        <!-- "Schedule + Ctrus NFC": automatic starts, 5-minute reminders, and re-arming them all
+             after a reboot / app update / clock change -->
+        <receiver
+            android:name=".scheduling.ScheduleReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Primary blocking mechanism (see AGENTS.md for the Switchly-derived rationale) -->
         <service

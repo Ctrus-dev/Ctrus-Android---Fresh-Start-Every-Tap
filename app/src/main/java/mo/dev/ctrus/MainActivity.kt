@@ -70,7 +70,9 @@ import mo.dev.ctrus.ui.intro.AccessibilityDisclosureDialog
 import mo.dev.ctrus.ui.intro.BatteryOptimizationDialog
 import mo.dev.ctrus.ui.intro.AccessibilityPermissionScreen
 import mo.dev.ctrus.ui.profile.GuidedProfileCreationScreen
+import mo.dev.ctrus.ui.profile.ProfileDraft
 import mo.dev.ctrus.ui.profile.ProfileFormScreen
+import mo.dev.ctrus.ui.profile.applyTo
 import mo.dev.ctrus.ui.session.EmergencyView
 import mo.dev.ctrus.ui.settings.SettingsScreen
 import mo.dev.ctrus.ui.strategy.PendingRequirementDialog
@@ -263,6 +265,22 @@ private fun CtrusNavHost(
     var showSettings by remember { mutableStateOf(false) }
     var showManageProfiles by remember { mutableStateOf(false) }
     var showCreateProfile by remember { mutableStateOf(false) }
+
+    // Mirrors DeviceActivityCenterUtil.scheduleUpcomingSessionReminders, which requests
+    // notification authorization whenever a schedule is saved — without it, the "starts in 5
+    // minutes" and "couldn't start" notifications are silently skipped (the schedule itself
+    // still starts sessions either way).
+    val scheduleNotificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* no-op: reminders are simply skipped if denied, same as iOS */ }
+    val requestScheduleNotificationPermissionIfNeeded: (ProfileDraft) -> Unit = { draft ->
+        if (draft.schedule != null &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            scheduleNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     var editingProfileId by remember { mutableStateOf<String?>(null) }
     var insightsProfileId by remember { mutableStateOf<String?>(null) }
     // Shared by every entry point that needs the disclosure-then-Settings flow — Home's alert
@@ -291,23 +309,25 @@ private fun CtrusNavHost(
                 themeColor = themeManager.selectedColorOption.color,
                 nfcScanController = nfcScanController,
                 onDismiss = { showCreateProfile = false },
-                onCreate = { name, packages, strategyId, domains, allowMode, browserBlocking, allowModeDomains, adultContent, physicalUnblockItems, enableBreaks, breakMinutes, allowMultipleBreaks, strictMode, blockInstalls ->
+                onCreate = { draft ->
+                    requestScheduleNotificationPermissionIfNeeded(draft)
                     coroutineScope.launch {
                         app.profileRepository.create(
-                            name = name,
-                            selectedPackages = packages,
-                            blockingStrategyId = strategyId,
-                            domains = domains,
-                            physicalUnblockItems = physicalUnblockItems,
-                            enableAllowMode = allowMode,
-                            enableBrowserBlocking = browserBlocking,
-                            enableAllowModeDomains = allowModeDomains,
-                            enableAdultContentBlocking = adultContent,
-                            enableBreaks = enableBreaks,
-                            breakTimeInMinutes = breakMinutes,
-                            allowMultipleBreaks = allowMultipleBreaks,
-                            enableStrictMode = strictMode,
-                            enableBlockAppInstallation = blockInstalls,
+                            name = draft.name.trim(),
+                            selectedPackages = draft.selectedPackages.toList(),
+                            blockingStrategyId = draft.strategyId,
+                            domains = draft.domains,
+                            physicalUnblockItems = draft.physicalUnblockItems,
+                            enableAllowMode = draft.enableAllowMode,
+                            enableBrowserBlocking = draft.enableBrowserBlocking,
+                            enableAllowModeDomains = draft.enableAllowModeDomains,
+                            enableAdultContentBlocking = draft.enableAdultContentBlocking,
+                            enableBreaks = draft.enableBreaks,
+                            breakTimeInMinutes = draft.breakTimeInMinutes,
+                            allowMultipleBreaks = draft.allowMultipleBreaks,
+                            enableStrictMode = draft.enableStrictMode,
+                            enableBlockAppInstallation = draft.enableBlockAppInstallation,
+                            schedule = draft.schedule,
                         )
                         showCreateProfile = false
                     }
@@ -386,26 +406,10 @@ private fun CtrusNavHost(
                     isBlockingGlobally = activeSession != null,
                     nfcScanController = nfcScanController,
                     onDismiss = { editingProfileId = null },
-                    onSave = { name, packages, strategyId, domains, allowMode, browserBlocking, allowModeDomains, adultContent, physicalUnblockItems, enableBreaks, breakMinutes, allowMultipleBreaks, strictMode, blockInstalls ->
+                    onSave = { draft ->
+                        requestScheduleNotificationPermissionIfNeeded(draft)
                         coroutineScope.launch {
-                            app.profileRepository.update(
-                                profile.copy(
-                                    name = name,
-                                    selectedPackages = packages,
-                                    blockingStrategyId = strategyId,
-                                    domains = domains,
-                                    enableAllowMode = allowMode,
-                                    enableBrowserBlocking = browserBlocking,
-                                    enableAllowModeDomains = allowModeDomains,
-                                    enableAdultContentBlocking = adultContent,
-                                    physicalUnblockItems = physicalUnblockItems,
-                                    enableBreaks = enableBreaks,
-                                    breakTimeInMinutes = breakMinutes,
-                                    allowMultipleBreaks = allowMultipleBreaks,
-                                    enableStrictMode = strictMode,
-                                    enableBlockAppInstallation = blockInstalls,
-                                ),
-                            )
+                            app.profileRepository.update(draft.applyTo(profile))
                             editingProfileId = null
                         }
                     },

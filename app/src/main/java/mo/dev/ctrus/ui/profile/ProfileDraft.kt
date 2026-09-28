@@ -2,6 +2,9 @@ package mo.dev.ctrus.ui.profile
 
 import mo.dev.ctrus.data.BlockedProfileEntity
 import mo.dev.ctrus.data.PhysicalUnblockItem
+import mo.dev.ctrus.data.ProfileSchedule
+import mo.dev.ctrus.strategy.StrategyIds
+import java.time.DayOfWeek
 
 /** All the editable fields, mirroring BlockedProfileDraft.swift. Shared by [ProfileFormScreen] (edit, all sections at once) and [GuidedProfileCreationScreen] (create, one section per step). */
 data class ProfileDraft(
@@ -19,7 +22,27 @@ data class ProfileDraft(
     val allowMultipleBreaks: Boolean = false,
     val enableStrictMode: Boolean = true,
     val enableBlockAppInstallation: Boolean = false,
-)
+    val scheduleDays: Set<DayOfWeek> = emptySet(),
+    val scheduleStartHour: Int = 9,
+    val scheduleStartMinute: Int = 0,
+) {
+    /** Mirrors BlockedProfileDraft.useSchedule. */
+    val useSchedule: Boolean get() = strategyId == StrategyIds.SCHEDULE
+
+    /**
+     * Mirrors BlockedProfileDraft.selectedStrategy's didSet: leaving Schedule for another mode
+     * drops the chosen days, so no "ghost" schedule stays armed in the background.
+     */
+    fun withStrategy(id: String): ProfileDraft =
+        if (id == StrategyIds.SCHEDULE) copy(strategyId = id) else copy(strategyId = id, scheduleDays = emptySet())
+
+    val schedule: ProfileSchedule?
+        get() = if (useSchedule && scheduleDays.isNotEmpty()) {
+            ProfileSchedule(scheduleDays.map { it.value }.sorted(), scheduleStartHour, scheduleStartMinute)
+        } else {
+            null
+        }
+}
 
 fun BlockedProfileEntity.toDraft() = ProfileDraft(
     name = name,
@@ -36,4 +59,26 @@ fun BlockedProfileEntity.toDraft() = ProfileDraft(
     allowMultipleBreaks = allowMultipleBreaks,
     enableStrictMode = enableStrictMode,
     enableBlockAppInstallation = enableBlockAppInstallation,
+    scheduleDays = schedule?.daysOfWeek.orEmpty(),
+    scheduleStartHour = schedule?.startHour ?: 9,
+    scheduleStartMinute = schedule?.startMinute ?: 0,
+)
+
+/** Writes every draft field onto [profile] (edit), or onto a fresh entity when creating. */
+fun ProfileDraft.applyTo(profile: BlockedProfileEntity): BlockedProfileEntity = profile.copy(
+    name = name.trim(),
+    selectedPackages = selectedPackages.toList(),
+    blockingStrategyId = strategyId,
+    domains = domains,
+    enableAllowMode = enableAllowMode,
+    enableBrowserBlocking = enableBrowserBlocking,
+    enableAllowModeDomains = enableAllowModeDomains,
+    enableAdultContentBlocking = enableAdultContentBlocking,
+    physicalUnblockItems = physicalUnblockItems,
+    enableBreaks = enableBreaks,
+    breakTimeInMinutes = breakTimeInMinutes,
+    allowMultipleBreaks = allowMultipleBreaks,
+    enableStrictMode = enableStrictMode,
+    enableBlockAppInstallation = enableBlockAppInstallation,
+    schedule = schedule,
 )

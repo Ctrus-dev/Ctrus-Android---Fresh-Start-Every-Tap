@@ -251,9 +251,9 @@
     <string name="nfc_hold_near_tag">Tap the back of your phone on the Ctrus.</string>
     <string name="nfc_open_settings">Open Settings</string>
     <string name="strategy_nfc_name">Ctrus NFC</string>
-    <string name="strategy_nfc_description">Start and stop by tapping your Ctrus.</string>
+    <string name="strategy_nfc_description">You\'ll need your Ctrus to both start and end the session.</string>
     <string name="strategy_nfc_manual_name">Manual + Ctrus NFC</string>
-    <string name="strategy_nfc_manual_description">Start in the app. Stop by tapping your Ctrus.</string>
+    <string name="strategy_nfc_manual_description">Start by pressing the session bubble in the app. You\'ll need your Ctrus to end it.</string>
     <string name="settings_title">Settings</string>
     <string name="settings_close_content_description">Close</string>
     <string name="settings_section_theme">Theme</string>
@@ -380,4 +380,31 @@
         <item>Leftover pulp from distraction dilutes your juice</item>
         <item>Protect your grove, protect your time</item>
     </string-array>
+
+    <!-- Schedule + Ctrus NFC -->
+    <string name="strategy_schedule_name">Schedule + Ctrus NFC</string>
+    <string name="strategy_schedule_description">Set the time and days of the week this profile should start automatically. You\'ll need your Ctrus to end it.</string>
+    <string name="guided_step_schedule">Schedule</string>
+    <string name="guided_intro_title_schedule">Set your schedule</string>
+    <string name="guided_intro_desc_schedule">Choose the days of the week and start time this profile should turn on by itself.</string>
+    <string name="guided_review_schedule">Schedule</string>
+    <string name="profile_form_section_schedule">Schedule</string>
+    <string name="profile_form_missing_schedule_days_body">Choose at least one day for the schedule.</string>
+    <string name="field_schedule_start_time">Start Time</string>
+    <string name="weekday_short_sunday">Su</string>
+    <string name="weekday_short_monday">Mo</string>
+    <string name="weekday_short_tuesday">Tu</string>
+    <string name="weekday_short_wednesday">We</string>
+    <string name="weekday_short_thursday">Th</string>
+    <string name="weekday_short_friday">Fr</string>
+    <string name="weekday_short_saturday">Sa</string>
+    <string name="schedule_notification_channel_name">Schedule reminders</string>
+    <string name="schedule_notification_channel_description">Lets you know when a scheduled profile is about to start, or couldn\'t start</string>
+    <string name="schedule_reminder_notification_title">Starting Soon!</string>
+    <string name="schedule_reminder_notification_body">%1$s starts in 5 minutes.</string>
+    <string name="schedule_skipped_notification_title">Couldn\'t Start</string>
+    <string name="schedule_skipped_notification_body">%1$s didn\'t start because %2$s is still active.</string>
+    <string name="schedule_skipped_notification_body_unknown">%1$s didn\'t start because another profile is still active.</string>
+    <string name="settings_faq">Looking for Answers?</string>
+    <string name="settings_section_help">Help</string>
 </resources>

@@ -2,7 +2,19 @@ package mo.dev.ctrus.ui.profile
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import mo.dev.ctrus.data.ProfileSchedule
+import mo.dev.ctrus.util.DateFormatters
+import java.time.DayOfWeek
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -108,7 +120,7 @@ fun StrategyFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, a
                 CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides StrategyRadioBoxSize) {
                     RadioButton(
                         selected = strategy.id == draft.strategyId,
-                        onClick = { onDraftChange(draft.copy(strategyId = strategy.id)) },
+                        onClick = { onDraftChange(draft.withStrategy(strategy.id)) },
                         enabled = !disabled,
                     )
                 }
@@ -322,6 +334,100 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
             errorMessage = scanError,
         )
     }
+}
+
+/** Short Sunday-first weekday labels, matching Schedule.swift's `Weekday.shortLabel`. */
+@androidx.annotation.StringRes
+fun DayOfWeek.shortLabelRes(): Int = when (this) {
+    DayOfWeek.SUNDAY -> R.string.weekday_short_sunday
+    DayOfWeek.MONDAY -> R.string.weekday_short_monday
+    DayOfWeek.TUESDAY -> R.string.weekday_short_tuesday
+    DayOfWeek.WEDNESDAY -> R.string.weekday_short_wednesday
+    DayOfWeek.THURSDAY -> R.string.weekday_short_thursday
+    DayOfWeek.FRIDAY -> R.string.weekday_short_friday
+    DayOfWeek.SATURDAY -> R.string.weekday_short_saturday
+}
+
+private val WeekdayBubbleSize = 42.dp
+
+/**
+ * Port of BlockedProfileFormSections.swift's `BlockedProfileScheduleFields`: one row of circular
+ * weekday toggles (theme-colored when selected) and a start-time row. No end time — see
+ * [mo.dev.ctrus.data.ProfileSchedule].
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
+    val context = LocalContext.current
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    Row(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        ProfileSchedule.DISPLAY_ORDER.forEach { day ->
+            val selected = day in draft.scheduleDays
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(WeekdayBubbleSize)
+                        .clip(CircleShape)
+                        .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.14f))
+                        .let {
+                            if (disabled) it else it.clickable {
+                                val days = if (selected) draft.scheduleDays - day else draft.scheduleDays + day
+                                onDraftChange(draft.copy(scheduleDays = days))
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(day.shortLabelRes()),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+    SettingsDivider()
+    SettingsRow(
+        title = stringResource(R.string.field_schedule_start_time),
+        onClick = if (disabled) null else ({ showTimePicker = true }),
+        trailing = {
+            Text(
+                DateFormatters.formatTimeOfDay(context, draft.scheduleStartHour, draft.scheduleStartMinute),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+    )
+
+    if (showTimePicker) {
+        val timeState = rememberTimePickerState(
+            initialHour = draft.scheduleStartHour,
+            initialMinute = draft.scheduleStartMinute,
+            is24Hour = android.text.format.DateFormat.is24HourFormat(context),
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            text = { TimePicker(state = timeState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDraftChange(draft.copy(scheduleStartHour = timeState.hour, scheduleStartMinute = timeState.minute))
+                    showTimePicker = false
+                }) { Text(stringResource(R.string.common_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.common_cancel)) } },
+        )
+    }
+}
+
+/** "Su Mo · 9:00" — Schedule.swift's `summaryText`, start time only (stopping is NFC-only). */
+@Composable
+fun scheduleSummary(draft: ProfileDraft): String {
+    val context = LocalContext.current
+    val days = ProfileSchedule.DISPLAY_ORDER.filter { it in draft.scheduleDays }.map { stringResource(it.shortLabelRes()) }
+    return days.joinToString(" ") + " · " + DateFormatters.formatTimeOfDay(context, draft.scheduleStartHour, draft.scheduleStartMinute)
 }
 
 @Composable

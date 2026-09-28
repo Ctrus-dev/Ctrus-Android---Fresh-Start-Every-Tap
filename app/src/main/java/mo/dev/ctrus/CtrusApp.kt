@@ -14,6 +14,7 @@ import mo.dev.ctrus.data.SessionRepository
 import mo.dev.ctrus.model3d.ObjModelCache
 import mo.dev.ctrus.network.RecoveryCodeClient
 import mo.dev.ctrus.scheduling.AlarmSchedulingGateway
+import mo.dev.ctrus.scheduling.ScheduleAlarmScheduler
 import mo.dev.ctrus.scheduling.SchedulingGateway
 import mo.dev.ctrus.settings.AppPreferences
 import mo.dev.ctrus.strategy.StrategyRegistry
@@ -33,6 +34,8 @@ class CtrusApp : Application() {
         private set
     lateinit var strategyRegistry: StrategyRegistry
         private set
+    lateinit var scheduleAlarmScheduler: ScheduleAlarmScheduler
+        private set
     lateinit var preferences: AppPreferences
         private set
     val recoveryCodeClient = RecoveryCodeClient()
@@ -48,8 +51,22 @@ class CtrusApp : Application() {
         sessionRepository = SessionRepository(database.sessionDao(), schedulingGateway)
         strategyRegistry = StrategyRegistry(sessionRepository)
         preferences = AppPreferences(this)
+        scheduleAlarmScheduler = ScheduleAlarmScheduler(this)
 
         BlockingStateHolder.start(applicationScope, sessionRepository, profileRepository)
+
+        // Keeps every "Schedule + Ctrus NFC" profile's alarms in step with Room: creating,
+        // editing, switching mode, duplicating, or deleting a profile all re-arm/cancel here —
+        // the equivalent of iOS calling DeviceActivityCenterUtil.scheduleTimerActivity on save
+        // and removeScheduleTimerActivities on delete.
+        applicationScope.launch {
+            var previousIds = emptySet<String>()
+            profileRepository.observeAll().collect { profiles ->
+                val ids = profiles.map { it.id }.toSet()
+                scheduleAlarmScheduler.syncAll(profiles, removedProfileIds = previousIds - ids)
+                previousIds = ids
+            }
+        }
 
         // Warms the 3D mascot's parsed-mesh cache before Home is ever shown, so the model doesn't
         // visibly stall on the very first appearance either — see ObjModelCache's kdoc.
@@ -58,19 +75,28 @@ class CtrusApp : Application() {
         createNotificationChannels()
     }
 
-    /** Backs the "break almost over" notification posted by ExpiryReceiver's warning alarm. */
+    /**
+     * Backs the "break almost over" notification posted by ExpiryReceiver's warning alarm, and
+     * ScheduleReceiver's "starts in 5 minutes" / "couldn't start" notifications.
+     */
     private fun createNotificationChannels() {
         val manager = getSystemService(NotificationManager::class.java)
-        val channel = NotificationChannel(
+        val breakChannel = NotificationChannel(
             BREAK_WARNING_CHANNEL_ID,
             getString(R.string.break_notification_channel_name),
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply { description = getString(R.string.break_notification_channel_description) }
-        manager.createNotificationChannel(channel)
+        val scheduleChannel = NotificationChannel(
+            SCHEDULE_CHANNEL_ID,
+            getString(R.string.schedule_notification_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply { description = getString(R.string.schedule_notification_channel_description) }
+        manager.createNotificationChannels(listOf(breakChannel, scheduleChannel))
     }
 
     companion object {
         const val BREAK_WARNING_CHANNEL_ID = "break_warning"
+        const val SCHEDULE_CHANNEL_ID = "schedule"
 
         fun from(context: android.content.Context): CtrusApp = context.applicationContext as CtrusApp
     }

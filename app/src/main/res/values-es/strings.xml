@@ -250,9 +250,9 @@
     <string name="nfc_hold_near_tag">Toca con la parte trasera de tu teléfono en el Ctrus.</string>
     <string name="nfc_open_settings">Abrir Ajustes</string>
     <string name="strategy_nfc_name">Ctrus NFC</string>
-    <string name="strategy_nfc_description">Inicia y detén tocando tu Ctrus.</string>
+    <string name="strategy_nfc_description">Vas a necesitar tu Ctrus tanto para empezar la sesión como para terminarla.</string>
     <string name="strategy_nfc_manual_name">Manual + Ctrus NFC</string>
-    <string name="strategy_nfc_manual_description">Inicia en la app. Detén tocando tu Ctrus.</string>
+    <string name="strategy_nfc_manual_description">Inicia al pulsar la burbuja de la sesión en la app. Para terminarla vas a necesitar tu Ctrus.</string>
     <string name="settings_title">Ajustes</string>
     <string name="settings_close_content_description">Cerrar</string>
     <string name="settings_section_theme">Tema</string>
@@ -375,4 +375,31 @@
         <item>La pulpa que sobra de las distracciones diluye tu jugo</item>
         <item>Protege tu huerto, protege tu tiempo</item>
     </string-array>
+
+    <!-- Schedule + Ctrus NFC -->
+    <string name="strategy_schedule_name">Horario + Ctrus NFC</string>
+    <string name="strategy_schedule_description">Define la hora y en qué días de la semana quieres que este perfil empiece automáticamente. Para terminarlo vas a necesitar tu Ctrus.</string>
+    <string name="guided_step_schedule">Horario</string>
+    <string name="guided_intro_title_schedule">Configura tu horario</string>
+    <string name="guided_intro_desc_schedule">Elige los días de la semana y la hora a la que este perfil debe activarse solo.</string>
+    <string name="guided_review_schedule">Horario</string>
+    <string name="profile_form_section_schedule">Horario</string>
+    <string name="profile_form_missing_schedule_days_body">Elige al menos un día para el horario.</string>
+    <string name="field_schedule_start_time">Hora de Inicio</string>
+    <string name="weekday_short_sunday">Do</string>
+    <string name="weekday_short_monday">Lu</string>
+    <string name="weekday_short_tuesday">Ma</string>
+    <string name="weekday_short_wednesday">Mi</string>
+    <string name="weekday_short_thursday">Ju</string>
+    <string name="weekday_short_friday">Vi</string>
+    <string name="weekday_short_saturday">Sá</string>
+    <string name="schedule_notification_channel_name">Recordatorios de horario</string>
+    <string name="schedule_notification_channel_description">Te avisa cuando un perfil con horario está por empezar, o no pudo empezar</string>
+    <string name="schedule_reminder_notification_title">¡Casi Empieza!</string>
+    <string name="schedule_reminder_notification_body">%1$s comienza en 5 minutos.</string>
+    <string name="schedule_skipped_notification_title">No Se Pudo Iniciar</string>
+    <string name="schedule_skipped_notification_body">%1$s no empezó porque %2$s todavía está activo.</string>
+    <string name="schedule_skipped_notification_body_unknown">%1$s no empezó porque otro perfil todavía está activo.</string>
+    <string name="settings_faq">¿Buscas Respuestas?</string>
+    <string name="settings_section_help">Ayuda</string>
 </resources>
