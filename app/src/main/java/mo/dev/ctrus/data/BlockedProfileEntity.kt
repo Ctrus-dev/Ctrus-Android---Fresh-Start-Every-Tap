@@ -44,4 +44,7 @@ data class BlockedProfileEntity(
 
     val disableBackgroundStops: Boolean = false,
     val enableEmergencyUnblock: Boolean = true,
+
+    /** Only set for "Schedule + Ctrus NFC" profiles — see [ProfileSchedule]. */
+    val schedule: ProfileSchedule? = null,
 )

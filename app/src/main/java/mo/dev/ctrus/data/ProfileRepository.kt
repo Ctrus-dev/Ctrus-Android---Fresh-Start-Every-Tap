@@ -34,6 +34,7 @@ class ProfileRepository(private val dao: BlockedProfileDao) {
         enableAdultContentBlocking: Boolean = false,
         disableBackgroundStops: Boolean = false,
         enableEmergencyUnblock: Boolean = true,
+        schedule: ProfileSchedule? = null,
     ): BlockedProfileEntity {
         val nextOrder = (dao.getMaxOrder() ?: -1) + 1
         val profile = BlockedProfileEntity(
@@ -55,6 +56,7 @@ class ProfileRepository(private val dao: BlockedProfileDao) {
             physicalUnblockItems = PhysicalUnblockItem.normalizedItems(physicalUnblockItems),
             disableBackgroundStops = disableBackgroundStops,
             enableEmergencyUnblock = enableEmergencyUnblock,
+            schedule = schedule,
         )
         dao.upsert(profile)
         return profile

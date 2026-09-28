@@ -47,7 +47,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 import mo.dev.ctrus.data.BlockedProfileEntity
-import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
 import mo.dev.ctrus.ui.common.GlassIconButton
@@ -56,7 +55,8 @@ import mo.dev.ctrus.ui.settings.SettingsSection
 /**
  * Edit form, matching BlockedProfileView.swift: every section shown at once (not paginated —
  * iOS only paginates for first-time *creation*, see [GuidedProfileCreationScreen]).
- * `physicalUnblockItems` is required to save, matching iOS's `.missingPhysicalUnlock` guard.
+ * `physicalUnblockItems` is required to save, matching iOS's `.missingPhysicalUnlock` guard, and so
+ * is at least one weekday for a "Schedule + Ctrus NFC" profile (`.missingScheduleDays`).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,22 +66,7 @@ fun ProfileFormScreen(
     isBlockingGlobally: Boolean,
     nfcScanController: NfcScanController,
     onDismiss: () -> Unit,
-    onSave: (
-        name: String,
-        selectedPackages: List<String>,
-        strategyId: String,
-        domains: List<String>,
-        enableAllowMode: Boolean,
-        enableBrowserBlocking: Boolean,
-        enableAllowModeDomains: Boolean,
-        enableAdultContentBlocking: Boolean,
-        physicalUnblockItems: List<PhysicalUnblockItem>,
-        enableBreaks: Boolean,
-        breakTimeInMinutes: Int,
-        allowMultipleBreaks: Boolean,
-        enableStrictMode: Boolean,
-        enableBlockAppInstallation: Boolean,
-    ) -> Unit,
+    onSave: (ProfileDraft) -> Unit,
     onDelete: () -> Unit,
     onDuplicate: (newName: String) -> Unit,
     onInsightsTapped: () -> Unit,
@@ -94,6 +79,7 @@ fun ProfileFormScreen(
     var showDiscardAlert by remember { mutableStateOf(false) }
     var showDeleteAlert by remember { mutableStateOf(false) }
     var showMissingUnlockAlert by remember { mutableStateOf(false) }
+    var showMissingScheduleDaysAlert by remember { mutableStateOf(false) }
     var showDuplicatePrompt by remember { mutableStateOf(false) }
     var duplicateName by remember { mutableStateOf("") }
 
@@ -106,12 +92,12 @@ fun ProfileFormScreen(
             showMissingUnlockAlert = true
             return
         }
-        onSave(
-            draft.name.trim(), draft.selectedPackages.toList(), draft.strategyId, draft.domains,
-            draft.enableAllowMode, draft.enableBrowserBlocking, draft.enableAllowModeDomains, draft.enableAdultContentBlocking,
-            draft.physicalUnblockItems, draft.enableBreaks, draft.breakTimeInMinutes, draft.allowMultipleBreaks,
-            draft.enableStrictMode, draft.enableBlockAppInstallation,
-        )
+        // Mirrors BlockedProfileView's `.missingScheduleDays` guard.
+        if (draft.useSchedule && draft.scheduleDays.isEmpty()) {
+            showMissingScheduleDaysAlert = true
+            return
+        }
+        onSave(draft)
     }
 
     val duplicateSuffix = stringResource(R.string.profile_form_duplicate_name_suffix, draft.name)
@@ -201,6 +187,15 @@ fun ProfileFormScreen(
                     StrategyFields(draft, { draft = it }, availableStrategies, disabled)
                 }
             }
+            // Matches BlockedProfileView.swift: the Schedule section sits right under Strategy,
+            // and only exists while "Schedule + Ctrus NFC" is the selected mode.
+            if (draft.useSchedule) {
+                item {
+                    SettingsSection(title = stringResource(R.string.profile_form_section_schedule)) {
+                        ScheduleFields(draft, { draft = it }, disabled)
+                    }
+                }
+            }
             item {
                 SettingsSection(title = stringResource(if (draft.enableAllowMode) R.string.profile_form_section_apps_allowed else R.string.profile_form_section_apps_blocked)) {
                     AppsFields(draft, { draft = it }, disabled)
@@ -255,6 +250,15 @@ fun ProfileFormScreen(
             title = { Text(stringResource(R.string.profile_form_missing_unlock_title)) },
             text = { Text(stringResource(R.string.profile_form_missing_unlock_body)) },
             confirmButton = { TextButton(onClick = { showMissingUnlockAlert = false }) { Text(stringResource(R.string.common_ok)) } },
+        )
+    }
+
+    if (showMissingScheduleDaysAlert) {
+        AlertDialog(
+            onDismissRequest = { showMissingScheduleDaysAlert = false },
+            title = { Text(stringResource(R.string.profile_form_missing_unlock_title)) },
+            text = { Text(stringResource(R.string.profile_form_missing_schedule_days_body)) },
+            confirmButton = { TextButton(onClick = { showMissingScheduleDaysAlert = false }) { Text(stringResource(R.string.common_ok)) } },
         )
     }
 

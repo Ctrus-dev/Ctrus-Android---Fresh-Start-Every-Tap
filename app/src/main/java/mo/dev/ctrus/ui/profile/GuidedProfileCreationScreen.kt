@@ -46,7 +46,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
-import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
 import mo.dev.ctrus.theme.CtrusSystemColors
@@ -62,6 +61,7 @@ private enum class GuidedStep(
     APPS(R.string.guided_step_apps, R.string.guided_intro_title_apps, R.string.guided_intro_desc_apps),
     DOMAINS(R.string.guided_step_websites, R.string.guided_intro_title_websites, R.string.guided_intro_desc_websites),
     STRICT_UNLOCKS(R.string.guided_step_unlocks, R.string.guided_intro_title_unlocks, R.string.guided_intro_desc_unlocks),
+    SCHEDULE(R.string.guided_step_schedule, R.string.guided_intro_title_schedule, R.string.guided_intro_desc_schedule),
     BREAKS(R.string.guided_step_breaks, R.string.guided_intro_title_breaks, R.string.guided_intro_desc_breaks),
     STRICT_SAFEGUARDS(R.string.guided_step_protection, R.string.guided_intro_title_protection, R.string.guided_intro_desc_protection),
     REVIEW(R.string.guided_step_review, R.string.guided_intro_title_review, R.string.guided_intro_desc_review),
@@ -69,10 +69,11 @@ private enum class GuidedStep(
 
 /**
  * Android equivalent of GuidedBlockedProfileCreationView.swift: the 8-step first-time creation
- * flow (Name → Method → Apps → Websites → Unlocks → Breaks → Protection → Review), one section
+ * flow (Name → Method → Apps → Websites → Unlocks → Breaks → Protection → Review — plus a
+ * Schedule step right after Method when "Schedule + Ctrus NFC" is picked), one section
  * per screen with a spring-ish slide/fade transition between steps, matching the iOS step order,
  * titles, and per-step `canContinue` gating (name required on step 1, at least one physical
- * unlock tag required on the Unlocks step) exactly. Editing an existing profile still uses
+ * unlock tag required on the Unlocks step, at least one weekday on the Schedule step) exactly. Editing an existing profile still uses
  * [ProfileFormScreen]'s single-scroll form — iOS only paginates for creation.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,26 +83,18 @@ fun GuidedProfileCreationScreen(
     themeColor: Color,
     nfcScanController: NfcScanController,
     onDismiss: () -> Unit,
-    onCreate: (
-        name: String,
-        selectedPackages: List<String>,
-        strategyId: String,
-        domains: List<String>,
-        enableAllowMode: Boolean,
-        enableBrowserBlocking: Boolean,
-        enableAllowModeDomains: Boolean,
-        enableAdultContentBlocking: Boolean,
-        physicalUnblockItems: List<PhysicalUnblockItem>,
-        enableBreaks: Boolean,
-        breakTimeInMinutes: Int,
-        allowMultipleBreaks: Boolean,
-        enableStrictMode: Boolean,
-        enableBlockAppInstallation: Boolean,
-    ) -> Unit,
+    onCreate: (ProfileDraft) -> Unit,
 ) {
-    val steps = GuidedStep.entries
     var stepIndex by rememberSaveable { mutableIntStateOf(0) }
     var draft by remember { mutableStateOf(ProfileDraft(strategyId = availableStrategies.first().id)) }
+    // Only the Method step (which comes before Schedule) can change this list, so stepIndex
+    // always stays pointed at the same step when it grows or shrinks.
+    val steps = buildList {
+        add(GuidedStep.NAME)
+        add(GuidedStep.STRATEGY)
+        if (draft.useSchedule) add(GuidedStep.SCHEDULE)
+        addAll(listOf(GuidedStep.APPS, GuidedStep.DOMAINS, GuidedStep.STRICT_UNLOCKS, GuidedStep.BREAKS, GuidedStep.STRICT_SAFEGUARDS, GuidedStep.REVIEW))
+    }
     val currentStep = steps[stepIndex]
     val isFirstStep = stepIndex == 0
     val isLastStep = stepIndex == steps.lastIndex
@@ -109,17 +102,11 @@ fun GuidedProfileCreationScreen(
     val canContinue = when (currentStep) {
         GuidedStep.NAME -> draft.name.isNotBlank()
         GuidedStep.STRICT_UNLOCKS -> draft.physicalUnblockItems.isNotEmpty()
+        GuidedStep.SCHEDULE -> draft.scheduleDays.isNotEmpty()
         else -> true
     }
 
-    fun createProfile() {
-        onCreate(
-            draft.name.trim(), draft.selectedPackages.toList(), draft.strategyId, draft.domains,
-            draft.enableAllowMode, draft.enableBrowserBlocking, draft.enableAllowModeDomains, draft.enableAdultContentBlocking,
-            draft.physicalUnblockItems, draft.enableBreaks, draft.breakTimeInMinutes, draft.allowMultipleBreaks,
-            draft.enableStrictMode, draft.enableBlockAppInstallation,
-        )
-    }
+    fun createProfile() = onCreate(draft)
 
     Scaffold(
         topBar = {
@@ -225,6 +212,7 @@ private fun StepContent(
         GuidedStep.APPS -> AppsFields(draft, onDraftChange, disabled = false)
         GuidedStep.DOMAINS -> DomainsFields(draft, onDraftChange, disabled = false)
         GuidedStep.STRICT_UNLOCKS -> PhysicalUnlocksFields(draft, onDraftChange, nfcScanController, disabled = false)
+        GuidedStep.SCHEDULE -> ScheduleFields(draft, onDraftChange, disabled = false)
         GuidedStep.BREAKS -> BreaksFields(draft, onDraftChange, disabled = false)
         GuidedStep.STRICT_SAFEGUARDS -> SafeguardsFields(draft, onDraftChange, disabled = false)
         GuidedStep.REVIEW -> ReviewContent(draft, availableStrategies)
@@ -255,6 +243,7 @@ private fun ReviewContent(draft: ProfileDraft, availableStrategies: List<Blockin
         if (draft.enableStrictMode) add(deletionBlockedText)
         if (draft.enableBlockAppInstallation) add(installsBlockedText)
     }
+    val scheduleSummary = if (draft.useSchedule) scheduleSummary(draft) else null
     val safeguardsSummary = if (safeguards.isEmpty()) stringResource(R.string.guided_review_safeguards_default) else safeguards.joinToString(", ")
 
     Column {
@@ -262,6 +251,7 @@ private fun ReviewContent(draft: ProfileDraft, availableStrategies: List<Blockin
         ReviewRow(stringResource(R.string.guided_review_strategy), strategyName)
         ReviewRow(stringResource(R.string.guided_review_apps), appsSummary)
         ReviewRow(stringResource(R.string.guided_review_domains), domainsSummary)
+        scheduleSummary?.let { ReviewRow(stringResource(R.string.guided_review_schedule), it) }
         ReviewRow(stringResource(R.string.guided_review_breaks), breaksSummary)
         ReviewRow(stringResource(R.string.guided_review_safeguards), safeguardsSummary, showDivider = false)
     }

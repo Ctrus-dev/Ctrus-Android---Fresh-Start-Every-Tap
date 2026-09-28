@@ -8,6 +8,18 @@ import kotlin.math.max
 
 /** Port of Ctrus/Utils/DateFormatters.swift. */
 object DateFormatters {
+    /**
+     * A schedule's start time in the device's own 12h/24h style — matches Schedule.swift's
+     * `setLocalizedDateFormatFromTemplate("jm")` instead of hardcoding AM/PM.
+     */
+    fun formatTimeOfDay(context: android.content.Context, hour: Int, minute: Int): String {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+        }
+        return android.text.format.DateFormat.getTimeFormat(context).format(calendar.time)
+    }
+
     /** "1h 2m 3s" / "2m 3s" / "3s". */
     fun formatDuration(durationSeconds: Double): String {
         val total = durationSeconds.toInt()

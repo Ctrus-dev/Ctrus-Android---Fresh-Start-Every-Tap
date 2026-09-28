@@ -272,6 +272,29 @@ task from being revealed, without any detour on the way *in*. On-device (emulato
 home-screen flash, re-blocks reliably on repeated attempts, and dismissing lands on home rather
 than back in the blocked app.
 
+**Schedule + Ctrus NFC (ported from iOS `f34bdf1`, branch `experiment/session-popup`)** — a
+third start mode (`strategy/ScheduleBlockingStrategy`, id `schedule`): starts automatically on
+chosen weekdays at a start time, can also be started from the bubble, and always needs NFC to stop
+(same rules as Manual + Ctrus NFC). There's **no end time**: iOS only keeps a hidden 23:59 end for
+DeviceActivityCenter, and AlarmManager doesn't need one. Pieces:
+- `data/ProfileSchedule` (JSON `schedule` column, Room v1→v2 migration) + `nextTrigger()`.
+- `scheduling/ScheduleAlarmScheduler`: two one-shot exact alarms per profile (next start, and the
+  "starts in 5 minutes" reminder, which wraps back to the previous day). Every time one fires it
+  arms the next one, instead of using repeating alarms, which Doze delays. `CtrusApp` re-syncs all
+  alarms whenever the profile table changes (create/edit/delete/duplicate).
+- `scheduling/ScheduleReceiver`: handles both alarms and re-arms them on boot, app update, and
+  time/timezone changes. **If another profile is already active, it never ends or replaces that
+  session**: it skips this start (no retry that day) and posts "Couldn't Start". This is the fix
+  for the iOS 20:00/20:01 bug.
+- UI: `ScheduleFields` (42dp weekday bubbles in Sunday-first order + a start time that follows
+  the device's 12h/24h setting), a Schedule step right after Method in the wizard, and a Schedule
+  section under Strategy in Edit (both require at least one day). Switching to another mode clears
+  the days. The Review screen shows "days · start time" only.
+- Not ported: iOS's "Automatic Start"/"NFC" tag badges on strategy rows, because this port has
+  never shown strategy tags for any mode.
+Verified on the emulator: the reminder and the automatic start both fired on time, and a
+conflicting schedule was skipped with the notification.
+
 ## Localization
 
 The app ships in English (default), Portuguese — Portugal (`values-pt-rPT`), and Spanish

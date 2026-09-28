@@ -26,4 +26,12 @@ class Converters {
         value?.let {
             runCatching { json.decodeFromString(ListSerializer(PhysicalUnblockItem.serializer()), it) }.getOrNull()
         }
+
+    @TypeConverter
+    fun scheduleToJson(value: ProfileSchedule?): String? =
+        value?.let { json.encodeToString(ProfileSchedule.serializer(), it) }
+
+    @TypeConverter
+    fun jsonToSchedule(value: String?): ProfileSchedule? =
+        value?.let { runCatching { json.decodeFromString(ProfileSchedule.serializer(), it) }.getOrNull() }
 }
