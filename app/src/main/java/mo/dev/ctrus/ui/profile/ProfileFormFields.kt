@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
 import mo.dev.ctrus.data.ProfileSchedule
 import mo.dev.ctrus.util.DateFormatters
 import java.time.DayOfWeek
@@ -60,6 +56,7 @@ import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.data.PhysicalUnblockType
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
+import mo.dev.ctrus.ui.common.CtrusTimePickerDialog
 import mo.dev.ctrus.ui.common.NfcScanDialog
 import mo.dev.ctrus.ui.settings.CustomToggleRow
 import mo.dev.ctrus.ui.settings.SettingsDivider
@@ -355,7 +352,6 @@ private val WeekdayBubbleSize = 42.dp
  * weekday toggles (theme-colored when selected) and a start-time row. No end time — see
  * [mo.dev.ctrus.data.ProfileSchedule].
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
     val context = LocalContext.current
@@ -403,21 +399,15 @@ fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, d
     )
 
     if (showTimePicker) {
-        val timeState = rememberTimePickerState(
+        CtrusTimePickerDialog(
             initialHour = draft.scheduleStartHour,
             initialMinute = draft.scheduleStartMinute,
             is24Hour = android.text.format.DateFormat.is24HourFormat(context),
-        )
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            text = { TimePicker(state = timeState) },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDraftChange(draft.copy(scheduleStartHour = timeState.hour, scheduleStartMinute = timeState.minute))
-                    showTimePicker = false
-                }) { Text(stringResource(R.string.common_ok)) }
+            onDismiss = { showTimePicker = false },
+            onConfirm = { hour, minute ->
+                onDraftChange(draft.copy(scheduleStartHour = hour, scheduleStartMinute = minute))
+                showTimePicker = false
             },
-            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }
