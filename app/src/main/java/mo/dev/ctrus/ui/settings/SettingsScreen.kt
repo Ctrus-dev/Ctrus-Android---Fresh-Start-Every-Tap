@@ -102,6 +102,7 @@ fun SettingsScreen(
     var unlockCode by remember { mutableStateOf("") }
     var isVerifying by remember { mutableStateOf(false) }
     var showBackgroundLaunchHelp by remember { mutableStateOf(false) }
+    var showLicense by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -297,6 +298,8 @@ fun SettingsScreen(
                         Text(stringResource(R.string.settings_version_value, appVersion), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     SettingsDivider()
+                    SettingsRow(title = stringResource(R.string.settings_license), showChevron = true, onClick = { showLicense = true })
+                    SettingsDivider()
                     // Tapping always re-shows the disclosure-then-Settings flow — even when already
                     // granted, that's a harmless way to jump straight to the system Accessibility
                     // page, and simpler than making the row conditionally clickable.
@@ -389,6 +392,10 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (showLicense) {
+        LicenseSheet(onDismiss = { showLicense = false })
     }
 
     if (showBackgroundLaunchHelp) {

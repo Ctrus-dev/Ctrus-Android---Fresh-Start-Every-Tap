@@ -402,4 +402,12 @@
     <string name="schedule_skipped_notification_body_unknown">%1$s no empezó porque otro perfil todavía está activo.</string>
     <string name="settings_faq">¿Buscas Respuestas?</string>
     <string name="settings_section_help">Ayuda</string>
+
+    <!-- License sheet (Settings > About) -->
+    <string name="settings_license">Licencia</string>
+    <string name="license_heading">Licencia MIT</string>
+    <string name="license_permission">Por la presente se concede permiso, de forma gratuita, a cualquier persona que obtenga una copia de este software y de los archivos de documentación asociados (el \"Software\"), para utilizar el Software sin restricciones, incluidos, sin limitación, los derechos de usar, copiar, modificar, fusionar, publicar, distribuir, sublicenciar y/o vender copias del Software, y de permitir a las personas a las que se les proporcione el Software que lo hagan, sujeto a las siguientes condiciones:</string>
+    <string name="license_condition">El aviso de copyright anterior y este aviso de permiso se incluirán en todas las copias o partes sustanciales del Software.</string>
+    <string name="license_disclaimer">EL SOFTWARE SE PROPORCIONA \"TAL CUAL\", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O IMPLÍCITA, INCLUIDAS, ENTRE OTRAS, LAS GARANTÍAS DE COMERCIABILIDAD, IDONEIDAD PARA UN FIN DETERMINADO Y NO INFRACCIÓN. EN NINGÚN CASO LOS AUTORES O TITULARES DEL COPYRIGHT SERÁN RESPONSABLES DE NINGUNA RECLAMACIÓN, DAÑOS U OTRA RESPONSABILIDAD, YA SEA EN UNA ACCIÓN CONTRACTUAL, EXTRACONTRACTUAL O DE OTRO TIPO, QUE SURJA DE, O ESTÉ RELACIONADA CON EL SOFTWARE O EL USO U OTRAS OPERACIONES CON EL SOFTWARE.</string>
+    <string name="license_translation_note">Traducción solo a título informativo. En caso de discrepancia, prevalece el texto original en inglés.</string>
 </resources>
