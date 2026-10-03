@@ -219,6 +219,9 @@ class SessionOrchestrator(
     fun emergencyUnblock() {
         val session = activeSession.value ?: return
         viewModelScope.launch {
+            // Enforced here too, not only by hiding the button (iOS 84eb157): no caller may
+            // bypass a profile that turned emergency unblock off.
+            if (profiles.find(session.profileId)?.enableEmergencyUnblock == false) return@launch
             if (!preferences.consumeEmergencyUnblock()) return@launch
             scheduling.cancelBreakExpiry(session.id)
             scheduling.cancelBreakWarning(session.id)

@@ -316,6 +316,14 @@ the situation the recovery code exists for, so the single-use code was wasted an
 kept running. It now calls `recoveryUnblock()`, which (like iOS's `unlockWithRecoveryCode`)
 ends every open session without touching the emergency count. Keep these two paths separate.
 
+**iOS week of 29/09–03/10 ported.** The last-recovery-code warning, the emergency reset-period
+fix (changing 2↔4 weeks no longer restarts the cycle), the `enableEmergencyUnblock` guard inside
+`emergencyUnblock()`, the next-start line hidden while a session runs, Insights titled
+"Insights" with the profile name as subtitle, and block-screen copy matching iOS word-for-word
+(with the "…" character). Not applicable here, all specific to iOS's DeviceActivity/Shield APIs:
+the `updatedAt`/settle-window and tag-based scheduled-session bugs, the reminder background
+task, the "Schedule needs repair" alert, and the shield blur tweaks.
+
 ## Localization
 
 The app ships in English (default), Portuguese — Portugal (`values-pt-rPT`), and Spanish

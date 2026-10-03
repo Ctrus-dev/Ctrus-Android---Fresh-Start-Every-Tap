@@ -92,7 +92,7 @@ fun ProfileInsightsScreen(
     themeColor: Color,
     onDismiss: () -> Unit,
 ) = InsightsScreen(
-    title = stringResource(R.string.insights_screen_title, profile.name),
+    subtitle = profile.name,
     sessions = sessions,
     profilesById = mapOf(profile.id to profile),
     themeColor = themeColor,
@@ -107,7 +107,7 @@ fun ProfileInsightsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InsightsScreen(
-    title: String,
+    subtitle: String,
     sessions: List<BlockedProfileSessionEntity>,
     profilesById: Map<String, BlockedProfileEntity>,
     themeColor: Color,
@@ -225,10 +225,17 @@ fun InsightsScreen(
                     }
                 }
                 Spacer(Modifier.height(14.dp))
+                // Matches iOS 47d5259/15642bb: the title is always "Insights", and which profile
+                // (or "Profiles") it's for goes in the subtitle underneath.
                 Text(
-                    title,
+                    stringResource(R.string.insights_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         },

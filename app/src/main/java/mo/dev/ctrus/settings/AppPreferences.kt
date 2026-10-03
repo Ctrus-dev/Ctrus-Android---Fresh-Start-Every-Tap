@@ -60,11 +60,14 @@ class AppPreferences(private val context: Context) {
     suspend fun resetPeriodWeeksEmergency(): Int =
         context.dataStore.data.first()[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
 
+    /**
+     * Mirrors iOS 319a1eb: changing the cycle length must not move when the current cycle
+     * started, since that throws away however much of the wait was already done. Only the length
+     * changes, and the re-check resets right away if the new, shorter period has already passed.
+     */
     suspend fun setResetPeriodWeeksEmergency(weeks: Int) {
-        context.dataStore.edit {
-            it[Keys.EMERGENCY_RESET_WEEKS] = weeks
-            it[Keys.EMERGENCY_LAST_RESET] = Instant.now().toEpochMilli()
-        }
+        context.dataStore.edit { it[Keys.EMERGENCY_RESET_WEEKS] = weeks }
+        checkAndResetEmergencyUnblocks()
     }
 
     suspend fun nextEmergencyResetDate(): Instant? {

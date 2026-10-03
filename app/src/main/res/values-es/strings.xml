@@ -75,7 +75,6 @@
     <string name="insights_summary_title">Resumen</string>
     <string name="insights_total_focus_time">Tiempo Total de Enfoque</string>
     <string name="insights_total_break_time">Tiempo Total de Descanso</string>
-    <string name="insights_screen_title">Estadísticas de %1$s</string>
     <string name="insights_legend_under_1h">Menos de 1h</string>
     <string name="insights_legend_1_3h">1-3h</string>
     <string name="insights_legend_3_5h">3-5h</string>
@@ -328,22 +327,22 @@
     </plurals>
 
     <string-array name="shield_titles">
-        <item>La vida te dio limones...</item>
-        <item>100% zumo, dicen ellos...</item>
+        <item>La vida te dio limones…</item>
+        <item>100% zumo, dicen…</item>
         <item>¡La vitamina C no se toma así!</item>
-        <item>Cuando la vida te da limones...</item>
-        <item>El árbol tarda en dar frutos...</item>
-        <item>Dulce por fuera...</item>
-        <item>Por fuera parece inofensivo...</item>
+        <item>Cuando la vida te da limones…</item>
+        <item>El árbol tarda en dar frutos…</item>
+        <item>Dulce por fuera…</item>
+        <item>Por fuera parece inofensivo…</item>
         <item>¡Las cosas buenas tardan en madurar!</item>
-        <item>Aquí estamos otra vez...</item>
+        <item>Aquí estamos otra vez…</item>
     </string-array>
     <string-array name="shield_subtitles">
-        <item>Y tú queriendo convertirlos en scroll infinito.</item>
+        <item>Y tú quieres convertirlos en scroll infinito.</item>
         <item>Tu concentración anda al 0%%.</item>
         <item>Una dosis diaria de %1$s no te va a hacer bien.</item>
         <item>¿De verdad crees que esto es la limonada?</item>
-        <item>Vuelves a %1$s siempre que quieres, ese es el problema.</item>
+        <item>Tú vuelves a %1$s cuando quieres, ese es el problema.</item>
         <item>Amargo cuando te das cuenta de las horas que ya pasaste aquí.</item>
         <item>Por dentro sabes que es amargo.</item>
         <item>%1$s no es una de ellas.</item>
@@ -408,8 +407,10 @@
     </plurals>
     <string name="home_next_start_today">Hoy a las %1$s</string>
     <string name="home_next_start_tomorrow">Mañana a las %1$s</string>
-    <string name="error_schedule_manual_start">Este perfil empieza automáticamente según su horario.</string>
-    <string name="manage_all_insights_content_description">Estadísticas de todos los perfiles</string>
+    <string name="error_schedule_manual_start">Este perfil empieza solo a la hora programada — no se puede iniciar manualmente.</string>
+    <string name="manage_all_insights_content_description">Ver Estadísticas de Todos los Perfiles</string>
+    <string name="insights_title">Estadísticas</string>
+    <string name="settings_last_recovery_code_warning">Ya usaste todos tus desbloqueos de emergencia, y solo te queda un código de desbloqueo más hasta que se reinicie. Te recomendamos no bloquear apps que puedas necesitar con urgencia.</string>
     <string name="settings_faq">¿Buscas Respuestas?</string>
     <string name="settings_section_help">Ayuda</string>
 

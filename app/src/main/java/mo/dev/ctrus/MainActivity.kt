@@ -1,5 +1,8 @@
 package mo.dev.ctrus
 
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -285,6 +288,16 @@ private fun CtrusNavHost(
     var editingProfileId by remember { mutableStateOf<String?>(null) }
     var insightsProfileId by remember { mutableStateOf<String?>(null) }
     var showAllInsights by remember { mutableStateOf(false) }
+    var showLastRecoveryCodeWarning by remember { mutableStateOf(false) }
+
+    if (showLastRecoveryCodeWarning) {
+        AlertDialog(
+            onDismissRequest = { showLastRecoveryCodeWarning = false },
+            title = { Text(stringResource(R.string.profile_form_missing_unlock_title)) },
+            text = { Text(stringResource(R.string.settings_last_recovery_code_warning)) },
+            confirmButton = { TextButton(onClick = { showLastRecoveryCodeWarning = false }) { Text(stringResource(R.string.common_ok)) } },
+        )
+    }
     // Shared by every entry point that needs the disclosure-then-Settings flow — Home's alert
     // pill/sheet and Settings' own Accessibility Access row (Play policy requires this consent
     // screen before every trip to the system Accessibility settings, not just the first one).
@@ -388,6 +401,10 @@ private fun CtrusNavHost(
                                 orchestrator.recoveryUnblock()
                                 markFirstSessionCompleted()
                                 remainingUnlocks = app.preferences.remainingRecoveryUnlocks()
+                                // iOS a5fb750: no emergencies left and just one code to go.
+                                if (app.preferences.remainingEmergencyUnblocks() == 0 && remainingUnlocks == 1) {
+                                    showLastRecoveryCodeWarning = true
+                                }
                                 recoveryResetDateMillis = app.preferences.nextRecoveryResetDate()?.toEpochMilli()
                                 true
                             }
@@ -438,7 +455,7 @@ private fun CtrusNavHost(
         val allSessions by app.sessionRepository.observeAll().collectAsState(initial = emptyList())
         ModalBottomSheet(onDismissRequest = { showAllInsights = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             InsightsScreen(
-                title = stringResource(R.string.insights_screen_title, stringResource(R.string.manage_title)),
+                subtitle = stringResource(R.string.manage_title),
                 sessions = allSessions,
                 profilesById = profiles.associateBy { it.id },
                 themeColor = themeManager.selectedColorOption.color,

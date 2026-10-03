@@ -75,7 +75,6 @@
     <string name="insights_summary_title">Resumo</string>
     <string name="insights_total_focus_time">Tempo Total de Foco</string>
     <string name="insights_total_break_time">Tempo Total de Pausa</string>
-    <string name="insights_screen_title">Estatísticas de %1$s</string>
     <string name="insights_legend_under_1h">Menos de 1h</string>
     <string name="insights_legend_1_3h">1-3h</string>
     <string name="insights_legend_3_5h">3-5h</string>
@@ -328,15 +327,15 @@
     </plurals>
 
     <string-array name="shield_titles">
-        <item>A vida deu-te limões...</item>
-        <item>100% sumo, dizem eles...</item>
+        <item>A vida deu-te limões…</item>
+        <item>100% sumo, dizem eles…</item>
         <item>Vitamina C não se toma assim!</item>
-        <item>Quando a vida dá limões...</item>
-        <item>A árvore demora a dar frutos...</item>
-        <item>Doce por fora...</item>
-        <item>Por fora parece inofensivo...</item>
+        <item>Quando a vida dá limões…</item>
+        <item>A árvore demora a dar frutos…</item>
+        <item>Doce por fora…</item>
+        <item>Por fora parece inofensivo…</item>
         <item>As coisas boas levam tempo a amadurecer!</item>
-        <item>Cá estamos outra vez...</item>
+        <item>Cá estamos outra vez…</item>
     </string-array>
     <string-array name="shield_subtitles">
         <item>E tu a querer transformá-los em scroll infinito.</item>
@@ -408,8 +407,10 @@
     </plurals>
     <string name="home_next_start_today">Hoje às %1$s</string>
     <string name="home_next_start_tomorrow">Amanhã às %1$s</string>
-    <string name="error_schedule_manual_start">Este perfil começa automaticamente no horário definido.</string>
-    <string name="manage_all_insights_content_description">Estatísticas de todos os perfis</string>
+    <string name="error_schedule_manual_start">Este perfil começa sozinho à hora agendada — não pode ser iniciado manualmente.</string>
+    <string name="manage_all_insights_content_description">Ver Estatísticas de Todos os Perfis</string>
+    <string name="insights_title">Estatísticas</string>
+    <string name="settings_last_recovery_code_warning">Já gastaste todos os desbloqueios de emergência, e só te resta mais um código de desbloqueio até resetar. Aconselhamos a não bloqueares aplicações que possas precisar com urgência.</string>
     <string name="settings_faq">À Procura de Respostas?</string>
     <string name="settings_section_help">Ajuda</string>
 

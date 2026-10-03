@@ -460,7 +460,9 @@ private fun BalloonHeader(
             val appsLabel = pluralStringResource(R.plurals.apps_count, profile.selectedPackages.size, profile.selectedPackages.size)
             val domainsLabel = pluralStringResource(R.plurals.domains_count, profile.domains.orEmpty().size, profile.domains.orEmpty().size)
             Text("$appsLabel | $domainsLabel", style = MaterialTheme.typography.bodySmall, color = HomeOnPastelVariant)
-            profile.schedule?.takeIf { it.isActive && profile.blockingStrategyId == StrategyIds.SCHEDULE }?.let {
+            // Hidden while the session runs (iOS 44ccf0b): next to the live timer, "Tomorrow at
+            // 22:00" is noise. It only matters once the session has ended.
+            profile.schedule?.takeIf { !isActive && it.isActive && profile.blockingStrategyId == StrategyIds.SCHEDULE }?.let {
                 Spacer(Modifier.height(2.dp))
                 NextScheduleLine(it)
             }
