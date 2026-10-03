@@ -6,6 +6,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.UnfoldMore
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import mo.dev.ctrus.data.ProfileSchedule
@@ -349,8 +354,8 @@ private val WeekdayBubbleSize = 42.dp
 
 /**
  * Port of BlockedProfileFormSections.swift's `BlockedProfileScheduleFields`: one row of circular
- * weekday toggles (theme-colored when selected) and a start-time row. No end time — see
- * [mo.dev.ctrus.data.ProfileSchedule].
+ * weekday toggles (theme-colored when selected), a start-time row, and a Duration row
+ * (Indefinite or 1–4 hours) — see [mo.dev.ctrus.data.ProfileSchedule].
  */
 @Composable
 fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
@@ -398,6 +403,9 @@ fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, d
         },
     )
 
+    SettingsDivider()
+    ScheduleDurationRow(draft, onDraftChange, disabled)
+
     if (showTimePicker) {
         CtrusTimePickerDialog(
             initialHour = draft.scheduleStartHour,
@@ -412,12 +420,55 @@ fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, d
     }
 }
 
-/** "Su Mo · 9:00" — Schedule.swift's `summaryText`, start time only (stopping is NFC-only). */
+@Composable
+fun scheduleDurationText(hours: Int?): String =
+    if (hours == null) stringResource(R.string.field_schedule_duration_indefinite)
+    else pluralStringResource(R.plurals.field_schedule_duration_hours, hours, hours)
+
+/**
+ * iOS's Duration `Picker`, drawn as a plain label + value row (as iOS itself had to, so the label
+ * shows in both creation and edit). Tapping it opens a menu of Indefinite / 1–4 hours.
+ */
+@Composable
+private fun ScheduleDurationRow(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
+    var expanded by remember { mutableStateOf(false) }
+    SettingsRow(
+        title = stringResource(R.string.field_schedule_duration),
+        onClick = if (disabled) null else ({ expanded = true }),
+        trailing = {
+            Box {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(scheduleDurationText(draft.scheduleDurationHours), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Filled.UnfoldMore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    shape = RoundedCornerShape(20.dp),
+                ) {
+                    (listOf<Int?>(null) + ProfileSchedule.AVAILABLE_DURATIONS_IN_HOURS).forEach { hours ->
+                        DropdownMenuItem(
+                            text = { Text(scheduleDurationText(hours)) },
+                            trailingIcon = if (hours == draft.scheduleDurationHours) ({ Icon(Icons.Filled.Check, contentDescription = null) }) else null,
+                            onClick = {
+                                onDraftChange(draft.copy(scheduleDurationHours = hours))
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+/** "Su Mo · 9:00 · Indefinite" — Schedule.swift's `summaryText`. */
 @Composable
 fun scheduleSummary(draft: ProfileDraft): String {
     val context = LocalContext.current
     val days = ProfileSchedule.DISPLAY_ORDER.filter { it in draft.scheduleDays }.map { stringResource(it.shortLabelRes()) }
-    return days.joinToString(" ") + " · " + DateFormatters.formatTimeOfDay(context, draft.scheduleStartHour, draft.scheduleStartMinute)
+    return days.joinToString(" ") + " · " + DateFormatters.formatTimeOfDay(context, draft.scheduleStartHour, draft.scheduleStartMinute) +
+        " · " + scheduleDurationText(draft.scheduleDurationHours)
 }
 
 @Composable

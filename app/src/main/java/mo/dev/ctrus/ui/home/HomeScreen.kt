@@ -1,5 +1,11 @@
 package mo.dev.ctrus.ui.home
 
+import mo.dev.ctrus.strategy.StrategyIds
+import mo.dev.ctrus.data.ProfileSchedule
+import java.time.ZonedDateTime
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -369,7 +375,8 @@ private fun ProfileBalloonCard(
     modifier: Modifier = Modifier,
 ) {
     var isExpanded by remember(profile.id) { mutableStateOf(false) }
-    val canStart = !isBlocking
+    // Schedule profiles only ever start on their own, at the scheduled time — never by hand.
+    val canStart = !isBlocking && profile.blockingStrategyId != StrategyIds.SCHEDULE
     val hold = rememberHoldFeedback(enabled = !isActive && canStart, key = profile, onConfirm = onStart)
 
     LaunchedEffect(isActive) {
@@ -453,6 +460,10 @@ private fun BalloonHeader(
             val appsLabel = pluralStringResource(R.plurals.apps_count, profile.selectedPackages.size, profile.selectedPackages.size)
             val domainsLabel = pluralStringResource(R.plurals.domains_count, profile.domains.orEmpty().size, profile.domains.orEmpty().size)
             Text("$appsLabel | $domainsLabel", style = MaterialTheme.typography.bodySmall, color = HomeOnPastelVariant)
+            profile.schedule?.takeIf { it.isActive && profile.blockingStrategyId == StrategyIds.SCHEDULE }?.let {
+                Spacer(Modifier.height(2.dp))
+                NextScheduleLine(it)
+            }
         }
 
         Box(
@@ -480,6 +491,7 @@ private fun BalloonHeader(
             profileName = profile.name,
             isActive = isActive,
             canStart = !isBlocking,
+            startsOnSchedule = profile.blockingStrategyId == StrategyIds.SCHEDULE,
             onInsights = onInsights,
             onEdit = onEdit,
             onStart = onStart,
@@ -523,6 +535,7 @@ private fun BalloonMenu(
     profileName: String,
     isActive: Boolean,
     canStart: Boolean,
+    startsOnSchedule: Boolean,
     onInsights: () -> Unit,
     onEdit: () -> Unit,
     onStart: () -> Unit,
@@ -557,7 +570,7 @@ private fun BalloonMenu(
                     leadingIcon = { Icon(Icons.Filled.Stop, contentDescription = null) },
                     onClick = { showMenu = false; onStop() },
                 )
-            } else {
+            } else if (!startsOnSchedule) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.home_menu_start)) },
                     leadingIcon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
@@ -695,4 +708,37 @@ private fun SessionPillButton(
             modifier = Modifier.weight(1f, fill = false),
         )
     }
+}
+
+/**
+ * Port of ProfileSummaryRow.swift's `ProfileSummaryNextScheduleLine` (`nextStartMessage(includePrefix:
+ * false)`): "Today at 22:00" / "Tomorrow at 9:00" / a full weekday-date-time further out. Unlike iOS,
+ * there's no 15-minute buffer. iOS skips starts less than 15 minutes away only because
+ * DeviceActivity can't schedule that soon, but the AlarmManager start here fires on time, so this
+ * shows the start that will actually happen. It re-reads the clock every minute so "Today" rolls
+ * over to the next occurrence once a start has passed.
+ */
+@Composable
+private fun NextScheduleLine(schedule: ProfileSchedule) {
+    val context = LocalContext.current
+    val now by produceState(initialValue = ZonedDateTime.now()) {
+        while (true) {
+            delay(60_000L - System.currentTimeMillis() % 60_000L)
+            value = ZonedDateTime.now()
+        }
+    }
+    val next = schedule.nextTrigger(now) ?: return
+    val time = DateFormatters.formatTimeOfDay(context, next.hour, next.minute)
+    val message = when (next.toLocalDate()) {
+        now.toLocalDate() -> stringResource(R.string.home_next_start_today, time)
+        now.toLocalDate().plusDays(1) -> stringResource(R.string.home_next_start_tomorrow, time)
+        else -> {
+            val skeleton = if (android.text.format.DateFormat.is24HourFormat(context)) "EEEEMMMdHm" else "EEEEMMMdhma"
+            val locale = context.resources.configuration.locales[0]
+            val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton)
+            next.format(java.time.format.DateTimeFormatter.ofPattern(pattern, locale))
+        }
+    }
+    // iOS uses .caption2: regular weight, a notch smaller than the "Apps | Domains" line above.
+    Text(message, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = HomeOnPastelVariant, maxLines = 1)
 }

@@ -25,6 +25,8 @@ data class ProfileDraft(
     val scheduleDays: Set<DayOfWeek> = emptySet(),
     val scheduleStartHour: Int = 9,
     val scheduleStartMinute: Int = 0,
+    /** `null` = Indefinite (NFC-only stop). */
+    val scheduleDurationHours: Int? = null,
 ) {
     /** Mirrors BlockedProfileDraft.useSchedule. */
     val useSchedule: Boolean get() = strategyId == StrategyIds.SCHEDULE
@@ -38,7 +40,7 @@ data class ProfileDraft(
 
     val schedule: ProfileSchedule?
         get() = if (useSchedule && scheduleDays.isNotEmpty()) {
-            ProfileSchedule(scheduleDays.map { it.value }.sorted(), scheduleStartHour, scheduleStartMinute)
+            ProfileSchedule(scheduleDays.map { it.value }.sorted(), scheduleStartHour, scheduleStartMinute, scheduleDurationHours)
         } else {
             null
         }
@@ -62,6 +64,7 @@ fun BlockedProfileEntity.toDraft() = ProfileDraft(
     scheduleDays = schedule?.daysOfWeek.orEmpty(),
     scheduleStartHour = schedule?.startHour ?: 9,
     scheduleStartMinute = schedule?.startMinute ?: 0,
+    scheduleDurationHours = schedule?.durationInHours,
 )
 
 /** Writes every draft field onto [profile] (edit), or onto a fresh entity when creating. */

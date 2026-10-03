@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
@@ -72,6 +73,7 @@ fun ManageProfilesScreen(
     onEditProfile: (BlockedProfileEntity) -> Unit,
     onAddProfile: () -> Unit,
     onDeleteProfile: (BlockedProfileEntity) -> Unit,
+    onAllInsights: () -> Unit,
 ) {
     var editMode by remember { mutableStateOf(false) }
     var showActiveProfileError by remember { mutableStateOf(false) }
@@ -97,6 +99,14 @@ fun ManageProfilesScreen(
                     GlassIconButton(onClick = onDismiss, icon = Icons.Filled.Close, contentDescription = stringResource(R.string.manage_close_content_description))
                     Row {
                         if (profiles.isNotEmpty()) {
+                            // Combined insights across every profile (same screen as a single
+                            // profile's, same chart icon as Edit Profile's toolbar).
+                            GlassIconButton(
+                                onClick = onAllInsights,
+                                icon = Icons.Filled.BarChart,
+                                contentDescription = stringResource(R.string.manage_all_insights_content_description),
+                            )
+                            Spacer(Modifier.width(8.dp))
                             GlassIconButton(
                                 onClick = { editMode = !editMode },
                                 icon = if (editMode) Icons.Filled.Check else Icons.Filled.Edit,

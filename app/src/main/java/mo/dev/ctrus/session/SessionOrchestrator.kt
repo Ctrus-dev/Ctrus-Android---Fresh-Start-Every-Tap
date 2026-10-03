@@ -226,6 +226,23 @@ class SessionOrchestrator(
         }
     }
 
+    /**
+     * Mirrors the session-ending half of StrategyManager.unlockWithRecoveryCode: the recovery code
+     * is for someone who lost their Ctrus and has no emergency unblocks left, so this must NOT go
+     * through [emergencyUnblock]. That function bails out when the emergency count is 0, which
+     * used to silently waste the (single-use) code while leaving the session running. Ends every
+     * still-open session, matching iOS's "deactivate restrictions anyway" safety net, since
+     * blocking here is derived from any open session in Room.
+     */
+    suspend fun recoveryUnblock() {
+        while (true) {
+            val session = sessions.mostRecentActive() ?: break
+            scheduling.cancelBreakExpiry(session.id)
+            scheduling.cancelBreakWarning(session.id)
+            sessions.endSession(session)
+        }
+    }
+
     private fun startTicking(sessionId: String, profileId: String) {
         stopTicking()
         tickerJob = viewModelScope.launch {

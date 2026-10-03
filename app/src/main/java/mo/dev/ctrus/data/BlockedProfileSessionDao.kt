@@ -21,6 +21,9 @@ interface BlockedProfileSessionDao {
     @Query("SELECT * FROM blocked_profile_sessions WHERE profileId = :profileId ORDER BY startTimeEpochMilli DESC")
     fun observeForProfile(profileId: String): Flow<List<BlockedProfileSessionEntity>>
 
+    @Query("SELECT * FROM blocked_profile_sessions ORDER BY startTimeEpochMilli DESC")
+    fun observeAll(): Flow<List<BlockedProfileSessionEntity>>
+
     @Query("SELECT * FROM blocked_profile_sessions WHERE endTimeEpochMilli IS NOT NULL ORDER BY endTimeEpochMilli DESC LIMIT :limit")
     suspend fun getRecentInactive(limit: Int = 50): List<BlockedProfileSessionEntity>
 

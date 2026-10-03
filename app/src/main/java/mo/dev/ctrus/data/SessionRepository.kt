@@ -14,6 +14,9 @@ class SessionRepository(private val dao: BlockedProfileSessionDao, private val s
 
     fun observeForProfile(profileId: String): Flow<List<BlockedProfileSessionEntity>> = dao.observeForProfile(profileId)
 
+    /** Every session of every profile, newest first. Backs the combined "Profiles" insights. */
+    fun observeAll(): Flow<List<BlockedProfileSessionEntity>> = dao.observeAll()
+
     suspend fun recentInactive(limit: Int = 50): List<BlockedProfileSessionEntity> = dao.getRecentInactive(limit)
 
     suspend fun create(profileId: String, tag: String, forceStarted: Boolean = false): BlockedProfileSessionEntity {

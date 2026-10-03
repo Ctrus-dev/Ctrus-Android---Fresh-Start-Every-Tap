@@ -1,13 +1,14 @@
 package mo.dev.ctrus.data
 
 import mo.dev.ctrus.strategy.StrategyCapabilities
+import mo.dev.ctrus.strategy.StrategyIds
 import java.util.Date
 
 /**
- * Port of Ctrus/Utils/SessionTimeCalculator.swift, trimmed to what the two reachable strategies
- * (Ctrus NFC, Manual + Ctrus NFC) actually need: neither has an overall duration limit or a
- * schedule, so the only thing that produces a countdown-to-a-fixed-end-time instead of a
- * plain elapsed-time display is an active break.
+ * Port of Ctrus/Utils/SessionTimeCalculator.swift, trimmed to what the reachable strategies
+ * actually need. Only two things produce a countdown to a fixed end time instead of a plain
+ * elapsed-time display: an active break, and a "Schedule + Ctrus NFC" profile with a fixed
+ * duration. An Indefinite schedule has no end, so it counts up like the NFC modes.
  */
 object SessionTimeCalculator {
     /** Wall-clock elapsed time minus time spent on break — what "focus time" actually counts. */
@@ -41,6 +42,10 @@ object SessionTimeCalculator {
                 session.totalBreakAllowanceSeconds(profile)
             }
             return Date(breakStart + (remaining * 1000).toLong())
+        }
+        if (profile.blockingStrategyId == StrategyIds.SCHEDULE) {
+            val duration = profile.schedule?.automaticEndDurationMillis ?: return null
+            return Date(session.startTimeEpochMilli + duration)
         }
         return null
     }

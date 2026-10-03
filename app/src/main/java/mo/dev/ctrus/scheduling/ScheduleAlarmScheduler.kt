@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import mo.dev.ctrus.data.BlockedProfileEntity
+import mo.dev.ctrus.data.BlockedProfileSessionEntity
 import mo.dev.ctrus.strategy.StrategyIds
 
 /**
@@ -14,7 +15,8 @@ import mo.dev.ctrus.strategy.StrategyIds
  * repeating trigger per weekday (AlarmManager repeats aren't reliable under Doze), each profile
  * holds exactly two one-shot exact alarms — its next automatic start, and the "starts in 5
  * minutes" reminder before it — and [ScheduleReceiver] re-arms the next occurrence every time
- * one fires. There is no end alarm: scheduled sessions only ever stop via NFC.
+ * one fires. A running session gets a third, per-session alarm only when the profile has a fixed
+ * duration ([syncSessionEnd]). Indefinite schedules only ever stop via NFC.
  */
 class ScheduleAlarmScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -37,6 +39,21 @@ class ScheduleAlarmScheduler(private val context: Context) {
         }
     }
 
+    /**
+     * Arms the automatic stop for [session] when it belongs to a "Schedule + Ctrus NFC" profile
+     * with a fixed duration. The stop time is start + duration, the same moment the clock counts
+     * down to (see SessionTimeCalculator.expectedEndTime), whether the session started on
+     * schedule or from the bubble. If that time has already passed (e.g. after a reboot), the
+     * alarm fires right away.
+     */
+    fun syncSessionEnd(session: BlockedProfileSessionEntity, profile: BlockedProfileEntity) {
+        if (profile.blockingStrategyId != StrategyIds.SCHEDULE) return
+        val duration = profile.schedule?.automaticEndDurationMillis ?: return
+        arm(ScheduleReceiver.ACTION_END, session.id, session.startTimeEpochMilli + duration) {
+            putExtra(ScheduleReceiver.EXTRA_SESSION_ID, session.id)
+        }
+    }
+
     fun cancel(profileId: String) {
         listOf(ScheduleReceiver.ACTION_START, ScheduleReceiver.ACTION_REMINDER).forEach { action ->
             val pendingIntent = PendingIntent.getBroadcast(
@@ -50,11 +67,13 @@ class ScheduleAlarmScheduler(private val context: Context) {
         }
     }
 
-    private fun arm(action: String, profileId: String, triggerAtEpochMilli: Long) {
+    private fun arm(action: String, ownerId: String, triggerAtEpochMilli: Long, extras: Intent.() -> Unit = {
+        putExtra(ScheduleReceiver.EXTRA_PROFILE_ID, ownerId)
+    }) {
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            requestCode(action, profileId),
-            intent(action, profileId),
+            requestCode(action, ownerId),
+            Intent(context, ScheduleReceiver::class.java).apply { this.action = action; extras() },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         // SCHEDULE_EXACT_ALARM can be revoked by the user on Android 12; an inexact alarm that

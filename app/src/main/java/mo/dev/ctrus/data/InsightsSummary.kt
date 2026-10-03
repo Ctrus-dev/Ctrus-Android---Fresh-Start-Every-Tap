@@ -99,10 +99,18 @@ object InsightsSummary {
     }
 
     /** Only totalFocusTime/totalBreakTime are surfaced in the UI — the rest of ProfileInsightsUtil's metrics have no call site. */
-    fun metrics(sessions: List<BlockedProfileSessionEntity>, profile: BlockedProfileEntity): ProfileInsightsMetrics {
-        val completed = sessions.filter { it.endTimeEpochMilli != null }
+    fun metrics(sessions: List<BlockedProfileSessionEntity>, profile: BlockedProfileEntity): ProfileInsightsMetrics =
+        metrics(sessions, mapOf(profile.id to profile))
+
+    /**
+     * Break time depends on each session's own profile's break settings, so the combined
+     * "Profiles" insights look each session's profile up in [profilesById]. Sessions whose
+     * profile isn't there are skipped, so only existing profiles are counted.
+     */
+    fun metrics(sessions: List<BlockedProfileSessionEntity>, profilesById: Map<String, BlockedProfileEntity>): ProfileInsightsMetrics {
+        val completed = sessions.filter { it.endTimeEpochMilli != null && it.profileId in profilesById }
         val totalFocus = completed.sumOf { it.duration() / 1000.0 }
-        val totalBreak = completed.sumOf { it.usedBreakDurationIncludingActive(profile) }
+        val totalBreak = completed.sumOf { it.usedBreakDurationIncludingActive(profilesById.getValue(it.profileId)) }
         return ProfileInsightsMetrics(completed.size, totalFocus, totalBreak)
     }
 

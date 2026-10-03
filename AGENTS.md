@@ -145,6 +145,12 @@ actually shown — so only those two metrics were ported, not the full aggregati
   that this is a minor layout nicety, not a functionality gap; flagged here rather than silently
   dropped.
 
+**Combined "Profiles" insights (Android-only for now).** Manage Profiles has a chart button next to
+the pencil/"+" that opens the same Insights screen for every existing profile at once, titled
+"Profiles Insights". `ProfileInsightsScreen` is now a thin wrapper over `InsightsScreen(title,
+sessions, profilesById, …)`. Break time is looked up per session's own profile, and sessions of
+profiles that no longer exist are never counted (they're also cascade-deleted with the profile).
+
 **Bug fixed this pass — bottom content hidden behind the 3-button navigation bar.** `MainActivity`
 calls `enableEdgeToEdge()`, which draws every screen behind the system bars; Scaffold-based screens
 handle this for free (its `contentWindowInsets` default already reserves space, consumed via the
@@ -274,7 +280,8 @@ than back in the blocked app.
 
 **Schedule + Ctrus NFC (ported from iOS `f34bdf1`, branch `experiment/session-popup`)** — a
 third start mode (`strategy/ScheduleBlockingStrategy`, id `schedule`): starts automatically on
-chosen weekdays at a start time, can also be started from the bubble, and always needs NFC to stop
+chosen weekdays at a start time and **can't be started by hand** (Home hides/disables the start
+gestures, and the strategy refuses as a backstop; this diverges from iOS on purpose). It always needs NFC to stop
 (same rules as Manual + Ctrus NFC). There's **no end time**: iOS only keeps a hidden 23:59 end for
 DeviceActivityCenter, and AlarmManager doesn't need one. Pieces:
 - `data/ProfileSchedule` (JSON `schedule` column, Room v1→v2 migration) + `nextTrigger()`.
@@ -290,10 +297,24 @@ DeviceActivityCenter, and AlarmManager doesn't need one. Pieces:
   the device's 12h/24h setting), a Schedule step right after Method in the wizard, and a Schedule
   section under Strategy in Edit (both require at least one day). Switching to another mode clears
   the days. The Review screen shows "days · start time" only.
+- **Duration (iOS `b948925`)**: `ProfileSchedule.durationInHours` (null = Indefinite, or 1–4h).
+  Indefinite counts up and only stops via NFC. A fixed duration counts down
+  (`SessionTimeCalculator.expectedEndTime` = start + duration) and stops on its own:
+  `ScheduleAlarmScheduler.syncSessionEnd` arms a per-session `ACTION_END` alarm, driven by
+  `CtrusApp`'s active-session observer, and is
+  re-armed on boot. The iOS "clock counted down to 23:59" bug never existed here, because
+  Android never stored a technical end time; keep it that way and don't add one.
 - Not ported: iOS's "Automatic Start"/"NFC" tag badges on strategy rows, because this port has
   never shown strategy tags for any mode.
 Verified on the emulator: the reminder and the automatic start both fired on time, and a
 conflicting schedule was skipped with the notification.
+
+**Bug fixed — a valid recovery code didn't stop the session.** Settings' recovery-code flow
+spent a recovery unlock and then called `SessionOrchestrator.emergencyUnblock()`, which first
+tries to spend an *emergency* unblock and silently returns when none are left. That's exactly
+the situation the recovery code exists for, so the single-use code was wasted and the session
+kept running. It now calls `recoveryUnblock()`, which (like iOS's `unlockWithRecoveryCode`)
+ends every open session without touching the emergency count. Keep these two paths separate.
 
 ## Localization
 

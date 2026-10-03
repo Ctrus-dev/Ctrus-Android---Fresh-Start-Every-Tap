@@ -65,6 +65,7 @@ import mo.dev.ctrus.theme.ThemeManager
 import mo.dev.ctrus.ui.home.PermissionsAlertSheet
 import mo.dev.ctrus.ui.home.HomeScreen
 import mo.dev.ctrus.ui.home.ManageProfilesScreen
+import mo.dev.ctrus.ui.insights.InsightsScreen
 import mo.dev.ctrus.ui.insights.ProfileInsightsScreen
 import mo.dev.ctrus.ui.intro.AccessibilityDisclosureDialog
 import mo.dev.ctrus.ui.intro.BatteryOptimizationDialog
@@ -283,6 +284,7 @@ private fun CtrusNavHost(
     }
     var editingProfileId by remember { mutableStateOf<String?>(null) }
     var insightsProfileId by remember { mutableStateOf<String?>(null) }
+    var showAllInsights by remember { mutableStateOf(false) }
     // Shared by every entry point that needs the disclosure-then-Settings flow — Home's alert
     // pill/sheet and Settings' own Accessibility Access row (Play policy requires this consent
     // screen before every trip to the system Accessibility settings, not just the first one).
@@ -298,6 +300,7 @@ private fun CtrusNavHost(
                 onEditProfile = { profile -> showManageProfiles = false; editingProfileId = profile.id },
                 onAddProfile = { showManageProfiles = false; showCreateProfile = true },
                 onDeleteProfile = { profile -> coroutineScope.launch { app.profileRepository.delete(profile) } },
+                onAllInsights = { showAllInsights = true },
             )
         }
     }
@@ -382,7 +385,7 @@ private fun CtrusNavHost(
                         when (val result = app.recoveryCodeClient.verifyCode(id, code)) {
                             is RecoveryCodeVerification.Valid -> {
                                 app.preferences.consumeRecoveryUnlock()
-                                orchestrator.emergencyUnblock()
+                                orchestrator.recoveryUnblock()
                                 markFirstSessionCompleted()
                                 remainingUnlocks = app.preferences.remainingRecoveryUnlocks()
                                 recoveryResetDateMillis = app.preferences.nextRecoveryResetDate()?.toEpochMilli()
@@ -428,6 +431,19 @@ private fun CtrusNavHost(
                     onInsightsTapped = { insightsProfileId = profile.id },
                 )
             }
+        }
+    }
+
+    if (showAllInsights) {
+        val allSessions by app.sessionRepository.observeAll().collectAsState(initial = emptyList())
+        ModalBottomSheet(onDismissRequest = { showAllInsights = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+            InsightsScreen(
+                title = stringResource(R.string.insights_screen_title, stringResource(R.string.manage_title)),
+                sessions = allSessions,
+                profilesById = profiles.associateBy { it.id },
+                themeColor = themeManager.selectedColorOption.color,
+                onDismiss = { showAllInsights = false },
+            )
         }
     }
 

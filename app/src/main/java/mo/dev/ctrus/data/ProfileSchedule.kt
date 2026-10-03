@@ -9,9 +9,12 @@ import java.time.ZonedDateTime
 
 /**
  * Port of `BlockedProfileSchedule` in Ctrus/Models/Schedule.swift, trimmed to what the
- * "Schedule + Ctrus NFC" mode actually uses: weekdays + a start time. There is deliberately no
- * end time — stopping always requires the Ctrus NFC. iOS only keeps a hidden 23:59 end because
- * DeviceActivityCenter demands an interval; AlarmManager has no such requirement.
+ * "Schedule + Ctrus NFC" mode actually uses: weekdays, a start time, and an optional duration.
+ * There is no stored end time. iOS keeps a hidden 23:59 "technical" end only because
+ * DeviceActivityCenter demands an interval, and reusing it as a real end is what made its clock
+ * count down. Here the only real end is [durationInHours]: `null` (Indefinite) runs until the
+ * Ctrus is scanned and the clock counts up; otherwise the session stops on its own that many
+ * hours after it started and the clock counts down to that.
  *
  * `days` stores [DayOfWeek] ISO values (Mon=1 … Sun=7) rather than iOS's Sunday-first raw values,
  * since nothing is shared across platforms and java.time is what every calculation here uses.
@@ -21,8 +24,11 @@ data class ProfileSchedule(
     val days: List<Int> = emptyList(),
     val startHour: Int = 9,
     val startMinute: Int = 0,
+    val durationInHours: Int? = null,
 ) {
     val isActive: Boolean get() = days.isNotEmpty()
+
+    val automaticEndDurationMillis: Long? get() = durationInHours?.let { it * 3_600_000L }
 
     val daysOfWeek: Set<DayOfWeek> get() = days.map(DayOfWeek::of).toSet()
 
@@ -47,6 +53,9 @@ data class ProfileSchedule(
     }
 
     companion object {
+        /** Mirrors `BlockedProfileSchedule.availableDurationsInHours`. `null` (Indefinite) is offered separately. */
+        val AVAILABLE_DURATIONS_IN_HOURS = listOf(1, 2, 3, 4)
+
         /** Sunday-first, matching iOS's `Weekday.allCases` order in the day picker and summaries. */
         val DISPLAY_ORDER: List<DayOfWeek> = listOf(DayOfWeek.SUNDAY).plus(
             generateSequence(DayOfWeek.MONDAY) { it.plus(1) }.take(6),

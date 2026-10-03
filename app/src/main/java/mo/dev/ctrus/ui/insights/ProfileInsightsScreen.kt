@@ -85,11 +85,31 @@ private fun InsightsFilter.viewMode() = when (this) {
  * session list grouped by day. Week/Month-picker sheets and "specific date" filters use Material
  * 3's `DatePickerDialog` in place of iOS's native graphical `DatePicker`.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileInsightsScreen(
     profile: BlockedProfileEntity,
     sessions: List<BlockedProfileSessionEntity>,
+    themeColor: Color,
+    onDismiss: () -> Unit,
+) = InsightsScreen(
+    title = stringResource(R.string.insights_screen_title, profile.name),
+    sessions = sessions,
+    profilesById = mapOf(profile.id to profile),
+    themeColor = themeColor,
+    onDismiss = onDismiss,
+)
+
+/**
+ * The shared body behind [ProfileInsightsScreen] (one profile) and the combined "Profiles"
+ * insights opened from Manage Profiles, which are the same screen fed every existing profile's
+ * sessions. Only sessions whose profile is in [profilesById] are shown or counted.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InsightsScreen(
+    title: String,
+    sessions: List<BlockedProfileSessionEntity>,
+    profilesById: Map<String, BlockedProfileEntity>,
     themeColor: Color,
     onDismiss: () -> Unit,
 ) {
@@ -102,7 +122,7 @@ fun ProfileInsightsScreen(
     var showFilterMenu by remember { mutableStateOf(false) }
 
     val viewMode = filter.viewMode()
-    val completedSessions = remember(sessions) { sessions.filter { it.endTimeEpochMilli != null } }
+    val completedSessions = remember(sessions, profilesById) { sessions.filter { it.endTimeEpochMilli != null && it.profileId in profilesById } }
 
     val weeklySummary = remember(completedSessions, selectedDate) { InsightsSummary.weeklySummary(completedSessions, selectedDate) }
     val monthlySummary = remember(completedSessions, selectedDate) { InsightsSummary.monthlySummary(completedSessions, selectedDate) }
@@ -122,7 +142,7 @@ fun ProfileInsightsScreen(
         }
     }
 
-    val metrics = remember(filteredSessions) { InsightsSummary.metrics(filteredSessions, profile) }
+    val metrics = remember(filteredSessions, profilesById) { InsightsSummary.metrics(filteredSessions, profilesById) }
 
     // Sub-minute sessions would only ever display as "0m" in the list — not worth showing.
     val groupedSessions = remember(filteredSessions) { groupByDay(filteredSessions.filter { it.duration() >= 60_000L }) }
@@ -206,7 +226,7 @@ fun ProfileInsightsScreen(
                 }
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    stringResource(R.string.insights_screen_title, profile.name),
+                    title,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -263,7 +283,7 @@ fun ProfileInsightsScreen(
                 item {
                     SettingsSection(title = DateFormatters.formatSessionDate(day, todayLabel, yesterdayLabel)) {
                         daySessions.forEachIndexed { index, session ->
-                            SessionRow(session = session, profile = profile)
+                            SessionRow(session = session, profile = profilesById.getValue(session.profileId))
                             if (index != daySessions.lastIndex) InsetDivider()
                         }
                     }

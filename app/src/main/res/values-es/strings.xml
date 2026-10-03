@@ -328,26 +328,26 @@
     </plurals>
 
     <string-array name="shield_titles">
-        <item>La vida te dio limones</item>
-        <item>100% zumo, dicen ellos</item>
-        <item>La vitamina C no se toma así</item>
-        <item>Cuando la vida te da limones</item>
-        <item>El árbol tarda en dar frutos</item>
-        <item>Dulce por fuera</item>
-        <item>Por fuera parece inofensivo</item>
-        <item>Las cosas buenas tardan en madurar</item>
-        <item>Aquí estamos otra vez</item>
+        <item>La vida te dio limones...</item>
+        <item>100% zumo, dicen ellos...</item>
+        <item>¡La vitamina C no se toma así!</item>
+        <item>Cuando la vida te da limones...</item>
+        <item>El árbol tarda en dar frutos...</item>
+        <item>Dulce por fuera...</item>
+        <item>Por fuera parece inofensivo...</item>
+        <item>¡Las cosas buenas tardan en madurar!</item>
+        <item>Aquí estamos otra vez...</item>
     </string-array>
     <string-array name="shield_subtitles">
-        <item>Y tú queriendo convertirlos en scroll infinito</item>
-        <item>Tu concentración anda al 0%%</item>
-        <item>Una dosis diaria de %1$s no te va a hacer bien</item>
+        <item>Y tú queriendo convertirlos en scroll infinito.</item>
+        <item>Tu concentración anda al 0%%.</item>
+        <item>Una dosis diaria de %1$s no te va a hacer bien.</item>
         <item>¿De verdad crees que esto es la limonada?</item>
-        <item>Vuelves a %1$s siempre que quieres, ese es el problema</item>
-        <item>Amargo cuando te das cuenta de las horas que ya pasaste aquí</item>
-        <item>Por dentro sabes que es amargo</item>
-        <item>%1$s no es una de ellas</item>
-        <item>Esto se está volviendo repetitivo, y nada dulce</item>
+        <item>Vuelves a %1$s siempre que quieres, ese es el problema.</item>
+        <item>Amargo cuando te das cuenta de las horas que ya pasaste aquí.</item>
+        <item>Por dentro sabes que es amargo.</item>
+        <item>%1$s no es una de ellas.</item>
+        <item>Esto se está volviendo repetitivo, y nada dulce.</item>
     </string-array>
     <string-array name="shield_buttons">
         <item>Entendido</item>
@@ -378,7 +378,7 @@
 
     <!-- Schedule + Ctrus NFC -->
     <string name="strategy_schedule_name">Horario + Ctrus NFC</string>
-    <string name="strategy_schedule_description">Define la hora y en qué días de la semana quieres que este perfil empiece automáticamente. Para terminarlo vas a necesitar tu Ctrus.</string>
+    <string name="strategy_schedule_description">Define la hora y en qué días de la semana quieres que este perfil empiece automáticamente. Vas a necesitar tu Ctrus para pararlo antes de tiempo.</string>
     <string name="guided_step_schedule">Horario</string>
     <string name="guided_intro_title_schedule">Configura tu horario</string>
     <string name="guided_intro_desc_schedule">Elige los días de la semana y la hora a la que este perfil debe activarse solo.</string>
@@ -400,6 +400,16 @@
     <string name="schedule_skipped_notification_title">No Se Pudo Iniciar</string>
     <string name="schedule_skipped_notification_body">%1$s no empezó porque %2$s todavía está activo.</string>
     <string name="schedule_skipped_notification_body_unknown">%1$s no empezó porque otro perfil todavía está activo.</string>
+    <string name="field_schedule_duration">Duración</string>
+    <string name="field_schedule_duration_indefinite">Indefinida</string>
+    <plurals name="field_schedule_duration_hours">
+        <item quantity="one">%1$d hora</item>
+        <item quantity="other">%1$d horas</item>
+    </plurals>
+    <string name="home_next_start_today">Hoy a las %1$s</string>
+    <string name="home_next_start_tomorrow">Mañana a las %1$s</string>
+    <string name="error_schedule_manual_start">Este perfil empieza automáticamente según su horario.</string>
+    <string name="manage_all_insights_content_description">Estadísticas de todos los perfiles</string>
     <string name="settings_faq">¿Buscas Respuestas?</string>
     <string name="settings_section_help">Ayuda</string>
 

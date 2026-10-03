@@ -21,7 +21,8 @@ import mo.dev.ctrus.strategy.StrategyIds
 
 /**
  * Handles [ScheduleAlarmScheduler]'s alarms — the Android side of iOS's ScheduleTimerActivity
- * (automatic start) and the per-weekday "Starting Soon!" notification — plus re-arming every
+ * (automatic start and, for a fixed duration, automatic stop) and the per-weekday "Starting
+ * Soon!" notification — plus re-arming every
  * schedule after a reboot, app update, or clock/time-zone change, since AlarmManager alarms
  * don't survive the first and are computed in wall-clock time for the others.
  */
@@ -34,7 +35,13 @@ class ScheduleReceiver : BroadcastReceiver() {
                 when (intent.action) {
                     ACTION_START -> intent.getStringExtra(EXTRA_PROFILE_ID)?.let { onScheduledStart(context, app, it) }
                     ACTION_REMINDER -> intent.getStringExtra(EXTRA_PROFILE_ID)?.let { onReminder(context, app, it) }
-                    else -> app.scheduleAlarmScheduler.syncAll(app.profileRepository.getAll())
+                    ACTION_END -> intent.getStringExtra(EXTRA_SESSION_ID)?.let { onScheduledEnd(app, it) }
+                    else -> {
+                        app.scheduleAlarmScheduler.syncAll(app.profileRepository.getAll())
+                        val active = app.sessionRepository.mostRecentActive()
+                        val activeProfile = active?.let { app.profileRepository.find(it.profileId) }
+                        if (active != null && activeProfile != null) app.scheduleAlarmScheduler.syncSessionEnd(active, activeProfile)
+                    }
                 }
             } finally {
                 pendingResult.finish()
@@ -67,6 +74,15 @@ class ScheduleReceiver : BroadcastReceiver() {
             }
         }
         app.scheduleAlarmScheduler.sync(profile)
+    }
+
+    /** Mirrors ScheduleTimerActivity.stop: ends the session only if it's still the one running. */
+    private suspend fun onScheduledEnd(app: CtrusApp, sessionId: String) = startLock.withLock {
+        val session = app.sessionRepository.find(sessionId) ?: return@withLock
+        if (session.endTimeEpochMilli != null) return@withLock
+        val profile = app.profileRepository.find(session.profileId) ?: return@withLock
+        if (profile.blockingStrategyId != StrategyIds.SCHEDULE || profile.schedule?.durationInHours == null) return@withLock
+        app.sessionRepository.endSession(session)
     }
 
     private suspend fun onReminder(context: Context, app: CtrusApp, profileId: String) {
@@ -106,7 +122,9 @@ class ScheduleReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_START = "mo.dev.ctrus.scheduling.SCHEDULE_START"
         const val ACTION_REMINDER = "mo.dev.ctrus.scheduling.SCHEDULE_REMINDER"
+        const val ACTION_END = "mo.dev.ctrus.scheduling.SCHEDULE_END"
         const val EXTRA_PROFILE_ID = "profile_id"
+        const val EXTRA_SESSION_ID = "session_id"
 
         /** Two schedules firing in the same minute must not both see "no active session". */
         private val startLock = Mutex()

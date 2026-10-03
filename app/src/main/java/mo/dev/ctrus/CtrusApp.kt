@@ -67,6 +67,14 @@ class CtrusApp : Application() {
                 previousIds = ids
             }
         }
+        // Arms the automatic stop for fixed-duration schedule sessions however they started
+        // (on schedule or from the bubble). ScheduleReceiver checks the session is still running.
+        applicationScope.launch {
+            sessionRepository.observeMostRecentActive().collect { session ->
+                val profile = session?.let { profileRepository.find(it.profileId) } ?: return@collect
+                scheduleAlarmScheduler.syncSessionEnd(session, profile)
+            }
+        }
 
         // Warms the 3D mascot's parsed-mesh cache before Home is ever shown, so the model doesn't
         // visibly stall on the very first appearance either — see ObjModelCache's kdoc.
