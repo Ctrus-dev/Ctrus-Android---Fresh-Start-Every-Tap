@@ -68,4 +68,18 @@ object CtrusSystemColors {
     // separator
     val separatorLight = Color(0x4A3C3C43)
     val separatorDark = Color(0xA6545458)
+
+    // Elevated surfaces (menus, dialogs, sheets): iOS's neutral grays. Without these, Material 3
+    // falls back to its baseline palette, which tints every menu/dialog/sheet a pinkish purple
+    // that has nothing to do with the theme color.
+    // Light stays a soft grey (same lightness as Material's old lavender, minus the tint) so a
+    // menu still stands apart from the white cards it opens over.
+    val elevatedLight = Color(0xFFF2F2F7) // systemGray6
+    val elevatedDark = Color(0xFF2C2C2E) // tertiarySystemBackground (dark)
+    val fillLight = Color(0xFFE5E5EA) // systemGray5
+    val fillDark = Color(0xFF3A3A3C) // systemGray4 (dark)
+    val outlineLight = Color(0xFF8E8E93) // systemGray
+    val outlineDark = Color(0xFF8E8E93)
+    val outlineVariantLight = Color(0xFFC6C6C8) // opaqueSeparator
+    val outlineVariantDark = Color(0xFF38383A)
 }

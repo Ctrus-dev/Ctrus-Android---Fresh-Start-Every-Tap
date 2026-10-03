@@ -1,5 +1,6 @@
 package mo.dev.ctrus.ui.settings
 
+import mo.dev.ctrus.ui.common.CompactTextField
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,8 +41,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -224,53 +223,40 @@ fun SettingsScreen(
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
+                        CompactTextField(
                             value = unlockCode,
                             onValueChange = { unlockCode = it },
-                            placeholder = { Text(stringResource(R.string.settings_enter_code_placeholder)) },
-                            singleLine = true,
+                            placeholder = stringResource(R.string.settings_enter_code_placeholder),
                             enabled = !isVerifying && hasUnlockRemaining,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent,
-                                disabledBorderColor = Color.Transparent,
-                            ),
-                            // OutlinedTextField's own default ~16dp start content padding stacks
-                            // on top of this row's 16dp inset, landing the placeholder a further
-                            // 16dp in — noticeably adrift from every other row's text, which all
-                            // start flush at that same 16dp. Nothing else here is asked to line
-                            // up against the field's actual layout bounds, so an offset (purely
-                            // visual — the touch target moves with it) is enough to cancel that
-                            // built-in padding out without rebuilding this as a bare BasicTextField.
-                            modifier = Modifier.weight(1f).offset(x = (-16).dp)
+                            modifier = Modifier.weight(1f),
                         )
                         Spacer(Modifier.width(8.dp))
                         if (isVerifying) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp))
                         } else {
-                            // Same fix as the copy button above and "+ Add Tag": TextButton's own
-                            // minimum touch target and content padding otherwise leave "Desbloquear"
-                            // stopping well short of the row's actual right edge.
-                            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                                TextButton(
-                                    enabled = unlockCode.isNotEmpty() && hasUnlockRemaining,
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                    onClick = {
-                                        isVerifying = true
-                                        coroutineScope.launch {
-                                            val valid = onValidateUnlockCode(unlockCode)
-                                            isVerifying = false
-                                            if (valid) {
-                                                unlockCode = ""
-                                            } else {
-                                                showInvalidCodeAlert = true
-                                            }
+                            // Plain tappable text rather than a TextButton: a TextButton always
+                            // reserves a 40dp minimum height, which made this the tallest row in
+                            // the card even with the field itself trimmed (see CompactTextField).
+                            val canUnlock = unlockCode.isNotEmpty() && hasUnlockRemaining
+                            Text(
+                                stringResource(R.string.settings_unlock_button),
+                                // Same size as the code being typed next to it (bodyLarge, 16sp),
+                                // kept semibold so it still reads as the action.
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                                color = if (canUnlock) themeManager.selectedColorOption.color else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.clickable(enabled = canUnlock) {
+                                    isVerifying = true
+                                    coroutineScope.launch {
+                                        val valid = onValidateUnlockCode(unlockCode)
+                                        isVerifying = false
+                                        if (valid) {
+                                            unlockCode = ""
+                                        } else {
+                                            showInvalidCodeAlert = true
                                         }
                                     }
-                                ) {
-                                    Text(stringResource(R.string.settings_unlock_button), color = themeManager.selectedColorOption.color)
-                                }
-                            }
+                                },
+                            )
                         }
                     }
                     SettingsDivider()
@@ -300,12 +286,11 @@ fun SettingsScreen(
                     SettingsDivider()
                     SettingsRow(title = stringResource(R.string.settings_license), showChevron = true, onClick = { showLicense = true })
                     SettingsDivider()
-                    // Tapping always re-shows the disclosure-then-Settings flow — even when already
-                    // granted, that's a harmless way to jump straight to the system Accessibility
-                    // page, and simpler than making the row conditionally clickable.
+                    // Only tappable while access is missing. Once it's granted there's nothing to do
+                    // here, and the row just shows the green "Authorized" status.
                     SettingsRow(
                         title = stringResource(R.string.settings_accessibility_access),
-                        onClick = onRequestAccessibility,
+                        onClick = if (isUsageAccessGranted) null else onRequestAccessibility,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
@@ -438,7 +423,7 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(stringResource(R.string.settings_theme_color), modifier = Modifier.weight(1f))
+        Text(stringResource(R.string.settings_theme_color), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
 
         // The Box anchors the DropdownMenu to just this chip (not the whole row), so it opens
         // next to where the user tapped, on the right, instead of under the row's left edge.
@@ -449,7 +434,8 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
             ) {
                 Text(
                     stringResource(themeManager.selectedColorOption.displayNameRes),
-                    style = MaterialTheme.typography.bodySmall,
+                    // Same size as "Theme Color" next to it; only the color sets it apart.
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)

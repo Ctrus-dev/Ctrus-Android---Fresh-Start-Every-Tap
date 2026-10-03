@@ -1,5 +1,6 @@
 package mo.dev.ctrus.theme
 
+import androidx.compose.ui.graphics.Color
 import android.content.Context
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -67,6 +68,23 @@ fun CtrusTheme(themeManager: ThemeManager, content: @Composable () -> Unit) {
             onBackground = CtrusSystemColors.onBackgroundDark,
             onSurface = CtrusSystemColors.onBackgroundDark,
             onSurfaceVariant = CtrusSystemColors.onSurfaceVariantDark,
+            // Neutral greys for every container role (see CtrusSystemColors.elevated*).
+            surfaceTint = Color.Transparent,
+            surfaceBright = CtrusSystemColors.elevatedDark,
+            surfaceDim = CtrusSystemColors.backgroundDark,
+            surfaceContainerLowest = CtrusSystemColors.backgroundDark,
+            surfaceContainerLow = CtrusSystemColors.backgroundDark,
+            surfaceContainer = CtrusSystemColors.elevatedDark,
+            surfaceContainerHigh = CtrusSystemColors.elevatedDark,
+            surfaceContainerHighest = CtrusSystemColors.fillDark,
+            primaryContainer = CtrusSystemColors.fillDark,
+            onPrimaryContainer = CtrusSystemColors.onBackgroundDark,
+            secondaryContainer = CtrusSystemColors.fillDark,
+            onSecondaryContainer = CtrusSystemColors.onBackgroundDark,
+            tertiaryContainer = CtrusSystemColors.fillDark,
+            onTertiaryContainer = CtrusSystemColors.onBackgroundDark,
+            outline = CtrusSystemColors.outlineDark,
+            outlineVariant = CtrusSystemColors.outlineVariantDark,
         )
     } else {
         lightColorScheme(
@@ -79,6 +97,23 @@ fun CtrusTheme(themeManager: ThemeManager, content: @Composable () -> Unit) {
             onBackground = CtrusSystemColors.onBackgroundLight,
             onSurface = CtrusSystemColors.onBackgroundLight,
             onSurfaceVariant = CtrusSystemColors.onSurfaceVariantLight,
+            // Neutral greys for every container role (see CtrusSystemColors.elevated*).
+            surfaceTint = Color.Transparent,
+            surfaceBright = CtrusSystemColors.elevatedLight,
+            surfaceDim = CtrusSystemColors.backgroundLight,
+            surfaceContainerLowest = Color.White,
+            surfaceContainerLow = CtrusSystemColors.backgroundLight,
+            surfaceContainer = CtrusSystemColors.elevatedLight,
+            surfaceContainerHigh = CtrusSystemColors.elevatedLight,
+            surfaceContainerHighest = CtrusSystemColors.fillLight,
+            primaryContainer = CtrusSystemColors.fillLight,
+            onPrimaryContainer = CtrusSystemColors.onBackgroundLight,
+            secondaryContainer = CtrusSystemColors.fillLight,
+            onSecondaryContainer = CtrusSystemColors.onBackgroundLight,
+            tertiaryContainer = CtrusSystemColors.fillLight,
+            onTertiaryContainer = CtrusSystemColors.onBackgroundLight,
+            outline = CtrusSystemColors.outlineLight,
+            outlineVariant = CtrusSystemColors.outlineVariantLight,
         )
     }
 

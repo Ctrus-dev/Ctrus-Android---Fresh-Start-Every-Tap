@@ -105,6 +105,9 @@ fun SettingsRow(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
+        // Minimum gap so a long title (e.g. "Acesso de Acessibilidade") can never run right up
+        // against the trailing status dot/value — it wraps instead.
+        if (trailing != null || showChevron) Spacer(Modifier.width(6.dp))
         trailing?.invoke()
         if (showChevron) {
             Icon(

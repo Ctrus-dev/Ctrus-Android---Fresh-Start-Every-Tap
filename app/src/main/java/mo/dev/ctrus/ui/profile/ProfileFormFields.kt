@@ -1,5 +1,6 @@
 package mo.dev.ctrus.ui.profile
 
+import mo.dev.ctrus.ui.common.CompactTextField
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
@@ -34,8 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -79,27 +78,16 @@ import mo.dev.ctrus.util.DomainValidator
 
 @Composable
 fun NameField(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
-    OutlinedTextField(
+    // Same uniform 16.dp as every SettingsRow/CustomToggleRow, and no extra height of its own
+    // (see CompactTextField), so the Name card is as tall as any other single row.
+    CompactTextField(
         value = draft.name,
         onValueChange = { onDraftChange(draft.copy(name = it)) },
-        placeholder = { Text(stringResource(R.string.field_profile_name_placeholder)) },
-        singleLine = true,
+        placeholder = stringResource(R.string.field_profile_name_placeholder),
         enabled = !disabled,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-            disabledBorderColor = Color.Transparent,
-        ),
-        // The hosting card no longer supplies any content padding of its own (every field here
-        // is expected to carry its own uniform 16.dp, matching every SettingsRow/CustomToggleRow
-        // elsewhere) — this is the one field with no natural "row" to hang that padding off, so
-        // it's applied directly here instead.
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            // Without a border to visually contain it, the default 56dp-tall field reads as an
-            // oversized blank pill — trimmed down now that nothing else frames its empty space.
-            .height(52.dp),
+            .padding(16.dp),
     )
 }
 
@@ -211,27 +199,24 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
     val domainAlreadyExists = stringResource(R.string.field_domain_already_exists)
     val domainInvalid = stringResource(R.string.field_domain_invalid)
 
-    // 16.dp on every side — was vertical-only, leaving this row flush against the card's left
-    // edge (the OutlinedTextField's own internal padding isn't a substitute for an explicit
-    // inset here since the trailing "Adicionar" button has no such built-in gap on its side).
+    // Same compact layout as Settings' recovery-code row: the row's own 16.dp is the only
+    // spacing (see CompactTextField), and "Add" is plain tappable text at the field's size
+    // instead of a TextButton, whose 40dp minimum height made the row taller than the rest.
+    val canAdd = !disabled && newDomainText.isNotBlank() && draft.domains.size < 50
     Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(
+        CompactTextField(
             value = newDomainText,
             onValueChange = { newDomainText = it; domainError = null },
-            placeholder = { Text(stringResource(R.string.field_domain_placeholder)) },
-            singleLine = true,
+            placeholder = stringResource(R.string.field_domain_placeholder),
             enabled = !disabled,
-            isError = domainError != null,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                disabledBorderColor = Color.Transparent,
-            ),
             modifier = Modifier.weight(1f),
         )
-        TextButton(
-            enabled = !disabled && newDomainText.isNotBlank() && draft.domains.size < 50,
-            onClick = {
+        Spacer(Modifier.width(8.dp))
+        Text(
+            stringResource(R.string.common_add),
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = if (canAdd) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.clickable(enabled = canAdd) {
                 val trimmed = newDomainText.trim().lowercase()
                 when {
                     draft.domains.contains(trimmed) -> domainError = domainAlreadyExists
@@ -242,10 +227,10 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
                     }
                 }
             },
-        ) { Text(stringResource(R.string.common_add)) }
+        )
     }
     domainError?.let {
-        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
+        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
     }
     if (draft.domains.isNotEmpty()) {
         SettingsDivider()

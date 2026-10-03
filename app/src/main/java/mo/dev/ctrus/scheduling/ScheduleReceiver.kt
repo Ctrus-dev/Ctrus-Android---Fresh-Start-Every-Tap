@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import mo.dev.ctrus.CtrusApp
 import mo.dev.ctrus.MainActivity
 import mo.dev.ctrus.R
+import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.strategy.StrategyIds
 
 /**
@@ -53,6 +54,21 @@ class ScheduleReceiver : BroadcastReceiver() {
         val profile = app.profileRepository.find(profileId) ?: return@withLock
         if (profile.blockingStrategyId != StrategyIds.SCHEDULE || profile.schedule?.isActive != true) {
             app.scheduleAlarmScheduler.cancel(profileId)
+            return@withLock
+        }
+
+        // Mirrors iOS 1c07059: without the Accessibility service (Android's stand-in for Screen
+        // Time access) nothing actually gets blocked, so starting a session would just run the
+        // clock on a block that never happens. Skip this occurrence and say why; the next one is
+        // still armed below.
+        if (!AccessibilityPermissionUtil.isEnabled(context)) {
+            notify(
+                context,
+                "missing-access:$profileId",
+                context.getString(R.string.schedule_skipped_notification_title),
+                context.getString(R.string.schedule_skipped_missing_access_body, profile.name),
+            )
+            app.scheduleAlarmScheduler.sync(profile)
             return@withLock
         }
 

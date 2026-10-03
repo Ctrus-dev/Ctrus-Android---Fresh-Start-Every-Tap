@@ -278,7 +278,7 @@
     <string name="settings_version">Versión</string>
     <string name="settings_version_value">v%1$s</string>
     <string name="settings_accessibility_access">Acceso de Accesibilidad</string>
-    <string name="settings_background_launch_help">¿El bloqueo no funciona bien?</string>
+    <string name="settings_background_launch_help">¿El bloqueo no funciona?</string>
     <string name="background_launch_help_title">¿El bloqueo no funciona bien?</string>
     <string name="background_launch_help_body">Algunas marcas de móviles impiden que las apps muestren pantallas en segundo plano, lo que puede evitar que aparezca la pantalla de bloqueo aunque los demás ajustes estén aprobados. Toca en \"Abrir Ajustes\" y activa un ajuste como \"Mostrar ventanas emergentes en segundo plano\", \"Iniciar actividades en segundo plano\" o \"Inicio automático\" para Ctrus.</string>
     <string name="background_launch_help_open_settings">Abrir Ajustes</string>
@@ -411,6 +411,7 @@
     <string name="manage_all_insights_content_description">Ver Estadísticas de Todos los Perfiles</string>
     <string name="insights_title">Estadísticas</string>
     <string name="settings_last_recovery_code_warning">Ya usaste todos tus desbloqueos de emergencia, y solo te queda un código de desbloqueo más hasta que se reinicie. Te recomendamos no bloquear apps que puedas necesitar con urgencia.</string>
+    <string name="schedule_skipped_missing_access_body">%1$s no se inició porque el acceso de Accesibilidad está desactivado. Vuelve a activarlo en Ctrus para reanudar el bloqueo.</string>
     <string name="settings_faq">¿Buscas Respuestas?</string>
     <string name="settings_section_help">Ayuda</string>
 

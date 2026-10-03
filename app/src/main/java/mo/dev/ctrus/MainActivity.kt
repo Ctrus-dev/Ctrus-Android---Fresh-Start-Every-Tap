@@ -13,6 +13,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -82,12 +83,25 @@ import mo.dev.ctrus.ui.settings.SettingsScreen
 import mo.dev.ctrus.ui.strategy.PendingRequirementDialog
 import mo.dev.ctrus.util.resolve
 
+// androidx.activity's own defaults for the 3-button navigation bar scrim.
+private val LightNavigationBarScrim = android.graphics.Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
+private val DarkNavigationBarScrim = android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+
 class MainActivity : ComponentActivity() {
     private lateinit var nfcScanController: NfcScanController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Home and the intro screen always paint a light pastel background, even in system dark
+        // mode, so the activity's own bars always use dark icons. Left on auto, dark mode turned
+        // the clock/battery white on that pastel. Sheets (Settings, Edit, Insights…) are separate
+        // windows that pick their own icon color from their content, so they still get light icons
+        // when they're dark. The nav-bar scrim matches what light mode already shows with 3-button
+        // navigation.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(LightNavigationBarScrim, DarkNavigationBarScrim),
+        )
 
         val themeManager = ThemeManager.getInstance(applicationContext)
         nfcScanController = NfcScanController(this, lifecycleScope)

@@ -279,7 +279,7 @@
     <string name="settings_version">Version</string>
     <string name="settings_version_value">v%1$s</string>
     <string name="settings_accessibility_access">Accessibility Access</string>
-    <string name="settings_background_launch_help">Blocking not working reliably?</string>
+    <string name="settings_background_launch_help">Blocking not working?</string>
     <string name="background_launch_help_title">Blocking not working reliably?</string>
     <string name="background_launch_help_body">Some phone brands block apps from showing screens in the background, which can stop the block screen from appearing even with the other settings approved. Tap \"Open Settings\" and enable a setting like \"Display pop-up windows while running in the background\", \"Start activities in the background\", or \"Autostart\" for Ctrus.</string>
     <string name="background_launch_help_open_settings">Open Settings</string>
@@ -416,6 +416,7 @@
     <string name="manage_all_insights_content_description">View Insights for All Profiles</string>
     <string name="insights_title">Insights</string>
     <string name="settings_last_recovery_code_warning">You\'ve used up all your emergency unblocks, and you only have one more unlock code left until it resets. We\'d recommend not blocking apps you might urgently need.</string>
+    <string name="schedule_skipped_missing_access_body">%1$s didn\'t start because Accessibility access is turned off. Turn it back on in Ctrus to resume blocking.</string>
     <string name="settings_faq">Looking for Answers?</string>
     <string name="settings_section_help">Help</string>
 
