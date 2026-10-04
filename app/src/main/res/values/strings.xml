@@ -37,7 +37,7 @@
     <string name="home_accessibility_alert_message">Blocking is paused until access is restored.</string>
     <string name="home_permissions_alert_pill">Permissions needed</string>
     <string name="home_permissions_alert_sheet_title">Permissions needed</string>
-    <string name="home_permissions_alert_sheet_detail">Ctrus needs this permission to keep blocking working.</string>
+    <string name="home_permissions_alert_sheet_detail">Ctrus needs these permissions to keep blocking working.</string>
     <string name="home_manage_profiles_content_description">Manage %1$s</string>
     <string name="home_show_insights_content_description">Show %1$s insights</string>
     <string name="home_edit_profile_content_description">Edit %1$s</string>
@@ -417,6 +417,9 @@
     <string name="insights_title">Insights</string>
     <string name="settings_last_recovery_code_warning">You\'ve used up all your emergency unblocks, and you only have one more unlock code left until it resets. We\'d recommend not blocking apps you might urgently need.</string>
     <string name="schedule_skipped_missing_access_body">%1$s didn\'t start because Accessibility access is turned off. Turn it back on in Ctrus to resume blocking.</string>
+    <string name="settings_exact_alarms">Alarms &amp; reminders</string>
+    <string name="schedule_skipped_missing_alarms_body">%1$s didn\'t start because Alarms &amp; reminders is turned off. Turn it back on in Ctrus to resume blocking.</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_faq">Looking for Answers?</string>
     <string name="settings_section_help">Help</string>
 

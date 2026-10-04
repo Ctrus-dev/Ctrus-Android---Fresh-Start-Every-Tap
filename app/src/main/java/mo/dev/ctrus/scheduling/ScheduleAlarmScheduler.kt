@@ -4,7 +4,6 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import mo.dev.ctrus.data.BlockedProfileEntity
 import mo.dev.ctrus.data.BlockedProfileSessionEntity
 import mo.dev.ctrus.strategy.StrategyIds
@@ -76,13 +75,7 @@ class ScheduleAlarmScheduler(private val context: Context) {
             Intent(context, ScheduleReceiver::class.java).apply { this.action = action; extras() },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        // SCHEDULE_EXACT_ALARM can be revoked by the user on Android 12; an inexact alarm that
-        // fires a little late beats a SecurityException that never arms anything.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtEpochMilli, pendingIntent)
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtEpochMilli, pendingIntent)
-        }
+        alarmManager.setWhileIdleBestEffort(triggerAtEpochMilli, pendingIntent)
     }
 
     // Intent.filterEquals() compares action + component (not extras), so the profile id also has

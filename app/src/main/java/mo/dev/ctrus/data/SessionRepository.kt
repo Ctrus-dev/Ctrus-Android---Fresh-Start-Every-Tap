@@ -47,8 +47,16 @@ class SessionRepository(private val dao: BlockedProfileSessionDao, private val s
         return updated
     }
 
-    suspend fun endBreak(session: BlockedProfileSessionEntity, profile: BlockedProfileEntity): BlockedProfileSessionEntity {
-        val now = Instant.now().toEpochMilli()
+    /**
+     * Records the break as over at [now] — by default the current time, but an expired break is
+     * closed at its scheduled end instead (see [finalizeExpiredBreak]) so a late alarm doesn't
+     * inflate break time in Insights.
+     */
+    suspend fun endBreak(
+        session: BlockedProfileSessionEntity,
+        profile: BlockedProfileEntity,
+        now: Long = Instant.now().toEpochMilli(),
+    ): BlockedProfileSessionEntity {
         val completedSeconds = session.activeBreakElapsedSeconds(now)
         val updated = if (profile.allowMultipleBreaks) {
             session.copy(
@@ -66,5 +74,20 @@ class SessionRepository(private val dao: BlockedProfileSessionDao, private val s
     }
 
     suspend fun update(session: BlockedProfileSessionEntity) = dao.update(session)
+
+    /**
+     * Closes a break whose time is already up, stamped at its scheduled end. Safe to call any
+     * time from anywhere (expiry alarm, session ticker, accessibility service); it does nothing
+     * unless that break is really overdue.
+     */
+    suspend fun finalizeExpiredBreak(sessionId: String, profile: BlockedProfileEntity, now: Long = Instant.now().toEpochMilli()) {
+        val session = dao.getById(sessionId) ?: return
+        if (session.endTimeEpochMilli != null) return
+        val scheduledEnd = session.breakScheduledEndMillis(profile) ?: return
+        if (now < scheduledEnd) return
+        endBreak(session, profile, now = scheduledEnd)
+        scheduling.cancelBreakExpiry(session.id)
+        scheduling.cancelBreakWarning(session.id)
+    }
 
 }

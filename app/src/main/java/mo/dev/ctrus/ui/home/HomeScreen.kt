@@ -202,6 +202,7 @@ fun HomeScreen(
     onInsightsTapped: (BlockedProfileEntity) -> Unit,
     onManageTapped: () -> Unit,
     isAccessibilityEnabled: Boolean = true,
+    isExactAlarmGranted: Boolean = true,
     onPermissionsAlertTapped: () -> Unit = {},
 ) {
     val themeColor = themeManager.selectedColorOption.color
@@ -229,10 +230,10 @@ fun HomeScreen(
         ) {
             // Only surfaced once there's something to actually protect — the empty First Steps
             // screen shouldn't nag about permissions before a profile even exists to use them.
-            // Accessibility only: it's the sole permission the app can't function without.
-            // Battery-optimization exemption is a separate, non-blocking recommendation — see its
-            // own one-time dialog (MainActivity's showBatteryOptimizationPrompt) and Settings row.
-            if (profiles.isNotEmpty() && !isAccessibilityEnabled) {
+            // Accessibility and "Alarms & reminders": the permissions a session can't start
+            // without. Battery-optimization exemption is a separate, non-blocking recommendation —
+            // see its own one-time dialog (MainActivity's showBatteryOptimizationPrompt) and Settings row.
+            if (profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted)) {
                 item {
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         AccessibilityAlertPill(onClick = onPermissionsAlertTapped)

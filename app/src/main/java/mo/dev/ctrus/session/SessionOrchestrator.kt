@@ -254,6 +254,9 @@ class SessionOrchestrator(
                 if (!session.isActive) break
                 val profile = profiles.find(profileId) ?: break
                 _activeProfile.value = profile
+                // Closes a break whose time is up right away while the app is open, even if its
+                // expiry alarm hasn't arrived (see SessionRepository.finalizeExpiredBreak).
+                sessions.finalizeExpiredBreak(sessionId, profile)
                 val elapsed = SessionTimeCalculator.elapsedFocusTimeSeconds(session, profile)
                 _elapsedSeconds.value = elapsed
                 _displayedSeconds.value = SessionTimeCalculator.displayedTimeSeconds(session, profile, elapsed)

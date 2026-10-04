@@ -60,6 +60,7 @@ import mo.dev.ctrus.settings.AppPreferences
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.permissions.BatteryOptimizationUtil
+import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
 import mo.dev.ctrus.session.SessionOrchestrator
 import mo.dev.ctrus.strategy.StrategyCapabilities
 import mo.dev.ctrus.strategy.StrategyInput
@@ -179,6 +180,9 @@ private fun CtrusNavHost(
     // app" dialog (or from having toggled it manually in system Settings) updates Settings' own
     // status row without needing to reopen it.
     var isBatteryOptimizationExempt by remember { mutableStateOf(true) }
+    // "Alarms & reminders" — re-checked on resume for the same reason, e.g. after coming back from
+    // the system toggle that ExactAlarmPermissionUtil.request opens.
+    var isExactAlarmGranted by remember { mutableStateOf(true) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -186,6 +190,7 @@ private fun CtrusNavHost(
                 val enabled = AccessibilityPermissionUtil.isEnabled(context)
                 isAccessibilityEnabled = enabled
                 isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
+                isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
                 if (showIntroScreen == true && enabled) {
                     showIntroScreen = false
                     coroutineScope.launch { app.preferences.setShowIntroScreen(false) }
@@ -385,6 +390,8 @@ private fun CtrusNavHost(
                 themeManager = themeManager,
                 isUsageAccessGranted = isAccessibilityEnabled,
                 isBatteryOptimizationExempt = isBatteryOptimizationExempt,
+                isExactAlarmGranted = isExactAlarmGranted,
+                onRequestExactAlarm = { ExactAlarmPermissionUtil.request(context) },
                 onRequestAccessibility = { showAccessibilityDisclosure = true },
                 onRequestBatteryOptimizationExemption = { BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context) },
                 appVersion = "1.0",
@@ -494,22 +501,31 @@ private fun CtrusNavHost(
     }
 
     // Mirrors AlertsManager.presentScreenTimeAccessAlertIfNeeded(), called as a guard before
-    // every "start a profile" action: shows the alert sheet instead of starting when access is
-    // currently missing. Accessibility is the only permission that gates the action itself —
-    // battery-optimization exemption is a separate, non-blocking recommendation (see
-    // BatteryOptimizationUtil's kdoc), never something that prevents starting a session.
+    // every "start a profile" action (manual or Ctrus NFC): shows the alert sheet instead of
+    // starting while Accessibility or "Alarms & reminders" is missing. Battery-optimization
+    // exemption is a separate, non-blocking recommendation (see BatteryOptimizationUtil's kdoc),
+    // never something that prevents starting a session.
     var showPermissionsAlertSheet by remember { mutableStateOf(false) }
-    fun requireAccessibility(action: () -> Unit) {
-        if (isAccessibilityEnabled) action() else showPermissionsAlertSheet = true
+    fun requireStartPermissions(action: () -> Unit) {
+        // Re-read here rather than trusting the last resume, so a toggle flipped in a split-screen
+        // or from the notification shade still counts.
+        isAccessibilityEnabled = AccessibilityPermissionUtil.isEnabled(context)
+        isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
+        if (isAccessibilityEnabled && isExactAlarmGranted) action() else showPermissionsAlertSheet = true
     }
 
     if (showPermissionsAlertSheet) {
         PermissionsAlertSheet(
             isAccessibilityEnabled = isAccessibilityEnabled,
+            isExactAlarmGranted = isExactAlarmGranted,
             onDismiss = { showPermissionsAlertSheet = false },
             onFixAccessibility = {
                 showPermissionsAlertSheet = false
                 showAccessibilityDisclosure = true
+            },
+            onFixExactAlarm = {
+                showPermissionsAlertSheet = false
+                ExactAlarmPermissionUtil.request(context)
             },
         )
     }
@@ -608,7 +624,7 @@ private fun CtrusNavHost(
                 onOpenSettings = { showSettings = true },
                 onAddProfile = { showCreateProfile = true },
                 onEditProfile = { profile -> editingProfileId = profile.id },
-                onStartProfile = { profile -> requireAccessibility { orchestrator.requestStart(profile) } },
+                onStartProfile = { profile -> requireStartPermissions { orchestrator.requestStart(profile) } },
                 onStopProfile = {
                     orchestrator.requestStop()
                     markFirstSessionCompleted()
@@ -618,6 +634,7 @@ private fun CtrusNavHost(
                 onInsightsTapped = { profile -> insightsProfileId = profile.id },
                 onManageTapped = { showManageProfiles = true },
                 isAccessibilityEnabled = isAccessibilityEnabled,
+                isExactAlarmGranted = isExactAlarmGranted,
                 onPermissionsAlertTapped = { showPermissionsAlertSheet = true },
             )
         }

@@ -7,15 +7,16 @@ import android.content.Intent
 
 /**
  * AlarmManager-backed [SchedulingGateway] for break auto-resume — the Android equivalent of
- * iOS's BreakTimerActivity. `setExactAndAllowWhileIdle` is used since this is a user-visible,
- * time-sensitive expiration (a break that doesn't actually end on time is a real bug).
+ * iOS's BreakTimerActivity. Exact when "Alarms & reminders" is granted (see
+ * [setWhileIdleBestEffort]); either way the break also counts as over once its time is up (see
+ * BlockingState), so a late alarm can't stretch a break.
  */
 class AlarmSchedulingGateway(private val context: Context) : SchedulingGateway {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     override fun scheduleBreakExpiry(sessionId: String, profileId: String, triggerAtEpochMilli: Long) {
         val pendingIntent = pendingIntent(sessionId, profileId)
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtEpochMilli, pendingIntent)
+        alarmManager.setWhileIdleBestEffort(triggerAtEpochMilli, pendingIntent)
     }
 
     override fun cancelBreakExpiry(sessionId: String) {
@@ -34,7 +35,7 @@ class AlarmSchedulingGateway(private val context: Context) : SchedulingGateway {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtEpochMilli, pendingIntent)
+        alarmManager.setWhileIdleBestEffort(triggerAtEpochMilli, pendingIntent)
     }
 
     override fun cancelBreakWarning(sessionId: String) {

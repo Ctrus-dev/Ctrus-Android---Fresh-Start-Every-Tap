@@ -37,7 +37,7 @@
     <string name="home_accessibility_alert_message">El bloqueo está en pausa hasta que se restaure el acceso.</string>
     <string name="home_permissions_alert_pill">Permisos necesarios</string>
     <string name="home_permissions_alert_sheet_title">Permisos necesarios</string>
-    <string name="home_permissions_alert_sheet_detail">Ctrus necesita este permiso para seguir bloqueando.</string>
+    <string name="home_permissions_alert_sheet_detail">Ctrus necesita estos permisos para seguir bloqueando.</string>
     <string name="home_manage_profiles_content_description">Gestionar %1$s</string>
     <string name="home_show_insights_content_description">Mostrar estadísticas de %1$s</string>
     <string name="home_edit_profile_content_description">Editar %1$s</string>
@@ -412,6 +412,9 @@
     <string name="insights_title">Estadísticas</string>
     <string name="settings_last_recovery_code_warning">Ya usaste todos tus desbloqueos de emergencia, y solo te queda un código de desbloqueo más hasta que se reinicie. Te recomendamos no bloquear apps que puedas necesitar con urgencia.</string>
     <string name="schedule_skipped_missing_access_body">%1$s no se inició porque el acceso de Accesibilidad está desactivado. Vuelve a activarlo en Ctrus para reanudar el bloqueo.</string>
+    <string name="settings_exact_alarms">Alarmas y recordatorios</string>
+    <string name="schedule_skipped_missing_alarms_body">%1$s no se inició porque el permiso Alarmas y recordatorios está desactivado. Vuelve a activarlo en Ctrus para reanudar el bloqueo.</string>
+    <string name="settings_privacy_policy">Política de Privacidad</string>
     <string name="settings_faq">¿Buscas Respuestas?</string>
     <string name="settings_section_help">Ayuda</string>
 

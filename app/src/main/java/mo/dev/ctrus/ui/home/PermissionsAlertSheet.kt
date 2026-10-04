@@ -30,19 +30,20 @@ import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 
 /**
- * Android equivalent of HomeAlertDetailView.swift's `.screenTimeAccess` case. Accessibility access
- * (iOS's Screen Time equivalent) is the only OS permission the app can't function without, so this
- * sheet only ever covers that one — battery-optimization exemption is a separate, non-blocking
- * recommendation surfaced through its own one-time dialog and a Settings row (see
- * BatteryOptimizationUtil's kdoc). Reached by tapping the red pill on Home, or by tapping Start
- * while accessibility is missing.
+ * Android equivalent of HomeAlertDetailView.swift's `.screenTimeAccess` case, listing the two
+ * permissions a session can't start without: Accessibility (iOS's Screen Time equivalent) and,
+ * from Android 12, "Alarms & reminders" (see ExactAlarmPermissionUtil). Battery-optimization
+ * exemption stays a separate, non-blocking recommendation (its own one-time dialog and Settings
+ * row). Reached by tapping the red pill on Home, or by trying to start while either is missing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionsAlertSheet(
     isAccessibilityEnabled: Boolean,
+    isExactAlarmGranted: Boolean,
     onDismiss: () -> Unit,
     onFixAccessibility: () -> Unit,
+    onFixExactAlarm: () -> Unit,
 ) {
     // skipPartiallyExpanded avoids an intermediate "half open" resting state — without it, on a
     // device with the 3-button navigation bar the sheet can first settle partially behind that
@@ -80,6 +81,14 @@ fun PermissionsAlertSheet(
                 actionLabel = stringResource(R.string.battery_optimization_allow),
                 onFix = onFixAccessibility,
             )
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                PermissionChecklistRow(
+                    title = stringResource(R.string.settings_exact_alarms),
+                    granted = isExactAlarmGranted,
+                    actionLabel = stringResource(R.string.battery_optimization_allow),
+                    onFix = onFixExactAlarm,
+                )
+            }
         }
     }
 }

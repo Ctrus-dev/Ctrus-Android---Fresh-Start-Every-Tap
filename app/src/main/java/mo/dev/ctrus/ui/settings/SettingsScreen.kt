@@ -83,7 +83,9 @@ fun SettingsScreen(
     themeManager: ThemeManager,
     isUsageAccessGranted: Boolean,
     isBatteryOptimizationExempt: Boolean,
+    isExactAlarmGranted: Boolean,
     onRequestAccessibility: () -> Unit,
+    onRequestExactAlarm: () -> Unit,
     onRequestBatteryOptimizationExemption: () -> Unit,
     appVersion: String,
     selectedAppIcon: AppIcon,
@@ -284,6 +286,8 @@ fun SettingsScreen(
                         Text(stringResource(R.string.settings_version_value, appVersion), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     SettingsDivider()
+                    SettingsLinkRow(title = stringResource(R.string.settings_privacy_policy)) { onOpenUrl("https://privacy.ctrus.pt") }
+                    SettingsDivider()
                     SettingsRow(title = stringResource(R.string.settings_license), showChevron = true, onClick = { showLicense = true })
                     SettingsDivider()
                     // Only tappable while access is missing. Once it's granted there's nothing to do
@@ -307,6 +311,33 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    }
+                    // "Alarms & reminders" only exists from Android 12; below that exact alarms
+                    // always work, so there's nothing to show. Tappable only while missing, same
+                    // as Accessibility above.
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        SettingsDivider()
+                        SettingsRow(
+                            title = stringResource(R.string.settings_exact_alarms),
+                            onClick = if (isExactAlarmGranted) null else onRequestExactAlarm,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            if (isExactAlarmGranted) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                            CircleShape
+                                        )
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(if (isExactAlarmGranted) R.string.settings_authorized else R.string.settings_not_authorized),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                     SettingsDivider()

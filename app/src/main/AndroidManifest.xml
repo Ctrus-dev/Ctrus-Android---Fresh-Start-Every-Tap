@@ -14,9 +14,10 @@
     <uses-permission android:name="android.permission.NFC" />
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
 
-    <!-- Session/break/pause/grant expiry alarms must fire on time even in Doze -->
+    <!-- Scheduled starts, reminders, Duration auto-stops and break ends must fire on time even in
+         Doze ("Alarms & reminders"). Deliberately NOT USE_EXACT_ALARM: Google Play reserves that
+         for alarm-clock/calendar apps. See ExactAlarmPermissionUtil. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <!-- AlarmManager alarms don't survive a reboot — ScheduleReceiver re-arms scheduled starts -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -143,6 +144,8 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <!-- "Alarms & reminders" just got granted: re-arm everything as exact alarms -->
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
 

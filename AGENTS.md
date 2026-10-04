@@ -324,6 +324,24 @@ fix (changing 2↔4 weeks no longer restarts the cycle), the `enableEmergencyUnb
 the `updatedAt`/settle-window and tag-based scheduled-session bugs, the reminder background
 task, the "Schedule needs repair" alert, and the shield blur tweaks.
 
+**Exact alarms: SCHEDULE_EXACT_ALARM only, never USE_EXACT_ALARM.** Google Play reserves
+USE_EXACT_ALARM for alarm-clock/calendar apps, so it was removed. SCHEDULE_EXACT_ALARM ("Alarms &
+reminders") is granted at install on Android 12–13 but **denied by default on 14+**, so:
+- `ExactAlarmPermissionUtil` checks/requests it. Like Accessibility, it gates every start: manual
+  and Ctrus NFC starts on Home (`requireStartPermissions` opens `PermissionsAlertSheet`, which
+  lists both), and scheduled starts (`ScheduleReceiver` skips and notifies, same as when
+  Accessibility is off). It also has its own row in Settings, tappable only while missing.
+- Every alarm goes through `setWhileIdleBestEffort`: exact when allowed, inexact otherwise. Calling
+  `setExactAndAllowWhileIdle` without the permission throws, and used to crash starting a break.
+- Break ends are time-based, not alarm-based: `BlockingState.isBreakActiveAt()` stops pausing the
+  block at `breakScheduledEndMillis`, the accessibility service re-checks at that moment, and
+  `SessionRepository.finalizeExpiredBreak` closes the break at its scheduled end (not "now"), from
+  the alarm, the session ticker, or the service, whichever comes first.
+- `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` re-arms every alarm as exact once it's granted.
+Verified on the emulator (API 37, with the permission denied through `appops --uid`): start blocked
+with both rows shown, the toggle opens straight to Ctrus, alarms re-armed exact after granting, a
+break starts without crashing, and an overdue 5-minute break closes at exactly 300 s.
+
 ## Localization
 
 The app ships in English (default), Portuguese — Portugal (`values-pt-rPT`), and Spanish

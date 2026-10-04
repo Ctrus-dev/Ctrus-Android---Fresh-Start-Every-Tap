@@ -7,6 +7,8 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import mo.dev.ctrus.CtrusApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -54,8 +56,35 @@ class BlockingAccessibilityService : AccessibilityService() {
         // current foreground app on every BlockingStateHolder change so an already-open app gets
         // shielded immediately instead of staying open until the next unrelated app switch.
         BlockingStateHolder.state
-            .onEach { recheckForegroundApp() }
+            .onEach { state ->
+                recheckForegroundApp()
+                scheduleBreakEndRecheck(state)
+            }
             .launchIn(serviceScope)
+    }
+
+    private var breakEndJob: Job? = null
+
+    /**
+     * A break ends by time, not only when its alarm arrives (which can be late without "Alarms &
+     * reminders"). At the scheduled end this re-shields the app that's already open and closes
+     * the break in Room, so it doesn't depend on the alarm or on the user switching apps.
+     */
+    private fun scheduleBreakEndRecheck(state: BlockingState) {
+        breakEndJob?.cancel()
+        val endsAt = state.breakEndsAtEpochMilli ?: return
+        val sessionId = state.sessionId ?: return
+        val profileId = state.profileId ?: return
+        if (!state.isBreakActive) return
+        breakEndJob = serviceScope.launch {
+            delay((endsAt - System.currentTimeMillis()).coerceAtLeast(0))
+            recheckForegroundApp()
+            val app = CtrusApp.from(this@BlockingAccessibilityService)
+            app.applicationScope.launch {
+                val profile = app.profileRepository.find(profileId) ?: return@launch
+                app.sessionRepository.finalizeExpiredBreak(sessionId, profile)
+            }
+        }
     }
 
     private fun recheckForegroundApp() {

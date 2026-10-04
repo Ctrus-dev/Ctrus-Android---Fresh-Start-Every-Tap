@@ -18,6 +18,7 @@ import mo.dev.ctrus.CtrusApp
 import mo.dev.ctrus.MainActivity
 import mo.dev.ctrus.R
 import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
+import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
 import mo.dev.ctrus.strategy.StrategyIds
 
 /**
@@ -61,12 +62,19 @@ class ScheduleReceiver : BroadcastReceiver() {
         // Time access) nothing actually gets blocked, so starting a session would just run the
         // clock on a block that never happens. Skip this occurrence and say why; the next one is
         // still armed below.
-        if (!AccessibilityPermissionUtil.isEnabled(context)) {
+        val missingPermissionBody = when {
+            !AccessibilityPermissionUtil.isEnabled(context) -> R.string.schedule_skipped_missing_access_body
+            // Same treatment for "Alarms & reminders": without it this alarm (and the Duration
+            // stop, and the next starts) can't be relied on to fire on time.
+            !ExactAlarmPermissionUtil.isGranted(context) -> R.string.schedule_skipped_missing_alarms_body
+            else -> null
+        }
+        if (missingPermissionBody != null) {
             notify(
                 context,
                 "missing-access:$profileId",
                 context.getString(R.string.schedule_skipped_notification_title),
-                context.getString(R.string.schedule_skipped_missing_access_body, profile.name),
+                context.getString(missingPermissionBody, profile.name),
             )
             app.scheduleAlarmScheduler.sync(profile)
             return@withLock

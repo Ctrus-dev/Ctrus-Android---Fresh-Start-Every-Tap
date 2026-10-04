@@ -13,6 +13,7 @@ import mo.dev.ctrus.data.BlockedProfileEntity
 import mo.dev.ctrus.data.BlockedProfileSessionEntity
 import mo.dev.ctrus.data.ProfileRepository
 import mo.dev.ctrus.data.SessionRepository
+import mo.dev.ctrus.data.breakScheduledEndMillis
 import mo.dev.ctrus.data.isActive
 import mo.dev.ctrus.data.isBreakActive
 import mo.dev.ctrus.strategy.StrategyCapabilities
@@ -57,6 +58,7 @@ object BlockingStateHolder {
             enableBrowserBlocking = profile.enableBrowserBlocking,
             enableAdultContentBlocking = profile.enableAdultContentBlocking,
             isBreakActive = session.isBreakActive(profile, allowsBreaks),
+            breakEndsAtEpochMilli = session.breakScheduledEndMillis(profile),
             enableStrictMode = profile.enableStrictMode,
             enableBlockAppInstallation = profile.enableBlockAppInstallation,
         )

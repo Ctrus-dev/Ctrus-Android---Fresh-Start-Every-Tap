@@ -47,6 +47,23 @@ fun BlockedProfileSessionEntity.duration(now: Long = System.currentTimeMillis())
 fun BlockedProfileSessionEntity.isBreakActive(profile: BlockedProfileEntity, allowsTimedBreaks: Boolean): Boolean =
     profile.enableBreaks && allowsTimedBreaks && breakStartTimeEpochMilli != null && breakEndTimeEpochMilli == null
 
+/**
+ * When the break currently running is due to end (start + whatever allowance was left when it
+ * began), or null if no break is running. This is what makes break ends time-based: blocking
+ * treats the break as over at this moment even if the expiry alarm arrives late, e.g. without
+ * "Alarms & reminders".
+ */
+fun BlockedProfileSessionEntity.breakScheduledEndMillis(profile: BlockedProfileEntity): Long? {
+    val start = breakStartTimeEpochMilli ?: return null
+    if (breakEndTimeEpochMilli != null) return null
+    val allowanceSeconds = if (profile.allowMultipleBreaks) {
+        (totalBreakAllowanceSeconds(profile) - usedBreakDurationInSeconds).coerceAtLeast(0.0)
+    } else {
+        totalBreakAllowanceSeconds(profile)
+    }
+    return start + (allowanceSeconds * 1000).toLong()
+}
+
 fun BlockedProfileSessionEntity.isBreakAvailable(profile: BlockedProfileEntity, allowsTimedBreaks: Boolean, now: Long = System.currentTimeMillis()): Boolean {
     if (!profile.enableBreaks || !allowsTimedBreaks) return false
     return if (profile.allowMultipleBreaks) {

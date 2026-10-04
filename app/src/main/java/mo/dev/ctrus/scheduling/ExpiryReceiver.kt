@@ -42,7 +42,8 @@ class ExpiryReceiver : BroadcastReceiver() {
                 val session = app.sessionRepository.find(sessionId) ?: return@launch
                 val profile = app.profileRepository.find(profileId) ?: return@launch
                 if (session.breakStartTimeEpochMilli == null || session.breakEndTimeEpochMilli != null) return@launch
-                app.sessionRepository.endBreak(session, profile)
+                // Stamped at the scheduled end, not "now", in case this alarm arrived late.
+                app.sessionRepository.finalizeExpiredBreak(session.id, profile)
             } finally {
                 pendingResult.finish()
             }

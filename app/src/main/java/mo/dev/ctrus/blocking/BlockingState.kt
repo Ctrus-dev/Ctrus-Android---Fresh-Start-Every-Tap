@@ -18,24 +18,30 @@ data class BlockingState(
     val enableBrowserBlocking: Boolean = true,
     val enableAdultContentBlocking: Boolean = false,
     val isBreakActive: Boolean = false,
+    /** When the running break is due to end; it stops counting from then on, even before Room catches up. */
+    val breakEndsAtEpochMilli: Long? = null,
     val enableStrictMode: Boolean = false,
     val enableBlockAppInstallation: Boolean = false,
 ) {
     val isBlocking: Boolean get() = profileId != null
 
+    /** Time-based, not just the stored flag: a break whose time is up no longer pauses blocking. */
+    fun isBreakActiveAt(now: Long = System.currentTimeMillis()): Boolean =
+        isBreakActive && (breakEndsAtEpochMilli == null || now < breakEndsAtEpochMilli)
+
     // Mirrors AppBlockerUtil.deactivateRestrictionsForBreak: app/domain shielding and the
     // install block both pause for a break, but the deletion block (denyAppRemoval on iOS)
     // deliberately does not — see its "strict mode" comment there.
-    val isInstallBlockActive: Boolean get() = isBlocking && !isBreakActive && enableBlockAppInstallation
+    val isInstallBlockActive: Boolean get() = isBlocking && !isBreakActiveAt() && enableBlockAppInstallation
     val isDeletionBlockActive: Boolean get() = isBlocking && enableStrictMode
 
     fun isPackageBlocked(packageName: String): Boolean {
-        if (!isBlocking || isBreakActive) return false
+        if (!isBlocking || isBreakActiveAt()) return false
         return if (allowMode) packageName !in blockedPackages else packageName in blockedPackages
     }
 
     fun isDomainBlocked(domain: String): Boolean {
-        if (!isBlocking || isBreakActive || !enableBrowserBlocking) return false
+        if (!isBlocking || isBreakActiveAt() || !enableBrowserBlocking) return false
         val matches = domains.any { domain == it || domain.endsWith(".$it") }
         return if (allowModeDomains) !matches else matches
     }
