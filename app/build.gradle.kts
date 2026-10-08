@@ -41,6 +41,9 @@ android {
     // drift out of sync with them.
     androidResources {
         generateLocaleConfig = true
+        // The adult-website list is memory-mapped straight from the APK (see AdultDomainList),
+        // which only works if it's stored uncompressed.
+        noCompress += "bin"
     }
 }
 

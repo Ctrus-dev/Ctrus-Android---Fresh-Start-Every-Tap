@@ -69,6 +69,19 @@ fun LicenseSheet(onDismiss: () -> Unit) {
                 }
             }
 
+            // Attribution for the bundled adult-website list (see assets/blocklists/NOTICE.txt).
+            Spacer(Modifier.height(20.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp))
+                    .padding(16.dp),
+            ) {
+                Text(stringResource(R.string.license_third_party_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.license_third_party_adult_list), style = MaterialTheme.typography.bodyMedium)
+            }
+
             val note = stringResource(R.string.license_translation_note)
             if (note.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))

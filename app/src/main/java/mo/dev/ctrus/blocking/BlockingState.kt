@@ -41,9 +41,13 @@ data class BlockingState(
     }
 
     fun isDomainBlocked(domain: String): Boolean {
-        if (!isBlocking || isBreakActiveAt() || !enableBrowserBlocking) return false
+        if (!isBlocking || isBreakActiveAt()) return false
         // Ctrus's own sites stay reachable even in allow-mode (see BlockSafetyPolicy).
         if (BlockSafetyPolicy.isProtectedDomain(domain)) return false
+        // "Block Adult Websites" is its own switch, independent of "Block Websites in Browser"
+        // (which only governs the profile's own domain list), like iOS's separate filter.
+        if (enableAdultContentBlocking && AdultDomainList.contains(domain)) return true
+        if (!enableBrowserBlocking) return false
         // "www." is ignored on both sides: browsers often hide it (Chrome shows "youtube.com"),
         // so "www.youtube.com" in a profile must still match, and vice versa.
         val host = domain.lowercase().removePrefix("www.")

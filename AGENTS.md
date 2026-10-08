@@ -50,6 +50,17 @@ project follows the same approach:
   once that dialog closes. The in-app disclosure and the service description state that the
   address bar is read. Verified on the emulator with Chrome: block, re-block on return,
   www./path variants, unrelated site allowed, nothing blocked once the session ends.
+- **"Block Adult Websites"** (`blocking/AdultDomainList`): iOS uses Apple's system content filter;
+  Android has no equivalent for apps, so Ctrus ships The Block List Project's adult list
+  (public domain / MIT, credited in the License sheet and `assets/blocklists/NOTICE.txt`) as
+  ~937k sorted 64-bit FNV-1a hashes (`assets/blocklists/adult_domains.bin`, 7.5 MB, stored
+  uncompressed via `noCompress += "bin"` and memory-mapped, so nothing is loaded into the heap).
+  A host matches if it or any parent domain is on the list. It's independent of "Block Websites
+  in Browser" and mutually exclusive with "Allow Only Selected Domains", like iOS. It only works
+  in supported browsers and only for listed sites. Regenerate with
+  `python3 tools/build_adult_blocklist.py` (the Python and Kotlin hash functions must stay
+  identical). Verified on the emulator: a listed domain and a subdomain of it are blocked, an
+  unlisted site isn't.
 - **`blocking/BlockerActivity`** — the full-screen surface shown instead of a blocked
   app, launched instantly by the accessibility service (`Intent` + `FLAG_ACTIVITY_NEW_TASK`,
   no `performGlobalAction(GLOBAL_ACTION_HOME)` kick beforehand — see the note below on

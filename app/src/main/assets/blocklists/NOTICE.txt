@@ -1,0 +1,4 @@
+adult_domains.bin is generated (tools/build_adult_blocklist.py) from the porn list of
+The Block List Project — https://github.com/blocklistproject/Lists
+Source list header: "License: MIT"; repository license: The Unlicense (public domain).
+List snapshot: "Last modified: 2026-07-18 01:36:51 UTC".

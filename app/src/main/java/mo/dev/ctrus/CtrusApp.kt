@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import mo.dev.ctrus.blocking.AdultDomainList
 import mo.dev.ctrus.blocking.BlockingStateHolder
 import mo.dev.ctrus.data.CtrusDatabase
 import mo.dev.ctrus.data.ProfileRepository
@@ -54,6 +55,7 @@ class CtrusApp : Application() {
         scheduleAlarmScheduler = ScheduleAlarmScheduler(this)
 
         BlockingStateHolder.start(applicationScope, sessionRepository, profileRepository)
+        AdultDomainList.init(this)
 
         // Keeps every "Schedule + Ctrus NFC" profile's alarms in step with Room: creating,
         // editing, switching mode, duplicating, or deleting a profile all re-arm/cancel here —

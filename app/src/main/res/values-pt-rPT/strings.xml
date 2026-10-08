@@ -416,6 +416,10 @@
     <string name="schedule_skipped_missing_alarms_body">%1$s não começou porque a permissão Alarmes e lembretes está desativada. Reativa-a no Ctrus para retomar o bloqueio.</string>
     <string name="settings_privacy_policy">Política de Privacidade</string>
     <string name="field_domain_protected">Os sites do Ctrus não podem ser bloqueados.</string>
+    <string name="field_block_adult_websites_title">Bloquear Sites de Conteúdo Adulto</string>
+    <string name="field_block_adult_websites_desc">Bloqueia uma lista incluída de sites de conteúdo adulto durante as sessões, nos navegadores suportados. Ainda podes adicionar domínios extra para bloquear.</string>
+    <string name="license_third_party_title">Dados de Terceiros</string>
+    <string name="license_third_party_adult_list">A lista de sites de conteúdo adulto vem do The Block List Project (github.com/blocklistproject/Lists), disponibilizada em domínio público / sob a Licença MIT.</string>
     <string name="settings_faq">À Procura de Respostas?</string>
     <string name="settings_section_help">Ajuda</string>
 

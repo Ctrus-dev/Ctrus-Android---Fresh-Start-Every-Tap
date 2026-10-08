@@ -256,6 +256,17 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
         enabled = !disabled,
         onCheckedChange = { onDraftChange(draft.copy(enableAllowModeDomains = it, enableAdultContentBlocking = if (it) false else draft.enableAdultContentBlocking)) },
     )
+    SettingsDivider()
+    // Port of BlockedProfileFormSections.swift's "Block Adult Websites" toggle, mutually exclusive
+    // with "Allow Only Selected Domains" exactly like iOS (allow-mode already blocks every site
+    // not on the list). Backed by AdultDomainList instead of Apple's system filter.
+    CustomToggleRow(
+        title = stringResource(R.string.field_block_adult_websites_title),
+        description = stringResource(R.string.field_block_adult_websites_desc),
+        checked = draft.enableAdultContentBlocking,
+        enabled = !disabled,
+        onCheckedChange = { onDraftChange(draft.copy(enableAdultContentBlocking = it, enableAllowModeDomains = if (it) false else draft.enableAllowModeDomains)) },
+    )
 }
 
 @Composable

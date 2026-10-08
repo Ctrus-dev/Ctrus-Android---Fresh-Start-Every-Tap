@@ -421,6 +421,10 @@
     <string name="schedule_skipped_missing_alarms_body">%1$s didn\'t start because Alarms &amp; reminders is turned off. Turn it back on in Ctrus to resume blocking.</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="field_domain_protected">Ctrus\'s own sites can\'t be blocked.</string>
+    <string name="field_block_adult_websites_title">Block Adult Websites</string>
+    <string name="field_block_adult_websites_desc">Blocks a built-in list of adult websites during sessions, in supported browsers. You can still add extra domains to block.</string>
+    <string name="license_third_party_title">Third-Party Data</string>
+    <string name="license_third_party_adult_list">The adult-website list comes from The Block List Project (github.com/blocklistproject/Lists), released into the public domain / under the MIT License.</string>
     <string name="settings_faq">Looking for Answers?</string>
     <string name="settings_section_help">Help</string>
 
