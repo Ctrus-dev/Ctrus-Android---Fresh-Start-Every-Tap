@@ -75,7 +75,7 @@ class BlockerActivity : ComponentActivity() {
     private fun updateForIntent(intent: Intent) {
         val pkg = intent.getStringExtra(EXTRA_PACKAGE_NAME)
         blockedPackageName = pkg
-        appLabel = pkg
+        appLabel = intent.getStringExtra(EXTRA_SITE_DOMAIN)?.removePrefix("www.") ?: pkg
             ?.let { runCatching { packageManager.getApplicationInfo(it, 0) }.getOrNull() }
             ?.let { packageManager.getApplicationLabel(it).toString() }
     }
@@ -118,6 +118,8 @@ class BlockerActivity : ComponentActivity() {
     companion object {
         const val EXTRA_PACKAGE_NAME = "package_name"
         const val EXTRA_PROFILE_NAME = "profile_name"
+        /** Set when a website is being blocked; shown instead of the browser's own name. */
+        const val EXTRA_SITE_DOMAIN = "site_domain"
 
         private const val VISIBLE_TTL_MILLIS = 2_500L
 

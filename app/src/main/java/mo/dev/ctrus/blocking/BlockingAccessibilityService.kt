@@ -44,7 +44,10 @@ class BlockingAccessibilityService : AccessibilityService() {
         // canRetrieveWindowContent, which silently breaks rootInActiveWindow (used by
         // recheckForegroundApp) on many devices.
         serviceInfo = (serviceInfo ?: AccessibilityServiceInfo()).apply {
-            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+            // Content changes are only acted on for supported browsers (address bar = the site
+            // that's open); every other app's are dropped right away in onAccessibilityEvent.
+            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+            flags = flags or AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             notificationTimeout = 100
         }
@@ -89,12 +92,14 @@ class BlockingAccessibilityService : AccessibilityService() {
 
     private fun recheckForegroundApp() {
         try {
-            val packageName = rootInActiveWindow?.packageName?.toString() ?: return
+            val root = rootInActiveWindow ?: return
+            val packageName = root.packageName?.toString() ?: return
             lastHandledPackage = packageName
             when (val decision = BlockDecisionEngine.decide(this, packageName)) {
                 is BlockDecision.Block -> showBlocker(decision)
                 BlockDecision.Dismiss -> goHome()
-                BlockDecision.Allow -> Unit
+                // A session can start (or a break end) while a blocked site is already open.
+                BlockDecision.Allow -> { lastCheckedHost = null; checkBrowserSite(root, packageName) }
             }
         } catch (e: Exception) {
             // Never let an unexpected exception here propagate: it would crash on the main
@@ -104,17 +109,52 @@ class BlockingAccessibilityService : AccessibilityService() {
         }
     }
 
+    // Last site checked, so the stream of content-changed events from a browser page doesn't
+    // re-run the check (or relaunch the block screen) for the same site over and over.
+    private var lastCheckedHost: String? = null
+    private var lastBrowserCheckAtRealtime = 0L
+
+    /** Per-site blocking: reads the open browser's address bar and blocks the site if needed. */
+    private fun checkBrowserSite(root: android.view.accessibility.AccessibilityNodeInfo, packageName: String) {
+        if (!BrowserUrlReader.isSupportedBrowser(packageName)) return
+        if (!BlockingStateHolder.state.value.isBlocking) return
+        // The active window isn't always the one with the address bar: a browser's own dialogs
+        // (e.g. Chrome's "notifications make things easier" prompt) sit on top of the page. So
+        // every on-screen window of that browser is searched, the active one first.
+        val roots = listOf(root) + windows.mapNotNull { it.root }.filter { it.packageName?.toString() == packageName && it != root }
+        val host = roots.firstNotNullOfOrNull { BrowserUrlReader.readHost(it, packageName) } ?: return
+        if (host == lastCheckedHost) return
+        lastCheckedHost = host
+        val decision = BlockDecisionEngine.decideSite(packageName, host)
+        if (decision is BlockDecision.Block) showBlocker(decision)
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         try {
             val packageName = event?.packageName?.toString() ?: return
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+                // Fires constantly while a page loads/scrolls: only browsers matter, and at
+                // most a few checks per second.
+                if (!BrowserUrlReader.isSupportedBrowser(packageName)) return
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastBrowserCheckAtRealtime < BROWSER_CHECK_INTERVAL_MILLIS) return
+                lastBrowserCheckAtRealtime = now
+                val root = rootInActiveWindow ?: return
+                if (root.packageName?.toString() != packageName) return
+                checkBrowserSite(root, packageName)
+                return
+            }
             if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+            // Coming back to a browser re-checks its site even if it's the same one as before
+            // (the block screen was dismissed, but the tab is still on that site).
+            if (BrowserUrlReader.isSupportedBrowser(packageName)) lastCheckedHost = null
             if (packageName == lastHandledPackage) return
             lastHandledPackage = packageName
 
             when (val decision = BlockDecisionEngine.decide(this, packageName)) {
                 is BlockDecision.Block -> showBlocker(decision)
                 BlockDecision.Dismiss -> goHome()
-                BlockDecision.Allow -> Unit
+                BlockDecision.Allow -> rootInActiveWindow?.let { checkBrowserSite(it, packageName) }
             }
         } catch (e: Exception) {
             // See recheckForegroundApp()'s comment — an accessibility event callback must never
@@ -153,6 +193,7 @@ class BlockingAccessibilityService : AccessibilityService() {
         val intent = Intent(this, BlockerActivity::class.java)
             .putExtra(BlockerActivity.EXTRA_PACKAGE_NAME, decision.packageName)
             .putExtra(BlockerActivity.EXTRA_PROFILE_NAME, decision.profileName)
+            .putExtra(BlockerActivity.EXTRA_SITE_DOMAIN, decision.siteDomain)
             .addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_NO_ANIMATION or
@@ -202,5 +243,6 @@ class BlockingAccessibilityService : AccessibilityService() {
         const val VERIFY_DELAY_MILLIS = 750L
         const val RETRY_DELAY_MILLIS = 140L
         const val RETRY_COOLDOWN_MILLIS = 2_500L
+        const val BROWSER_CHECK_INTERVAL_MILLIS = 300L
     }
 }

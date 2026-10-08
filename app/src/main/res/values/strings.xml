@@ -90,7 +90,7 @@
         <item>Sat</item>
     </string-array>
     <string name="a11y_disclosure_title">Accessibility access</string>
-    <string name="a11y_disclosure_body">Ctrus uses Android\'s Accessibility service to detect the app you have open, so it can show the block screen when needed. It only reads the app\'s name, never passwords, messages, or anything you type, and nothing leaves your device.\n\nOn the next screen, find Ctrus under \"Downloaded apps\", tap it, and approve it. You won\'t need the shortcut option.</string>
+    <string name="a11y_disclosure_body">Ctrus uses Android\'s Accessibility service to detect the app you have open, so it can show the block screen when needed. It reads the app\'s name and, in web browsers, the address of the site you\'re on, so it can block the sites you chose. It never reads passwords, messages, or anything you type, and nothing leaves your device.\n\nOn the next screen, find Ctrus under \"Downloaded apps\", tap it, and approve it. You won\'t need the shortcut option.</string>
     <string name="a11y_disclosure_agree_checkbox">I understand and agree</string>
     <string name="a11y_disclosure_continue">Continue to Settings</string>
     <string name="battery_optimization_title">Keep blocking running reliably</string>
@@ -293,7 +293,7 @@
     <string name="color_lemon">Lemon</string>
     <string name="color_dark">Dark</string>
     <string name="blocker_app_fallback">This app</string>
-    <string name="accessibility_service_description">Lets Ctrus detect when a blocked app is opened so it can show the block screen for the profile you configured.</string>
+    <string name="accessibility_service_description">Lets Ctrus detect when a blocked app or website is opened so it can show the block screen for the profile you configured. In web browsers it reads the address bar to know which site is open.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
         <item quantity="other">%1$d Apps</item>
@@ -420,6 +420,7 @@
     <string name="settings_exact_alarms">Alarms &amp; reminders</string>
     <string name="schedule_skipped_missing_alarms_body">%1$s didn\'t start because Alarms &amp; reminders is turned off. Turn it back on in Ctrus to resume blocking.</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="field_domain_protected">Ctrus\'s own sites can\'t be blocked.</string>
     <string name="settings_faq">Looking for Answers?</string>
     <string name="settings_section_help">Help</string>
 

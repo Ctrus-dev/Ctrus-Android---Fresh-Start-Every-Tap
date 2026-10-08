@@ -89,7 +89,7 @@
         <item>Sáb</item>
     </string-array>
     <string name="a11y_disclosure_title">Acceso de Accesibilidad</string>
-    <string name="a11y_disclosure_body">Ctrus usa el servicio de Accesibilidad de Android para saber qué app tienes abierta, para poder mostrar la pantalla de bloqueo cuando haga falta. Solo lee el nombre de la app, nunca contraseñas, mensajes ni lo que escribes, y nada sale de tu dispositivo.\n\nEn la siguiente pantalla, busca Ctrus en \"Apps descargadas\", tócala y apruébala. No necesitas el acceso directo.</string>
+    <string name="a11y_disclosure_body">Ctrus usa el servicio de Accesibilidad de Android para saber qué app tienes abierta, para poder mostrar la pantalla de bloqueo cuando haga falta. Lee el nombre de la app y, en los navegadores, la dirección del sitio en el que estás, para bloquear los sitios que elegiste. Nunca lee contraseñas, mensajes ni lo que escribes, y nada sale de tu dispositivo.\n\nEn la siguiente pantalla, busca Ctrus en \"Apps descargadas\", tócala y apruébala. No necesitas el acceso directo.</string>
     <string name="a11y_disclosure_agree_checkbox">Entiendo y acepto</string>
     <string name="a11y_disclosure_continue">Continuar a Ajustes</string>
     <string name="battery_optimization_title">Mantén el bloqueo funcionando de forma fiable</string>
@@ -292,7 +292,7 @@
     <string name="color_lemon">Limón</string>
     <string name="color_dark">Oscuro</string>
     <string name="blocker_app_fallback">Esta app</string>
-    <string name="accessibility_service_description">Permite que Ctrus detecte cuándo se abre una app bloqueada, para mostrar la pantalla de bloqueo del perfil que configuraste.</string>
+    <string name="accessibility_service_description">Permite que Ctrus detecte cuándo se abre una app o un sitio bloqueado, para mostrar la pantalla de bloqueo del perfil que configuraste. En los navegadores, lee la barra de direcciones para saber qué sitio está abierto.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
         <item quantity="other">%1$d Apps</item>
@@ -415,6 +415,7 @@
     <string name="settings_exact_alarms">Alarmas y recordatorios</string>
     <string name="schedule_skipped_missing_alarms_body">%1$s no se inició porque el permiso Alarmas y recordatorios está desactivado. Vuelve a activarlo en Ctrus para reanudar el bloqueo.</string>
     <string name="settings_privacy_policy">Política de Privacidad</string>
+    <string name="field_domain_protected">Los sitios de Ctrus no se pueden bloquear.</string>
     <string name="settings_faq">¿Buscas Respuestas?</string>
     <string name="settings_section_help">Ayuda</string>
 

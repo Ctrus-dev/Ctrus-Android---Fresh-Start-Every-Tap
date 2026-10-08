@@ -2,6 +2,7 @@ package mo.dev.ctrus.picker
 
 import android.content.Context
 import android.content.Intent
+import mo.dev.ctrus.blocking.BlockSafetyPolicy
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +32,9 @@ class InstalledAppsRepository(private val context: Context) {
             .asSequence()
             .map { it.activityInfo.packageName }
             .distinct()
-            .filter { it != ownPackage }
+            // Ctrus, the phone's Settings/Phone apps and the launcher can never be blocked (see
+            // BlockSafetyPolicy), so they aren't offered as something to pick either.
+            .filter { it != ownPackage && !BlockSafetyPolicy.isProtected(context, it) }
             .mapNotNull { packageName ->
                 runCatching {
                     val appInfo = pm.getApplicationInfo(packageName, 0)

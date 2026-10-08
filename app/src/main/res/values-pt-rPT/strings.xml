@@ -89,7 +89,7 @@
         <item>Sáb</item>
     </string-array>
     <string name="a11y_disclosure_title">Acesso de Acessibilidade</string>
-    <string name="a11y_disclosure_body">O Ctrus usa o serviço de Acessibilidade do Android para saber que app tens aberta, para poder mostrar o ecrã de bloqueio quando preciso. Só lê o nome da app, nunca palavras-passe, mensagens ou o que escreves, e nada sai do teu dispositivo.\n\nNo ecrã seguinte, procura o Ctrus em \"Apps transferidas\", toca nele e aprova. Não precisas do atalho.</string>
+    <string name="a11y_disclosure_body">O Ctrus usa o serviço de Acessibilidade do Android para saber que app tens aberta, para poder mostrar o ecrã de bloqueio quando preciso. Lê o nome da app e, nos navegadores, o endereço do site em que estás, para bloquear os sites que escolheste. Nunca lê palavras-passe, mensagens ou o que escreves, e nada sai do teu dispositivo.\n\nNo ecrã seguinte, procura o Ctrus em \"Apps transferidas\", toca nele e aprova. Não precisas do atalho.</string>
     <string name="a11y_disclosure_agree_checkbox">Compreendo e concordo</string>
     <string name="a11y_disclosure_continue">Continuar para Definições</string>
     <string name="battery_optimization_title">Mantém o bloqueio a funcionar de forma fiável</string>
@@ -292,7 +292,7 @@
     <string name="color_lemon">Limão</string>
     <string name="color_dark">Escuro</string>
     <string name="blocker_app_fallback">Esta app</string>
-    <string name="accessibility_service_description">Permite que o Ctrus detete quando uma app bloqueada é aberta, para mostrar o ecrã de bloqueio do perfil que configuraste.</string>
+    <string name="accessibility_service_description">Permite que o Ctrus detete quando uma app ou um site bloqueado é aberto, para mostrar o ecrã de bloqueio do perfil que configuraste. Nos navegadores, lê a barra de endereço para saber que site está aberto.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
         <item quantity="other">%1$d Apps</item>
@@ -415,6 +415,7 @@
     <string name="settings_exact_alarms">Alarmes e lembretes</string>
     <string name="schedule_skipped_missing_alarms_body">%1$s não começou porque a permissão Alarmes e lembretes está desativada. Reativa-a no Ctrus para retomar o bloqueio.</string>
     <string name="settings_privacy_policy">Política de Privacidade</string>
+    <string name="field_domain_protected">Os sites do Ctrus não podem ser bloqueados.</string>
     <string name="settings_faq">À Procura de Respostas?</string>
     <string name="settings_section_help">Ajuda</string>
 

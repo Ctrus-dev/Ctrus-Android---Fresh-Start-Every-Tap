@@ -7,7 +7,8 @@ package mo.dev.ctrus.blocking
  */
 sealed interface BlockDecision {
     data object Allow : BlockDecision
-    data class Block(val packageName: String, val profileName: String) : BlockDecision
+    /** [siteDomain] is set when it's a website (open in browser [packageName]) being blocked, not the app itself. */
+    data class Block(val packageName: String, val profileName: String, val siteDomain: String? = null) : BlockDecision
 
     /** Just leave the interrupted surface (Play Store, an uninstall confirmation) — showing the
      *  citrus shield screen there would be a jarring mismatch, since the user didn't pick that
@@ -70,6 +71,20 @@ object BlockDecisionEngine {
         }
         return if (state.isPackageBlocked(foregroundPackage)) {
             BlockDecision.Block(packageName = foregroundPackage, profileName = state.profileName)
+        } else {
+            BlockDecision.Allow
+        }
+    }
+
+    /**
+     * Per-site blocking: called with the host currently open in a supported browser (see
+     * [BrowserUrlReader]). The browser itself being allowed is a precondition, so this only runs
+     * after [decide] returned Allow for it.
+     */
+    fun decideSite(browserPackage: String, host: String): BlockDecision {
+        val state = BlockingStateHolder.state.value
+        return if (state.isDomainBlocked(host)) {
+            BlockDecision.Block(packageName = browserPackage, profileName = state.profileName, siteDomain = host)
         } else {
             BlockDecision.Allow
         }

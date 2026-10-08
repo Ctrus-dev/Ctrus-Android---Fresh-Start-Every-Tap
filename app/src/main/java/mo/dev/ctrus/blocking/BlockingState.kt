@@ -42,7 +42,15 @@ data class BlockingState(
 
     fun isDomainBlocked(domain: String): Boolean {
         if (!isBlocking || isBreakActiveAt() || !enableBrowserBlocking) return false
-        val matches = domains.any { domain == it || domain.endsWith(".$it") }
+        // Ctrus's own sites stay reachable even in allow-mode (see BlockSafetyPolicy).
+        if (BlockSafetyPolicy.isProtectedDomain(domain)) return false
+        // "www." is ignored on both sides: browsers often hide it (Chrome shows "youtube.com"),
+        // so "www.youtube.com" in a profile must still match, and vice versa.
+        val host = domain.lowercase().removePrefix("www.")
+        val matches = domains.any {
+            val blocked = it.lowercase().removePrefix("www.")
+            host == blocked || host.endsWith(".$blocked")
+        }
         return if (allowModeDomains) !matches else matches
     }
 }

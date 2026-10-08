@@ -29,9 +29,27 @@ project follows the same approach:
   why the permission is requested before submitting. Switchly is a live proof this is
   approvable for a genuinely-disclosed focus/blocking use case — don't skip the
   disclosure step when this gets close to a real release.
-- **`blocking/BlockSafetyPolicy`** — never-block list (Settings, dialer, system UI, the
-  default launcher, Ctrus itself) so a misconfigured profile can't lock the user out of
-  their phone. Extend this before wiring up real blocking logic.
+- **`blocking/BlockSafetyPolicy`** — never-block list so a profile (allow-mode included) can't
+  lock the user out of their phone: Ctrus itself, the phone's Settings and Phone apps, the
+  launcher, system UI, and the emergency/in-call screens. OEMs use their own package names
+  (Samsung's Phone app is `com.samsung.android.dialer`), so on top of a list of known names it
+  resolves the device's actual Settings handler, `ACTION_DIAL` handler, default dialer and home
+  launcher (cached, since this runs on every window event). Protected apps are hidden from the
+  app picker. `isProtectedDomain` keeps `ctrus.pt` and every `*.ctrus.pt` (e.g. recover.ctrus.pt)
+  unblockable, and the Domains field refuses to add them.
+- **Per-site blocking** (`blocking/BrowserUrlReader`): Android has no API for "which URL is open",
+  so, like Switchly, the Accessibility service reads the address bar of known browsers by view id
+  (Chrome and its channels, Samsung Internet, Firefox/Focus, Edge, Brave, Opera, DuckDuckGo,
+  Vivaldi, Kiwi), skipping it while focused (it then holds what's being typed). It listens to
+  `TYPE_WINDOW_CONTENT_CHANGED` for those browsers only, throttled to one check every 300 ms and
+  deduped per host, and searches every window of the browser, not just the active one. A blocked
+  site shows `BlockerActivity` with the site's name; returning to the browser on that site blocks
+  again. Matching ignores "www." on both sides. Known limits: browsers not in the list aren't
+  site-blocked (block the app itself), and while a browser shows its own modal dialog (e.g.
+  Chrome's notification prompt) it hides the address bar from accessibility, so the check runs
+  once that dialog closes. The in-app disclosure and the service description state that the
+  address bar is read. Verified on the emulator with Chrome: block, re-block on return,
+  www./path variants, unrelated site allowed, nothing blocked once the session ends.
 - **`blocking/BlockerActivity`** — the full-screen surface shown instead of a blocked
   app, launched instantly by the accessibility service (`Intent` + `FLAG_ACTIVITY_NEW_TASK`,
   no `performGlobalAction(GLOBAL_ACTION_HOME)` kick beforehand — see the note below on

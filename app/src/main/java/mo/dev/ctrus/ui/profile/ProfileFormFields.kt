@@ -56,6 +56,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.blocking.BlockSafetyPolicy
 import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.data.PhysicalUnblockType
 import mo.dev.ctrus.nfc.NfcScanController
@@ -198,6 +199,7 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
     var domainError by remember { mutableStateOf<String?>(null) }
     val domainAlreadyExists = stringResource(R.string.field_domain_already_exists)
     val domainInvalid = stringResource(R.string.field_domain_invalid)
+    val domainProtected = stringResource(R.string.field_domain_protected)
 
     // Same compact layout as Settings' recovery-code row: the row's own 16.dp is the only
     // spacing (see CompactTextField), and "Add" is plain tappable text at the field's size
@@ -221,6 +223,7 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
                 when {
                     draft.domains.contains(trimmed) -> domainError = domainAlreadyExists
                     !DomainValidator.isValid(trimmed) -> domainError = domainInvalid
+                    BlockSafetyPolicy.isProtectedDomain(trimmed) -> domainError = domainProtected
                     else -> {
                         onDraftChange(draft.copy(domains = draft.domains + trimmed))
                         newDomainText = ""

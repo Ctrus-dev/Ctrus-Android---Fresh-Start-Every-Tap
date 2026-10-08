@@ -3,13 +3,14 @@
   Declares BlockingAccessibilityService's purpose for the Play Console accessibility
   declaration (see mo.dev.ctrus.blocking.BlockingAccessibilityService and the Switchly
   reference architecture noted in AGENTS.md). This app is NOT an assistive-technology
-  tool; it uses window-state events only to detect app switches for the focus-blocking
-  feature the user configures, which must be disclosed in the Play Console listing.
+  tool; it uses window-state events to detect app switches, and, in supported web browsers
+  only, reads the address bar (by view id) to block the websites the user configured. Both
+  must be disclosed in the Play Console listing and the in-app disclosure dialog.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagRetrieveInteractiveWindows"
+    android:accessibilityFlags="flagRetrieveInteractiveWindows|flagReportViewIds"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="100"
     android:description="@string/accessibility_service_description" />
