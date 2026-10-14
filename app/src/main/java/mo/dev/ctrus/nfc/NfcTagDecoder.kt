@@ -16,10 +16,11 @@ import kotlinx.coroutines.withContext
  * in the shipped app ever writes a tag — so there's no NFC-write feature to port.
  */
 object NfcTagDecoder {
-    suspend fun decode(tag: Tag): String = withContext(Dispatchers.IO) {
-        val message = readNdefMessage(tag)
-        message?.let(::extractCtrusUrl) ?: tag.id.toHexString()
-    }
+    suspend fun decode(tag: Tag): String = withContext(Dispatchers.IO) { decodeBlocking(tag) }
+
+    /** Blocking read; call off the main thread (e.g. from a reader-mode callback). */
+    fun decodeBlocking(tag: Tag): String =
+        readNdefMessage(tag)?.let(::extractCtrusUrl) ?: tag.id.toHexString()
 
     private fun readNdefMessage(tag: Tag): NdefMessage? {
         val ndef = Ndef.get(tag) ?: return null

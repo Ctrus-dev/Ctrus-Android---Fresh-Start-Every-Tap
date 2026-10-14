@@ -126,6 +126,11 @@ class MainActivity : ComponentActivity() {
         nfcScanController.detach()
         super.onPause()
     }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) nfcScanController.reassert()
+    }
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)

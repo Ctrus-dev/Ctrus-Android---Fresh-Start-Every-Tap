@@ -476,6 +476,16 @@ there's no write feature to build. `PendingRequirementDialog` shows live scan st
 NFC-hardware-missing / NFC-disabled states, the latter deep-linking to
 `Settings.ACTION_NFC_SETTINGS`) instead of the old "not wired up yet" placeholder.
 
+**Bug fixed — the system's "tag read" screen sometimes appeared while Ctrus was in front** (seen
+when adding a tag in profile creation, on a POCO F2 Pro / Android 12). Reader mode is claimed the
+whole time `MainActivity` is resumed, but the tag used to be read in a coroutine *after* the
+reader-mode callback returned, racing the NFC stack's presence check; and reader mode requested
+while NFC was off never took effect once NFC was turned on from Quick Settings. Now
+`NfcScanController` reads the tag synchronously inside the callback, sets a 1 s
+`EXTRA_READER_PRESENCE_CHECK_DELAY`, re-claims reader mode when the adapter turns on and when the
+window regains focus, and logs to the `CtrusNfc` tag. Verified on that device: 9 taps (some with
+no scan pending) all went to Ctrus, none to the system.
+
 **`permissions/AccessibilityPermissionUtil`** + **`ui/intro/`** — the onboarding screen, following
 Switchly's pattern: `AccessibilityDisclosureDialog` is a mandatory, checkbox-gated consent dialog
 (Play policy requires prominent disclosure before sending the user to
