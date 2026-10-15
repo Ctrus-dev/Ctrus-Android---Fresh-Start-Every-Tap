@@ -293,6 +293,9 @@
     <string name="color_lemon">Lemon</string>
     <string name="color_dark">Dark</string>
     <string name="blocker_app_fallback">This app</string>
+    <string name="blocker_title">Restricted</string>
+    <string name="blocker_body">You cannot use %1$s because it is restricted.</string>
+    <string name="blocker_ok">OK</string>
     <string name="accessibility_service_description">Lets Ctrus detect when a blocked app or website is opened so it can show the block screen for the profile you configured. In web browsers it reads the address bar to know which site is open.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
@@ -326,43 +329,6 @@
         <item quantity="one">%1$d minute</item>
         <item quantity="other">%1$d minutes</item>
     </plurals>
-
-    <!-- Shown on the full-screen block surface (BlockerScreen, hosted by BlockerActivity), one of
-         8 variants chosen deterministically per app per day, mirroring
-         ShieldConfigurationExtension.swift. -->
-    <string-array name="shield_titles">
-        <item>Life gave you lemons…</item>
-        <item>100% juice, they say…</item>
-        <item>Vitamin C doesn\'t work like this!</item>
-        <item>When life gives you lemons…</item>
-        <item>The tree takes time to bear fruit…</item>
-        <item>Sweet on the outside…</item>
-        <item>Looks harmless on the outside…</item>
-        <item>Good things take time to ripen!</item>
-        <item>Here we are again…</item>
-    </string-array>
-    <string-array name="shield_subtitles">
-        <item>And you want to turn them into doomscrolling.</item>
-        <item>Your focus is running at 0%%.</item>
-        <item>A daily dose of %1$s won\'t do you any good.</item>
-        <item>You really think this is the lemonade?</item>
-        <item>You keep coming back to %1$s whenever you want, that\'s the problem.</item>
-        <item>Bitter when you realize how many hours you\'ve already spent here.</item>
-        <item>You know it\'s bitter on the inside.</item>
-        <item>%1$s isn\'t one of them.</item>
-        <item>This is getting repetitive, and not in a sweet way.</item>
-    </string-array>
-    <string-array name="shield_buttons">
-        <item>Got it</item>
-        <item>Got it</item>
-        <item>Got it</item>
-        <item>Got it</item>
-        <item>Got it</item>
-        <item>Got it</item>
-        <item>Got it</item>
-        <item>Got it</item>
-        <item>Got it</item>
-    </string-array>
 
     <!-- Rotates on the active-session timer screen, mirroring FocusMessages.swift. -->
     <string-array name="focus_messages">

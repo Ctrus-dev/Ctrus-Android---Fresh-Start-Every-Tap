@@ -1,6 +1,8 @@
 package mo.dev.ctrus.blocking
 
 import android.content.Intent
+import android.os.Build
+import android.view.WindowManager
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -12,7 +14,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import mo.dev.ctrus.R
-import mo.dev.ctrus.theme.CtrusTheme
 import mo.dev.ctrus.theme.ThemeManager
 
 /**
@@ -40,29 +41,37 @@ class BlockerActivity : ComponentActivity() {
     // Named blockedPackageName (not packageName) to avoid clashing with Context.getPackageName().
     private var blockedPackageName: String? by mutableStateOf(null)
     private var appLabel: String? by mutableStateOf(null)
+    private var blurEnabled: Boolean by mutableStateOf(false)
+    private val blurListener = java.util.function.Consumer<Boolean> { blurEnabled = it }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Without this, the status bar area shows the system's own default background instead of
-        // BlockerScreen's themed color extending under it — BlockerScreen already insets its
-        // content away from the system bars via windowInsetsPadding(WindowInsets.systemBars).
+        // Lets the background extend under the system bars — BlockerScreen already insets its
+        // content away from them via windowInsetsPadding(WindowInsets.systemBars).
         enableEdgeToEdge()
+        // Like iOS's shield, the blocked app shows through, blurred. Cross-window blur is
+        // Android 12+ and can be off (battery saver, some OEMs, low-end GPUs); BlockerScreen then
+        // stays almost opaque so the app underneath is never readable.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            window.attributes = window.attributes.apply {
+                blurBehindRadius = (BLUR_RADIUS_DP * resources.displayMetrics.density).toInt()
+            }
+        }
 
         updateForIntent(intent)
-        val themeManager = ThemeManager.getInstance(applicationContext)
-
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = goHome()
         })
 
+        val themeManager = ThemeManager.getInstance(applicationContext)
         setContent {
-            CtrusTheme(themeManager) {
-                BlockerScreen(
-                    appLabel = appLabel ?: stringResource(R.string.blocker_app_fallback),
-                    variantIndex = blockerScreenVariantIndex(appLabel ?: blockedPackageName.orEmpty()),
-                    onDismiss = ::goHome,
-                )
-            }
+            BlockerScreen(
+                appLabel = appLabel ?: stringResource(R.string.blocker_app_fallback),
+                themeColor = themeManager.selectedColorOption.color,
+                backgroundAlpha = if (blurEnabled) BLURRED_BACKGROUND_ALPHA else OPAQUE_BACKGROUND_ALPHA,
+                onDismiss = ::goHome,
+            )
         }
     }
 
@@ -78,6 +87,20 @@ class BlockerActivity : ComponentActivity() {
         appLabel = intent.getStringExtra(EXTRA_SITE_DOMAIN)?.removePrefix("www.") ?: pkg
             ?.let { runCatching { packageManager.getApplicationInfo(it, 0) }.getOrNull() }
             ?.let { packageManager.getApplicationLabel(it).toString() }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            windowManager.addCrossWindowBlurEnabledListener(blurListener)
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            windowManager.removeCrossWindowBlurEnabledListener(blurListener)
+        }
+        super.onDetachedFromWindow()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -122,6 +145,9 @@ class BlockerActivity : ComponentActivity() {
         const val EXTRA_SITE_DOMAIN = "site_domain"
 
         private const val VISIBLE_TTL_MILLIS = 2_500L
+        private const val BLUR_RADIUS_DP = 40
+        private const val BLURRED_BACKGROUND_ALPHA = 0.9f
+        private const val OPAQUE_BACKGROUND_ALPHA = 0.97f
 
         @Volatile private var isVisible: Boolean = false
         @Volatile private var visiblePackage: String? = null

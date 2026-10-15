@@ -64,10 +64,13 @@ project follows the same approach:
 - **`blocking/BlockerActivity`** — the full-screen surface shown instead of a blocked
   app, launched instantly by the accessibility service (`Intent` + `FLAG_ACTIVITY_NEW_TASK`,
   no `performGlobalAction(GLOBAL_ACTION_HOME)` kick beforehand — see the note below on
-  why that was removed). Mirrors `ShieldConfigurationExtension.swift`: solid theme-color
-  background, a 🔒 icon, and one of 6 citrus-themed title/subtitle/button messages chosen
-  deterministically per app per day (same FNV-1a-hash-of-name XOR day-key scheme as
-  `getFunBlockMessage`). Its dismiss button — and the system back gesture — navigate to
+  why that was removed). Mirrors iOS's stock Screen Time shield as Ctrus configures it since iOS
+  `b5a33c8` (`themedStockConfiguration()`): Apple's own copy ("Restricted" / "You cannot use X
+  because it is restricted.", with Apple's PT/ES wording), the system's light/dark background, and
+  only the "nosign" icon and the OK capsule in the theme color. The window is translucent with
+  `FLAG_BLUR_BEHIND` (Android 12+), so the blocked app shows through blurred like on iOS; when
+  cross-window blur is unavailable the background stays ~opaque. Because the window is
+  translucent, the blocked app is only paused underneath, not stopped. Its OK button — and the system back gesture — navigate to
   the home screen (`ACTION_MAIN`/`CATEGORY_HOME`) rather than just finishing, since
   finishing alone would reveal the blocked app's still-alive task underneath.
 - **`blocking/BlockDecisionEngine`** is fully wired to `BlockingStateHolder`'s

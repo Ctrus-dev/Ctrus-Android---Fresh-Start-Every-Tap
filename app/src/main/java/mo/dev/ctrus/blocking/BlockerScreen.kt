@@ -1,95 +1,124 @@
 package mo.dev.ctrus.blocking
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mo.dev.ctrus.R
+import kotlin.math.sqrt
 
-/** FNV-1a 64-bit over UTF-16 code units, mirroring stableSeed(for:) in Swift. */
-private fun stableSeed(name: String): Long {
-    var hash = -3750763034362895579L // 14695981039346656037 as signed Long
-    for (unit in name) {
-        hash = hash xor unit.code.toLong()
-        hash *= 1099511628211L
-    }
-    return hash
-}
-
-fun blockerScreenVariantIndex(name: String): Int {
-    val today = java.time.LocalDate.now()
-    val dayKey = today.year * 10_000 + today.monthValue * 100 + today.dayOfMonth
-    val seed = stableSeed(name) xor dayKey.toLong()
-    return (kotlin.math.abs(seed) % 9).toInt()
-}
+private val DarkBackground = Color(0xFF1F1F1F)
+private val LightBackground = Color(0xFFEAEAEA)
+private val DarkSecondaryText = Color(0xFF98989D)
+private val LightSecondaryText = Color(0xFF8A8A8E)
 
 /**
- * Full-screen block surface shown in place of a blocked app, mirroring
- * ShieldConfigurationExtension.swift: solid theme-color background, a 🔒 icon, and one of 9
- * citrus-themed messages chosen deterministically per app per day (same FNV-1a-hash-of-name
- * XOR day-key scheme as [getFunBlockMessage] on iOS) — title/subtitle/button travel together.
+ * Block surface shown in place of a blocked app or site, mirroring iOS's stock Screen Time shield
+ * as Ctrus configures it (`themedStockConfiguration()` in ShieldConfigurationExtension.swift, iOS
+ * b5a33c8): the system's own translucent background and copy ("Restricted" / "You cannot use X
+ * because it is restricted."), with only the "nosign" icon and the OK button in the theme color.
+ * Follows the system's light/dark mode, like the iOS shield.
+ *
+ * [backgroundAlpha] is below 1 only when the window can blur what's behind it (see
+ * BlockerActivity), so the blocked app shows through blurred, never sharp.
  *
  * Hosted by [BlockerActivity].
  */
 @Composable
-fun BlockerScreen(appLabel: String, variantIndex: Int, onDismiss: () -> Unit) {
-    val titles = stringArrayResource(R.array.shield_titles)
-    val subtitles = stringArrayResource(R.array.shield_subtitles)
-    val buttons = stringArrayResource(R.array.shield_buttons)
+fun BlockerScreen(appLabel: String, themeColor: Color, backgroundAlpha: Float, onDismiss: () -> Unit) {
+    val dark = isSystemInDarkTheme()
+    val background = if (dark) DarkBackground else LightBackground
+    val primaryText = if (dark) Color.White else Color.Black
+    val secondaryText = if (dark) DarkSecondaryText else LightSecondaryText
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary)
-            .windowInsetsPadding(WindowInsets.systemBars)
-            .padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(background.copy(alpha = backgroundAlpha))
+            .windowInsetsPadding(WindowInsets.systemBars),
     ) {
-        Text("🔒", fontSize = 64.sp)
-        Spacer(Modifier.height(20.dp))
-        Text(
-            titles[variantIndex],
-            style = MaterialTheme.typography.headlineMedium,
-            color = Color.White,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            subtitles[variantIndex].format(appLabel),
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.White.copy(alpha = 0.88f),
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(28.dp))
-        Button(
-            onClick = onDismiss,
-            shape = RoundedCornerShape(20.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 104.dp, start = 32.dp, end = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(buttons[variantIndex])
+            NoSignIcon(color = themeColor, modifier = Modifier.size(62.dp))
+            Spacer(Modifier.height(16.dp))
+            Text(
+                stringResource(R.string.blocker_title),
+                style = TextStyle(fontSize = 21.sp, fontWeight = FontWeight.Bold),
+                color = primaryText,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                stringResource(R.string.blocker_body, appLabel),
+                style = TextStyle(fontSize = 19.sp, lineHeight = 25.sp),
+                color = secondaryText,
+                textAlign = TextAlign.Center,
+            )
         }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 64.dp)
+                .size(width = 150.dp, height = 45.dp)
+                .clip(CircleShape)
+                .background(themeColor)
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                stringResource(R.string.blocker_ok),
+                style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Medium),
+                color = Color.White,
+            )
+        }
+    }
+}
+
+/** SF Symbols' "nosign": a ring with a diagonal bar from top-left to bottom-right. */
+@Composable
+private fun NoSignIcon(color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val strokeWidth = size.minDimension * 0.085f
+        val radius = (size.minDimension - strokeWidth) / 2f
+        drawCircle(color = color, radius = radius, style = Stroke(width = strokeWidth))
+        // The bar ends where it meets the ring's inner edge.
+        val reach = (radius - strokeWidth / 2f) / sqrt(2f)
+        drawLine(
+            color = color,
+            start = Offset(center.x - reach, center.y - reach),
+            end = Offset(center.x + reach, center.y + reach),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Butt,
+        )
     }
 }

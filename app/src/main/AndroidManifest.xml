@@ -127,7 +127,7 @@
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
             android:showWhenLocked="true"
-            android:theme="@style/Theme.Ctrus" />
+            android:theme="@style/Theme.Ctrus.Blocker" />
 
         <!-- Fired by AlarmSchedulingGateway to auto-end/resume sessions, breaks, pauses, and grants -->
         <receiver

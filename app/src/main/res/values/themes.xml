@@ -1,4 +1,11 @@
 <resources>
     <!-- Window-level base theme; Compose applies the real Ctrus color scheme on top (see theme/Theme.kt) -->
     <style name="Theme.Ctrus" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- BlockerActivity: translucent so the blocked app shows through, blurred, like iOS's
+         shield (see BlockerActivity/BlockerScreen). -->
+    <style name="Theme.Ctrus.Blocker">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
 </resources>
