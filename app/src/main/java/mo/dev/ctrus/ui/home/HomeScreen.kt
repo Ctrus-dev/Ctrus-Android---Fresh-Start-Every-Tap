@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
@@ -47,15 +48,16 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.rounded.Coffee
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -103,6 +105,9 @@ import mo.dev.ctrus.util.DateFormatters
 private val HomeOnPastel = FixedLightPrimaryText
 private val HomeOnPastelVariant = FixedLightSecondaryText
 private val EmergencyRed = Color(0xFFFF3B30)
+// SessionActionButton.swift draws its SF Symbols at 15pt; Material glyphs fill more of their box,
+// so 16dp lands on about the same visual size next to the 18sp label.
+private val SessionActionIconSize = 16.dp
 
 private const val HOLD_TO_START_MS = 800
 private val BaseBorderWidth = 3.5.dp
@@ -453,6 +458,8 @@ private fun BalloonHeader(
             .fillMaxWidth()
             .then(if (isActive) Modifier.clickable(onClick = onHeaderTapped) else Modifier)
             .padding(16.dp),
+        // ProfileBalloonRow.swift's HStack(spacing: 12).
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -546,8 +553,21 @@ private fun BalloonMenu(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { showMenu = true }) {
-            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.home_more_actions_content_description, profileName), tint = HomeOnPastelVariant)
+        // iOS's horizontal "ellipsis" in a 32x44 frame, so the dots sit as far from the card's
+        // edge as on iOS instead of being centered in a 48dp IconButton.
+        Box(
+            modifier = Modifier
+                .size(width = 32.dp, height = 44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { showMenu = true },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.MoreHoriz,
+                contentDescription = stringResource(R.string.home_more_actions_content_description, profileName),
+                tint = HomeOnPastelVariant,
+                modifier = Modifier.size(22.dp),
+            )
         }
         DropdownMenu(
             expanded = showMenu,
@@ -615,7 +635,8 @@ private fun ExpandedActions(
                     contentColor = EmergencyRed,
                     modifier = Modifier.weight(1f),
                     onClick = onEmergency,
-                    icon = { Icon(Icons.Filled.Warning, contentDescription = null, tint = EmergencyRed, modifier = Modifier.size(18.dp)) },
+                    // Rounded variant: SF Symbols' exclamationmark.triangle.fill has soft corners.
+                    icon = { Icon(Icons.Rounded.Warning, contentDescription = null, tint = EmergencyRed, modifier = Modifier.size(SessionActionIconSize)) },
                 )
             }
             SessionPillButton(
@@ -628,7 +649,7 @@ private fun ExpandedActions(
                 // (Material icons keep a visual-balance margin baked into every glyph's bounds),
                 // so sizing the *icon* to match the "P" in "Parar" still rendered a visibly
                 // smaller square. Drawing the square directly sidesteps that built-in margin.
-                icon = { Box(Modifier.size(14.dp).background(Color.Black, RoundedCornerShape(2.dp))) },
+                icon = { Box(Modifier.size(11.dp).background(Color.Black, RoundedCornerShape(2.dp))) },
             )
         }
     }
@@ -657,15 +678,15 @@ private fun BreakHoldButton(title: String, themeColor: Color, onConfirm: () -> U
             .fillMaxWidth()
             .height(56.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(CircleShape)
             .background(Color.White)
-            .border(borderWidth, themeColor, RoundedCornerShape(20.dp))
+            .border(borderWidth, themeColor, CircleShape)
             .then(hold.gestureModifier)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.Coffee, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+        Icon(Icons.Rounded.Coffee, contentDescription = null, tint = Color.Black, modifier = Modifier.size(SessionActionIconSize))
         Spacer(Modifier.width(8.dp))
         AutoSizeText(
             text = title,
@@ -690,12 +711,10 @@ private fun SessionPillButton(
     Row(
         modifier = modifier
             .height(56.dp)
-            // 20.dp, matching this app's other buttons/cards — was a full 50% stadium shape,
-            // whose rounded semicircle ends read as much heavier than the corners on every other
-            // "bubble" in the app.
-            .clip(RoundedCornerShape(20.dp))
+            // A full capsule, like SessionActionButton.swift's `Capsule()`.
+            .clip(CircleShape)
             .background(Color.White)
-            .border(BaseBorderWidth, borderColor, RoundedCornerShape(20.dp))
+            .border(BaseBorderWidth, borderColor, CircleShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.Center,
