@@ -23,16 +23,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 
 /**
  * Android equivalent of HomeAlertDetailView.swift's `.screenTimeAccess` case, listing the two
  * permissions a session can't start without: Accessibility (iOS's Screen Time equivalent) and,
- * from Android 12, "Alarms & reminders" (see ExactAlarmPermissionUtil). Battery-optimization
+ * from Android 12, "Alarms & reminders" (see ExactAlarmPermissionUtil), plus Autostart on Xiaomi
+ * devices (see XiaomiAutostartUtil). Battery-optimization
  * exemption stays a separate, non-blocking recommendation (its own one-time dialog and Settings
  * row). Reached by tapping the red pill on Home, or by trying to start while either is missing.
  */
@@ -41,10 +44,13 @@ import mo.dev.ctrus.R
 fun PermissionsAlertSheet(
     isAccessibilityEnabled: Boolean,
     isExactAlarmGranted: Boolean,
+    isAutostartGranted: Boolean,
     onDismiss: () -> Unit,
     onFixAccessibility: () -> Unit,
     onFixExactAlarm: () -> Unit,
+    onFixAutostart: () -> Unit,
 ) {
+    val context = LocalContext.current
     // skipPartiallyExpanded avoids an intermediate "half open" resting state — without it, on a
     // device with the 3-button navigation bar the sheet can first settle partially behind that
     // bar, requiring an extra manual swipe up to reach the fully expanded, correctly-inset position.
@@ -87,6 +93,14 @@ fun PermissionsAlertSheet(
                     granted = isExactAlarmGranted,
                     actionLabel = stringResource(R.string.battery_optimization_allow),
                     onFix = onFixExactAlarm,
+                )
+            }
+            if (XiaomiAutostartUtil.isApplicable(context)) {
+                PermissionChecklistRow(
+                    title = stringResource(R.string.settings_autostart),
+                    granted = isAutostartGranted,
+                    actionLabel = stringResource(R.string.battery_optimization_allow),
+                    onFix = onFixAutostart,
                 )
             }
         }

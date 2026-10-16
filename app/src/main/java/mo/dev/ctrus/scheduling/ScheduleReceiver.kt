@@ -19,6 +19,7 @@ import mo.dev.ctrus.MainActivity
 import mo.dev.ctrus.R
 import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
+import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.strategy.StrategyIds
 
 /**
@@ -67,6 +68,9 @@ class ScheduleReceiver : BroadcastReceiver() {
             // Same treatment for "Alarms & reminders": without it this alarm (and the Duration
             // stop, and the next starts) can't be relied on to fire on time.
             !ExactAlarmPermissionUtil.isGranted(context) -> R.string.schedule_skipped_missing_alarms_body
+            // On Xiaomi, MIUI kills Ctrus once the screen locks and, with Autostart off, the
+            // Accessibility service never comes back (see XiaomiAutostartUtil).
+            !XiaomiAutostartUtil.isGranted(context) -> R.string.schedule_skipped_missing_autostart_body
             else -> null
         }
         if (missingPermissionBody != null) {

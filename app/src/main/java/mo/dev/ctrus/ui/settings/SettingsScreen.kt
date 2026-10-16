@@ -68,6 +68,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.icon.AppIcon
 import mo.dev.ctrus.permissions.BackgroundLaunchHelpUtil
 import mo.dev.ctrus.ui.common.GlassIconButton
@@ -86,6 +87,8 @@ fun SettingsScreen(
     isExactAlarmGranted: Boolean,
     onRequestAccessibility: () -> Unit,
     onRequestExactAlarm: () -> Unit,
+    isAutostartGranted: Boolean,
+    onRequestAutostart: () -> Unit,
     onRequestBatteryOptimizationExemption: () -> Unit,
     appVersion: String,
     selectedAppIcon: AppIcon,
@@ -334,6 +337,31 @@ fun SettingsScreen(
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     stringResource(if (isExactAlarmGranted) R.string.settings_authorized else R.string.settings_not_authorized),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    // Xiaomi's Autostart (see XiaomiAutostartUtil); hidden on other phones.
+                    if (XiaomiAutostartUtil.isApplicable(LocalContext.current)) {
+                        SettingsDivider()
+                        SettingsRow(
+                            title = stringResource(R.string.settings_autostart),
+                            onClick = if (isAutostartGranted) null else onRequestAutostart,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            if (isAutostartGranted) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                            CircleShape
+                                        )
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(if (isAutostartGranted) R.string.settings_authorized else R.string.settings_not_authorized),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

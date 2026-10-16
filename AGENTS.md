@@ -374,6 +374,16 @@ Verified on the emulator (API 37, with the permission denied through `appops --u
 with both rows shown, the toggle opens straight to Ctrus, alarms re-armed exact after granting, a
 break starts without crashing, and an overdue 5-minute break closes at exactly 300 s.
 
+**Xiaomi Autostart (MIUI/HyperOS).** Battery-optimization exemption is AOSP's Doze/App Standby
+list; Xiaomi's own manager ignores it. With Autostart off, MIUI force-stops Ctrus when the screen
+locks (`AutoLockOffClean` in `dumpsys activity exit-info`) and won't let the system restart it, so
+the Accessibility service stays "on" but shows "This service is malfunctioning" and nothing is
+blocked (seen overnight on a POCO F2 Pro during a scheduled session). `XiaomiAutostartUtil` reads
+the hidden app-op 10008 by reflection; when it's off it gates starts like Accessibility (Home
+sheet, Settings row, `ScheduleReceiver` skip + notification). Not Xiaomi or unreadable → no-op.
+Switchly (reviewed for this) can't detect it either; it only shows per-brand instructions.
+**No persistent/foreground-service notification as a keep-alive** — the user rejected it.
+
 ## Localization
 
 The app ships in English (default), Portuguese — Portugal (`values-pt-rPT`), and Spanish

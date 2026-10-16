@@ -385,6 +385,8 @@
     <string name="schedule_skipped_missing_access_body">%1$s didn\'t start because Accessibility access is turned off. Turn it back on in Ctrus to resume blocking.</string>
     <string name="settings_exact_alarms">Alarms &amp; reminders</string>
     <string name="schedule_skipped_missing_alarms_body">%1$s didn\'t start because Alarms &amp; reminders is turned off. Turn it back on in Ctrus to resume blocking.</string>
+    <string name="settings_autostart">Autostart</string>
+    <string name="schedule_skipped_missing_autostart_body">%1$s didn\'t start because Autostart is turned off for Ctrus. Turn it on in Ctrus to resume blocking.</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="field_domain_protected">Ctrus\'s own sites can\'t be blocked.</string>
     <string name="field_block_adult_websites_title">Block Adult Websites</string>

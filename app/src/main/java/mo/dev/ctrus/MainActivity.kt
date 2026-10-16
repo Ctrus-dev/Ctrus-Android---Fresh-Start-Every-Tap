@@ -61,6 +61,7 @@ import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.permissions.BatteryOptimizationUtil
 import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
+import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.session.SessionOrchestrator
 import mo.dev.ctrus.strategy.StrategyCapabilities
 import mo.dev.ctrus.strategy.StrategyInput
@@ -188,6 +189,8 @@ private fun CtrusNavHost(
     // "Alarms & reminders" — re-checked on resume for the same reason, e.g. after coming back from
     // the system toggle that ExactAlarmPermissionUtil.request opens.
     var isExactAlarmGranted by remember { mutableStateOf(true) }
+    // Xiaomi's Autostart (always true elsewhere) — see XiaomiAutostartUtil.
+    var isAutostartGranted by remember { mutableStateOf(true) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -196,6 +199,7 @@ private fun CtrusNavHost(
                 isAccessibilityEnabled = enabled
                 isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
                 isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
+                isAutostartGranted = XiaomiAutostartUtil.isGranted(context)
                 if (showIntroScreen == true && enabled) {
                     showIntroScreen = false
                     coroutineScope.launch { app.preferences.setShowIntroScreen(false) }
@@ -397,6 +401,8 @@ private fun CtrusNavHost(
                 isBatteryOptimizationExempt = isBatteryOptimizationExempt,
                 isExactAlarmGranted = isExactAlarmGranted,
                 onRequestExactAlarm = { ExactAlarmPermissionUtil.request(context) },
+                isAutostartGranted = isAutostartGranted,
+                onRequestAutostart = { XiaomiAutostartUtil.request(context) },
                 onRequestAccessibility = { showAccessibilityDisclosure = true },
                 onRequestBatteryOptimizationExemption = { BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context) },
                 appVersion = "1.0",
@@ -507,7 +513,7 @@ private fun CtrusNavHost(
 
     // Mirrors AlertsManager.presentScreenTimeAccessAlertIfNeeded(), called as a guard before
     // every "start a profile" action (manual or Ctrus NFC): shows the alert sheet instead of
-    // starting while Accessibility or "Alarms & reminders" is missing. Battery-optimization
+    // starting while Accessibility, "Alarms & reminders" or (Xiaomi) Autostart is missing. Battery-optimization
     // exemption is a separate, non-blocking recommendation (see BatteryOptimizationUtil's kdoc),
     // never something that prevents starting a session.
     var showPermissionsAlertSheet by remember { mutableStateOf(false) }
@@ -516,13 +522,15 @@ private fun CtrusNavHost(
         // or from the notification shade still counts.
         isAccessibilityEnabled = AccessibilityPermissionUtil.isEnabled(context)
         isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
-        if (isAccessibilityEnabled && isExactAlarmGranted) action() else showPermissionsAlertSheet = true
+        isAutostartGranted = XiaomiAutostartUtil.isGranted(context)
+        if (isAccessibilityEnabled && isExactAlarmGranted && isAutostartGranted) action() else showPermissionsAlertSheet = true
     }
 
     if (showPermissionsAlertSheet) {
         PermissionsAlertSheet(
             isAccessibilityEnabled = isAccessibilityEnabled,
             isExactAlarmGranted = isExactAlarmGranted,
+            isAutostartGranted = isAutostartGranted,
             onDismiss = { showPermissionsAlertSheet = false },
             onFixAccessibility = {
                 showPermissionsAlertSheet = false
@@ -531,6 +539,10 @@ private fun CtrusNavHost(
             onFixExactAlarm = {
                 showPermissionsAlertSheet = false
                 ExactAlarmPermissionUtil.request(context)
+            },
+            onFixAutostart = {
+                showPermissionsAlertSheet = false
+                XiaomiAutostartUtil.request(context)
             },
         )
     }
@@ -640,6 +652,7 @@ private fun CtrusNavHost(
                 onManageTapped = { showManageProfiles = true },
                 isAccessibilityEnabled = isAccessibilityEnabled,
                 isExactAlarmGranted = isExactAlarmGranted,
+                isAutostartGranted = isAutostartGranted,
                 onPermissionsAlertTapped = { showPermissionsAlertSheet = true },
             )
         }

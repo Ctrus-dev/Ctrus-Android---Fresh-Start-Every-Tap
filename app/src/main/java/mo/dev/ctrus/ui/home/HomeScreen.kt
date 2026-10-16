@@ -208,6 +208,7 @@ fun HomeScreen(
     onManageTapped: () -> Unit,
     isAccessibilityEnabled: Boolean = true,
     isExactAlarmGranted: Boolean = true,
+    isAutostartGranted: Boolean = true,
     onPermissionsAlertTapped: () -> Unit = {},
 ) {
     val themeColor = themeManager.selectedColorOption.color
@@ -238,7 +239,7 @@ fun HomeScreen(
             // Accessibility and "Alarms & reminders": the permissions a session can't start
             // without. Battery-optimization exemption is a separate, non-blocking recommendation —
             // see its own one-time dialog (MainActivity's showBatteryOptimizationPrompt) and Settings row.
-            if (profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted)) {
+            if (profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted || !isAutostartGranted)) {
                 item {
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         AccessibilityAlertPill(onClick = onPermissionsAlertTapped)

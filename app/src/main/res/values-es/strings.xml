@@ -383,6 +383,8 @@
     <string name="schedule_skipped_missing_access_body">%1$s no se inició porque el acceso de Accesibilidad está desactivado. Vuelve a activarlo en Ctrus para reanudar el bloqueo.</string>
     <string name="settings_exact_alarms">Alarmas y recordatorios</string>
     <string name="schedule_skipped_missing_alarms_body">%1$s no se inició porque el permiso Alarmas y recordatorios está desactivado. Vuelve a activarlo en Ctrus para reanudar el bloqueo.</string>
+    <string name="settings_autostart">Inicio automático</string>
+    <string name="schedule_skipped_missing_autostart_body">%1$s no se inició porque el Inicio automático de Ctrus está desactivado. Actívalo en Ctrus para reanudar el bloqueo.</string>
     <string name="settings_privacy_policy">Política de Privacidad</string>
     <string name="field_domain_protected">Los sitios de Ctrus no se pueden bloquear.</string>
     <string name="field_block_adult_websites_title">Bloquear Sitios de Contenido Adulto</string>
