@@ -383,6 +383,12 @@ the hidden app-op 10008 by reflection; when it's off it gates starts like Access
 sheet, Settings row, `ScheduleReceiver` skip + notification). Not Xiaomi or unreadable → no-op.
 Switchly (reviewed for this) can't detect it either; it only shows per-brand instructions.
 **No persistent/foreground-service notification as a keep-alive** — the user rejected it.
+Other brands get `OemBackgroundGuide` (Xiaomi, Huawei/Honor, Oppo/Realme/OnePlus, Vivo/iQOO,
+Samsung): per-brand steps plus a best-effort deep link, never gating. `BlockingHealthMonitor`
+checks every ~15 min during a session (inexact `setAndAllowWhileIdle`) and posts one dismissible
+"Blocking stopped" notification per session if Accessibility isn't running. Settings shows a
+single "Manage Permissions" row; `ui/settings/PermissionsSheet` groups Required (Accessibility,
+Alarms & reminders, Xiaomi Autostart) and Recommended (battery, brand guide, pop-up help).
 
 ## Localization
 

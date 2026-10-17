@@ -403,4 +403,21 @@
     <string name="license_condition">The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</string>
     <string name="license_disclaimer">THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</string>
     <string name="license_translation_note"></string>
+    <string name="settings_permissions">Permissions</string>
+    <string name="settings_permissions_manage">Manage Permissions</string>
+    <string name="permissions_required_header">Required</string>
+    <string name="permissions_recommended_header">Recommended</string>
+    <string name="permissions_all_set">All set</string>
+    <string name="permissions_action_needed">Action needed</string>
+    <string name="oem_keep_alive_title">Keep Ctrus Running</string>
+    <string name="oem_keep_alive_intro">Your phone may close Ctrus in the background to save battery, which stops blocking. Set this up once:</string>
+    <string name="oem_steps_xiaomi">1. In Battery saver, choose No restrictions.\n2. Open Recent apps, long-press Ctrus and tap the lock.\n3. If blocking still stops, turn Ctrus\'s Accessibility off and on again.</string>
+    <string name="oem_steps_huawei">1. In App launch, find Ctrus and turn off Manage automatically.\n2. Turn on Auto-launch, Secondary launch and Run in background.\n3. Open Recent apps and lock Ctrus.</string>
+    <string name="oem_steps_oppo">1. Turn on Auto launch for Ctrus.\n2. In App info › Battery usage, allow background activity (or choose Unrestricted).\n3. Open Recent apps and lock Ctrus.</string>
+    <string name="oem_steps_vivo">1. Turn on Autostart and Associated startup for Ctrus.\n2. In Battery, allow high background power consumption.\n3. Open Recent apps and lock Ctrus.\n4. If i Manager says Accessibility was turned off, choose to turn it back on.</string>
+    <string name="oem_steps_samsung">1. In App info › Battery, choose Unrestricted.\n2. In Battery › Background usage limits, make sure Ctrus isn\'t under Sleeping apps or Deep sleeping apps.\n3. Turn off Put unused apps to sleep.</string>
+    <string name="blocking_status_channel_name">Blocking problems</string>
+    <string name="blocking_status_channel_description">Lets you know when blocking stopped during a session.</string>
+    <string name="blocking_stopped_title">Blocking stopped</string>
+    <string name="blocking_stopped_body">%1$s is still running, but Ctrus can\'t block apps right now. Open Ctrus to fix it.</string>
 </resources>

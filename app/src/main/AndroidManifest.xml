@@ -149,6 +149,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- BlockingHealthMonitor's periodic "is blocking still running?" check during a session -->
+        <receiver
+            android:name=".blocking.BlockingHealthReceiver"
+            android:exported="false" />
+
         <!-- Primary blocking mechanism (see AGENTS.md for the Switchly-derived rationale) -->
         <service
             android:name=".blocking.BlockingAccessibilityService"

@@ -68,9 +68,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
-import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.icon.AppIcon
-import mo.dev.ctrus.permissions.BackgroundLaunchHelpUtil
 import mo.dev.ctrus.ui.common.GlassIconButton
 import mo.dev.ctrus.theme.ThemeColorOption
 import mo.dev.ctrus.theme.ThemeManager
@@ -105,7 +103,7 @@ fun SettingsScreen(
     var showInvalidCodeAlert by remember { mutableStateOf(false) }
     var unlockCode by remember { mutableStateOf("") }
     var isVerifying by remember { mutableStateOf(false) }
-    var showBackgroundLaunchHelp by remember { mutableStateOf(false) }
+    var showPermissions by remember { mutableStateOf(false) }
     var showLicense by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -179,6 +177,24 @@ fun SettingsScreen(
 
             // Mirrors SettingsView.swift's Help section, placed right after App Icon like iOS.
             // Android has no Debug Mode row, so the FAQ link is its only entry.
+            item {
+                // Everything permission-related lives in one sheet (see PermissionsSheet); this row
+                // only says whether the required ones are all granted.
+                val requiredGranted = isUsageAccessGranted && isExactAlarmGranted && isAutostartGranted
+                SettingsSection(title = stringResource(R.string.settings_permissions)) {
+                    SettingsRow(
+                        title = stringResource(R.string.settings_permissions_manage),
+                        showChevron = true,
+                        onClick = { showPermissions = true },
+                    ) {
+                        StatusLabel(
+                            granted = requiredGranted,
+                            text = stringResource(if (requiredGranted) R.string.permissions_all_set else R.string.permissions_action_needed),
+                        )
+                    }
+                }
+            }
+
             item {
                 SettingsSection(title = stringResource(R.string.settings_section_help)) {
                     SettingsLinkRow(title = stringResource(R.string.settings_faq)) { onOpenUrl("https://ctrus.pt/pages/faq") }
@@ -293,136 +309,6 @@ fun SettingsScreen(
                     SettingsDivider()
                     SettingsRow(title = stringResource(R.string.settings_license), showChevron = true, onClick = { showLicense = true })
                     SettingsDivider()
-                    // Only tappable while access is missing. Once it's granted there's nothing to do
-                    // here, and the row just shows the green "Authorized" status.
-                    SettingsRow(
-                        title = stringResource(R.string.settings_accessibility_access),
-                        onClick = if (isUsageAccessGranted) null else onRequestAccessibility,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(
-                                        if (isUsageAccessGranted) Color(0xFF34C759) else Color(0xFFFF3B30),
-                                        CircleShape
-                                    )
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                stringResource(if (isUsageAccessGranted) R.string.settings_authorized else R.string.settings_not_authorized),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    // "Alarms & reminders" only exists from Android 12; below that exact alarms
-                    // always work, so there's nothing to show. Tappable only while missing, same
-                    // as Accessibility above.
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                        SettingsDivider()
-                        SettingsRow(
-                            title = stringResource(R.string.settings_exact_alarms),
-                            onClick = if (isExactAlarmGranted) null else onRequestExactAlarm,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(
-                                            if (isExactAlarmGranted) Color(0xFF34C759) else Color(0xFFFF3B30),
-                                            CircleShape
-                                        )
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    stringResource(if (isExactAlarmGranted) R.string.settings_authorized else R.string.settings_not_authorized),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                    // Xiaomi's Autostart (see XiaomiAutostartUtil); hidden on other phones.
-                    if (XiaomiAutostartUtil.isApplicable(LocalContext.current)) {
-                        SettingsDivider()
-                        SettingsRow(
-                            title = stringResource(R.string.settings_autostart),
-                            onClick = if (isAutostartGranted) null else onRequestAutostart,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(
-                                            if (isAutostartGranted) Color(0xFF34C759) else Color(0xFFFF3B30),
-                                            CircleShape
-                                        )
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    stringResource(if (isAutostartGranted) R.string.settings_authorized else R.string.settings_not_authorized),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                    SettingsDivider()
-                    // Tapping anywhere in this block — title row or caption — relaunches the
-                    // system's own "exempt this app" dialog; even when already exempt, that's a
-                    // harmless no-op there, and simpler than making it conditionally clickable.
-                    // Wrapped in one clickable Column instead of leaving SettingsRow's own onClick
-                    // in place, so the caption below shares the same tap target and ripple.
-                    Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onRequestBatteryOptimizationExemption)) {
-                        SettingsRow(
-                            title = stringResource(R.string.settings_battery_optimization),
-                            // Tight bottom (matching Device ID's own title-to-subtitle gap) only
-                            // while the caption below is actually showing — otherwise this is a
-                            // standalone row like any other and keeps the normal 16.dp all around.
-                            contentPadding = PaddingValues(
-                                start = 16.dp, top = 16.dp, end = 16.dp,
-                                bottom = if (isBatteryOptimizationExempt) 16.dp else 2.dp,
-                            ),
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(
-                                            if (isBatteryOptimizationExempt) Color(0xFF34C759) else Color(0xFFFF3B30),
-                                            CircleShape
-                                        )
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    // "Authorized"/"Not Authorized" reads backwards paired with this
-                                    // row's title — being exempt means optimization is OFF, so this
-                                    // states that directly instead.
-                                    stringResource(if (isBatteryOptimizationExempt) R.string.settings_battery_optimization_off else R.string.settings_battery_optimization_on),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        // Only relevant while the setting still needs fixing — once exempt (green/
-                        // "Off"), the recommendation is moot and stays hidden.
-                        if (!isBatteryOptimizationExempt) {
-                            Text(
-                                stringResource(R.string.settings_battery_optimization_caption),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                // Extra end padding reserves the "On" status label's own column
-                                // above, so this caption wraps before ever running under it.
-                                modifier = Modifier.padding(start = 16.dp, end = 48.dp, bottom = 16.dp),
-                            )
-                        }
-                    }
-                    SettingsDivider()
-                    SettingsLinkRow(title = stringResource(R.string.settings_background_launch_help)) {
-                        showBackgroundLaunchHelp = true
-                    }
-                    SettingsDivider()
                     SettingsRow(title = stringResource(R.string.settings_made_in)) {
                         Text("🇵🇹")
                     }
@@ -442,20 +328,17 @@ fun SettingsScreen(
         LicenseSheet(onDismiss = { showLicense = false })
     }
 
-    if (showBackgroundLaunchHelp) {
-        AlertDialog(
-            onDismissRequest = { showBackgroundLaunchHelp = false },
-            title = { Text(stringResource(R.string.background_launch_help_title)) },
-            text = { Text(stringResource(R.string.background_launch_help_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showBackgroundLaunchHelp = false
-                    BackgroundLaunchHelpUtil.openSettings(context)
-                }) { Text(stringResource(R.string.background_launch_help_open_settings)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBackgroundLaunchHelp = false }) { Text(stringResource(R.string.common_cancel)) }
-            },
+    if (showPermissions) {
+        PermissionsSheet(
+            isAccessibilityEnabled = isUsageAccessGranted,
+            isExactAlarmGranted = isExactAlarmGranted,
+            isAutostartGranted = isAutostartGranted,
+            isBatteryOptimizationExempt = isBatteryOptimizationExempt,
+            onRequestAccessibility = onRequestAccessibility,
+            onRequestExactAlarm = onRequestExactAlarm,
+            onRequestAutostart = onRequestAutostart,
+            onRequestBatteryOptimizationExemption = onRequestBatteryOptimizationExemption,
+            onDismiss = { showPermissions = false },
         )
     }
 

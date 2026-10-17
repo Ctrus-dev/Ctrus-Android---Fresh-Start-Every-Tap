@@ -401,4 +401,21 @@
     <string name="license_condition">El aviso de copyright anterior y este aviso de permiso se incluirán en todas las copias o partes sustanciales del Software.</string>
     <string name="license_disclaimer">EL SOFTWARE SE PROPORCIONA \"TAL CUAL\", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O IMPLÍCITA, INCLUIDAS, ENTRE OTRAS, LAS GARANTÍAS DE COMERCIABILIDAD, IDONEIDAD PARA UN FIN DETERMINADO Y NO INFRACCIÓN. EN NINGÚN CASO LOS AUTORES O TITULARES DEL COPYRIGHT SERÁN RESPONSABLES DE NINGUNA RECLAMACIÓN, DAÑOS U OTRA RESPONSABILIDAD, YA SEA EN UNA ACCIÓN CONTRACTUAL, EXTRACONTRACTUAL O DE OTRO TIPO, QUE SURJA DE, O ESTÉ RELACIONADA CON EL SOFTWARE O EL USO U OTRAS OPERACIONES CON EL SOFTWARE.</string>
     <string name="license_translation_note">Traducción solo a título informativo. En caso de discrepancia, prevalece el texto original en inglés.</string>
+    <string name="settings_permissions">Permisos</string>
+    <string name="settings_permissions_manage">Gestionar Permisos</string>
+    <string name="permissions_required_header">Necesarios</string>
+    <string name="permissions_recommended_header">Recomendados</string>
+    <string name="permissions_all_set">Todo activo</string>
+    <string name="permissions_action_needed">Acción necesaria</string>
+    <string name="oem_keep_alive_title">Mantener Ctrus Activo</string>
+    <string name="oem_keep_alive_intro">Tu móvil puede cerrar Ctrus en segundo plano para ahorrar batería, lo que detiene el bloqueo. Configúralo una vez:</string>
+    <string name="oem_steps_xiaomi">1. En Ahorro de batería, elige Sin restricciones.\n2. Abre las apps recientes, mantén pulsado Ctrus y toca el candado.\n3. Si el bloqueo sigue deteniéndose, desactiva y vuelve a activar la Accesibilidad de Ctrus.</string>
+    <string name="oem_steps_huawei">1. En Inicio de apps, busca Ctrus y desactiva Gestionar automáticamente.\n2. Activa Inicio automático, Inicio secundario y Ejecutar en segundo plano.\n3. Abre las apps recientes y bloquea Ctrus.</string>
+    <string name="oem_steps_oppo">1. Activa el Inicio automático de Ctrus.\n2. En Información de la app › Uso de batería, permite la actividad en segundo plano (o elige Sin restricciones).\n3. Abre las apps recientes y bloquea Ctrus.</string>
+    <string name="oem_steps_vivo">1. Activa el Inicio automático y el Inicio asociado de Ctrus.\n2. En Batería, permite el alto consumo en segundo plano.\n3. Abre las apps recientes y bloquea Ctrus.\n4. Si i Manager dice que la Accesibilidad se desactivó, elige volver a activarla.</string>
+    <string name="oem_steps_samsung">1. En Información de la app › Batería, elige Sin restricciones.\n2. En Batería › Límites de uso en segundo plano, comprueba que Ctrus no está en Aplicaciones inactivas ni en Aplicaciones en suspensión profunda.\n3. Desactiva Poner aplicaciones sin usar en suspensión.</string>
+    <string name="blocking_status_channel_name">Problemas de bloqueo</string>
+    <string name="blocking_status_channel_description">Te avisa cuando el bloqueo se detuvo durante una sesión.</string>
+    <string name="blocking_stopped_title">El bloqueo se detuvo</string>
+    <string name="blocking_stopped_body">%1$s sigue activo, pero Ctrus no puede bloquear apps ahora mismo. Abre Ctrus para solucionarlo.</string>
 </resources>

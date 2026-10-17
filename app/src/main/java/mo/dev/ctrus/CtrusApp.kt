@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import mo.dev.ctrus.blocking.AdultDomainList
+import mo.dev.ctrus.blocking.BlockingHealthMonitor
 import mo.dev.ctrus.blocking.BlockingStateHolder
 import mo.dev.ctrus.data.CtrusDatabase
 import mo.dev.ctrus.data.ProfileRepository
@@ -73,6 +74,7 @@ class CtrusApp : Application() {
         // (on schedule or from the bubble). ScheduleReceiver checks the session is still running.
         applicationScope.launch {
             sessionRepository.observeMostRecentActive().collect { session ->
+                BlockingHealthMonitor.sync(this@CtrusApp, session?.id)
                 val profile = session?.let { profileRepository.find(it.profileId) } ?: return@collect
                 scheduleAlarmScheduler.syncSessionEnd(session, profile)
             }
@@ -87,7 +89,8 @@ class CtrusApp : Application() {
 
     /**
      * Backs the "break almost over" notification posted by ExpiryReceiver's warning alarm, and
-     * ScheduleReceiver's "starts in 5 minutes" / "couldn't start" notifications.
+     * ScheduleReceiver's "starts in 5 minutes" / "couldn't start" notifications, and
+ * BlockingHealthMonitor's "Blocking stopped" warning.
      */
     private fun createNotificationChannels() {
         val manager = getSystemService(NotificationManager::class.java)
@@ -101,12 +104,19 @@ class CtrusApp : Application() {
             getString(R.string.schedule_notification_channel_name),
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply { description = getString(R.string.schedule_notification_channel_description) }
-        manager.createNotificationChannels(listOf(breakChannel, scheduleChannel))
+        val blockingStatusChannel = NotificationChannel(
+            BLOCKING_STATUS_CHANNEL_ID,
+            getString(R.string.blocking_status_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply { description = getString(R.string.blocking_status_channel_description) }
+        manager.createNotificationChannels(listOf(breakChannel, scheduleChannel, blockingStatusChannel))
     }
 
     companion object {
         const val BREAK_WARNING_CHANNEL_ID = "break_warning"
         const val SCHEDULE_CHANNEL_ID = "schedule"
+        /** BlockingHealthMonitor's "Blocking stopped" warning. */
+        const val BLOCKING_STATUS_CHANNEL_ID = "blocking_status"
 
         fun from(context: android.content.Context): CtrusApp = context.applicationContext as CtrusApp
     }
