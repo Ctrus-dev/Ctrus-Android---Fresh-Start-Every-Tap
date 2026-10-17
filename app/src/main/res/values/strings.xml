@@ -46,7 +46,7 @@
     <string name="home_menu_edit">Edit</string>
     <string name="home_menu_stop">Stop</string>
     <string name="home_menu_start">Start</string>
-    <string name="home_first_session_hint">Press and hold your profile to start a session. Tap it while it\'s active to reveal Break, Emergency and Stop.</string>
+    <string name="home_first_session_hint">Press and hold your profile to start the session. Tap it while it\'s active to access the stop, emergency and break options.</string>
     <string name="home_launcher_start">Hold to Start</string>
     <string name="manage_title">Profiles</string>
     <string name="manage_close_content_description">Close</string>
@@ -103,12 +103,16 @@
     <string name="settings_battery_optimization_on">On</string>
     <string name="settings_battery_optimization_caption">Some phone brands need the app set to unrestricted battery usage for blocking to keep running reliably.</string>
     <string name="intro_welcome_title">Welcome to Ctrus</string>
-    <string name="intro_welcome_subtitle">We need Accessibility Access to get started</string>
+    <string name="intro_welcome_subtitle">We need a few permissions to get started</string>
     <string name="intro_open_source_prefix">Ctrus is 100% open source,</string>
     <string name="intro_open_source_link">read the code yourself</string>
     <string name="intro_open_source_suffix">if you\'re skeptical</string>
     <string name="intro_nudge">Still here? Find “Ctrus” in the Accessibility list and turn it on.</string>
     <string name="intro_allow_button">Allow Accessibility Access</string>
+    <string name="intro_allow_alarms_button">Allow Alarms &amp; Reminders</string>
+    <string name="intro_allow_autostart_button">Allow Autostart</string>
+    <string name="intro_nudge_alarms">Still here? Turn on “Allow setting alarms and reminders” for Ctrus.</string>
+    <string name="intro_nudge_autostart">Still here? Find “Ctrus” in the Autostart list and turn it on.</string>
     <string name="app_picker_title_allow">Select Apps to Allow</string>
     <string name="app_picker_title_restrict">Select Apps to Restrict</string>
     <string name="app_picker_cancel_content_description">Cancel</string>

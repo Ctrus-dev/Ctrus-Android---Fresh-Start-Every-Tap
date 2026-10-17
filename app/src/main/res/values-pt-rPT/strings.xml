@@ -46,7 +46,7 @@
     <string name="home_menu_edit">Editar</string>
     <string name="home_menu_stop">Parar</string>
     <string name="home_menu_start">Iniciar</string>
-    <string name="home_first_session_hint">Prime sem soltar no teu perfil para iniciar uma sessão. Toca nele enquanto estiver ativo para revelar Pausa, Emergência e Parar.</string>
+    <string name="home_first_session_hint">Prime o teu perfil sem soltar para dares início à sessão. Toca nele enquanto estiver ativo para teres acesso às opções de parar, de emergência e de pausar.</string>
     <string name="home_launcher_start">Pressiona para começar</string>
     <string name="manage_title">Perfis</string>
     <string name="manage_close_content_description">Fechar</string>
@@ -102,12 +102,16 @@
     <string name="settings_battery_optimization_on">Ativa</string>
     <string name="settings_battery_optimization_caption">Algumas marcas de telemóveis precisam que a app fique sem restrições de uso de bateria para o bloqueio continuar a funcionar de forma fiável.</string>
     <string name="intro_welcome_title">Bem-vindo ao Ctrus</string>
-    <string name="intro_welcome_subtitle">Precisamos de Acesso de Acessibilidade para começar</string>
+    <string name="intro_welcome_subtitle">Precisamos de algumas permissões para começar</string>
     <string name="intro_open_source_prefix">O Ctrus é 100% open source,</string>
     <string name="intro_open_source_link">lê o código tu mesmo</string>
     <string name="intro_open_source_suffix">se és cético</string>
     <string name="intro_nudge">Ainda aqui? Encontra o “Ctrus” na lista de Acessibilidade e ativa-o.</string>
     <string name="intro_allow_button">Permitir Acesso de Acessibilidade</string>
+    <string name="intro_allow_alarms_button">Permitir Alarmes e Lembretes</string>
+    <string name="intro_allow_autostart_button">Permitir Arranque Automático</string>
+    <string name="intro_nudge_alarms">Ainda aqui? Ativa “Permitir definir alarmes e lembretes” para o Ctrus.</string>
+    <string name="intro_nudge_autostart">Ainda aqui? Encontra o “Ctrus” na lista de Arranque automático e ativa-o.</string>
     <string name="app_picker_title_allow">Selecionar Apps a Permitir</string>
     <string name="app_picker_title_restrict">Selecionar Apps a Restringir</string>
     <string name="app_picker_cancel_content_description">Cancelar</string>

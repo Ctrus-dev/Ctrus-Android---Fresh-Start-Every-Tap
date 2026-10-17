@@ -191,7 +191,7 @@ handle this for free (its `contentWindowInsets` default already reserves space, 
 buttons/bars only cleared gesture-nav (a thin transparent strip) and got covered by the classic
 3-button nav bar, which reserves real screen height. Fixed by adding
 `.windowInsetsPadding(WindowInsets.systemBars)` to the outermost `Column` in
-`ui/intro/AccessibilityPermissionScreen.kt` (the "Allow Accessibility Access" button — the one
+`ui/intro/PermissionsIntroScreen.kt` (the "Allow Accessibility Access" button — the one
 reported), `ui/home/HomeScreen.kt` (settings gear + bottom launcher bar), and
 `ui/session/ActiveSessionScreen.kt` (Stop/Emergency actions). If a new full-screen composable is
 added outside `Scaffold`, it needs this same treatment — don't assume edge-to-edge is handled by
@@ -509,7 +509,7 @@ no scan pending) all went to Ctrus, none to the system.
 Switchly's pattern: `AccessibilityDisclosureDialog` is a mandatory, checkbox-gated consent dialog
 (Play policy requires prominent disclosure before sending the user to
 `Settings.ACTION_ACCESSIBILITY_SETTINGS` — no attempted deep link to the specific toggle, just the
-plain intent, matching Switchly) shown before `AccessibilityPermissionScreen` launches Settings;
+plain intent, matching Switchly) shown before `PermissionsIntroScreen` launches Settings;
 status is re-checked via a `Lifecycle.Event.ON_RESUME` observer (`AccessibilityManager
 .getEnabledAccessibilityServiceList`, falling back to `Settings.Secure` directly), not polling.
 Gated on the same `showIntroScreen`-once-then-permanent-dismiss flag as

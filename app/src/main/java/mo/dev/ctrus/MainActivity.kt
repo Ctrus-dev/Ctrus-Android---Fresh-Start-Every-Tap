@@ -75,7 +75,7 @@ import mo.dev.ctrus.ui.insights.InsightsScreen
 import mo.dev.ctrus.ui.insights.ProfileInsightsScreen
 import mo.dev.ctrus.ui.intro.AccessibilityDisclosureDialog
 import mo.dev.ctrus.ui.intro.BatteryOptimizationDialog
-import mo.dev.ctrus.ui.intro.AccessibilityPermissionScreen
+import mo.dev.ctrus.ui.intro.PermissionsIntroScreen
 import mo.dev.ctrus.ui.profile.GuidedProfileCreationScreen
 import mo.dev.ctrus.ui.profile.ProfileDraft
 import mo.dev.ctrus.ui.profile.ProfileFormScreen
@@ -200,7 +200,8 @@ private fun CtrusNavHost(
                 isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
                 isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
                 isAutostartGranted = XiaomiAutostartUtil.isGranted(context)
-                if (showIntroScreen == true && enabled) {
+                // The intro asks for every permission that gates a start, not just Accessibility.
+                if (showIntroScreen == true && enabled && isExactAlarmGranted && isAutostartGranted) {
                     showIntroScreen = false
                     coroutineScope.launch { app.preferences.setShowIntroScreen(false) }
                 }
@@ -217,9 +218,14 @@ private fun CtrusNavHost(
             return
         }
         true -> {
-            AccessibilityPermissionScreen(
+            PermissionsIntroScreen(
                 themeColor = themeManager.selectedColorOption.color,
-                onRequestAuthorization = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+                isAccessibilityEnabled = isAccessibilityEnabled,
+                isExactAlarmGranted = isExactAlarmGranted,
+                isAutostartGranted = isAutostartGranted,
+                onRequestAccessibility = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+                onRequestExactAlarm = { ExactAlarmPermissionUtil.request(context) },
+                onRequestAutostart = { XiaomiAutostartUtil.request(context) },
             )
             return
         }

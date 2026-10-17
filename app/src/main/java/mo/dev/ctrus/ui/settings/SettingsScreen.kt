@@ -408,7 +408,7 @@ private fun ThemeColorRow(themeManager: ThemeManager) {
 /**
  * Mirrors SettingsView's footer: open-source attribution, sitting in the normal scroll flow
  * right after About rather than floating over whatever section is on screen while scrolling.
- * Moved here from the required-permissions screen (see AccessibilityPermissionScreen's kdoc).
+ * Moved here from the required-permissions screen (see PermissionsIntroScreen's kdoc).
  */
 @Composable
 private fun OpenSourceFooter(themeColor: Color, onOpenUrl: (String) -> Unit) {
