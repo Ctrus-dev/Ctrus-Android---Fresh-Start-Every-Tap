@@ -46,7 +46,10 @@ class BlockingAccessibilityService : AccessibilityService() {
         serviceInfo = (serviceInfo ?: AccessibilityServiceInfo()).apply {
             // Content changes are only acted on for supported browsers (address bar = the site
             // that's open); every other app's are dropped right away in onAccessibilityEvent.
-            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+            // TYPE_WINDOWS_CHANGED: split screen / pop-up windows (see checkMultiWindow).
+            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                AccessibilityEvent.TYPE_WINDOWS_CHANGED
             flags = flags or AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             notificationTimeout = 100
@@ -129,8 +132,58 @@ class BlockingAccessibilityService : AccessibilityService() {
         if (decision is BlockDecision.Block) showBlocker(decision)
     }
 
+    private var multiWindowCheckJob: Job? = null
+    private val lastMultiWindowBlockAtRealtime = HashMap<String, Long>()
+
+    /**
+     * Split screen and pop-up (freeform) windows. There, the blocked app keeps its own window and
+     * BlockerActivity opens in a separate one instead of covering it, so the app stays usable
+     * next to (or above) the block screen, and switching between the two windows doesn't always
+     * fire a window-state event for the blocked app. So every visible app window is checked, not
+     * just the active one, and when a blocked app shows up next to another window this goes Home
+     * first, which leaves split screen and hides pop-ups (checked on One UI 8), then shows the
+     * block screen full-screen. Same approach as Switchly's multiWindowBlockFallbackDetails().
+     * Returns true when it handled a blocked app.
+     */
+    private fun checkMultiWindow(): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        val appPackages = windows
+            .filter { it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION }
+            .mapNotNull { it.root?.packageName?.toString() }
+            // System UI reports app-type windows even with one full-screen app (seen on One UI);
+            // counting it would send every normal block through Home and flash the launcher.
+            .filter { it != SYSTEM_UI_PACKAGE }
+            .toSet()
+        if (appPackages.size <= 1) return false
+        val decision = appPackages.firstNotNullOfOrNull { BlockDecisionEngine.decide(this, it) as? BlockDecision.Block } ?: return false
+
+        val lastBlock = lastMultiWindowBlockAtRealtime[decision.packageName] ?: 0L
+        if (now - lastBlock < MULTI_WINDOW_BLOCK_COOLDOWN_MILLIS) return true
+        lastMultiWindowBlockAtRealtime[decision.packageName] = now
+        Log.i(TAG, "Blocked app ${decision.packageName} visible in multi-window ($appPackages), leaving via Home")
+
+        goHome()
+        serviceScope.launch {
+            delay(MULTI_WINDOW_BLOCK_DELAY_MILLIS)
+            lastHandledPackage = decision.packageName
+            showBlocker(decision)
+        }
+        return true
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         try {
+            if (event?.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
+                // These come in bursts while windows move/resize: check once it settles.
+                multiWindowCheckJob?.cancel()
+                if (BlockingStateHolder.state.value.isBlocking) {
+                    multiWindowCheckJob = serviceScope.launch {
+                        delay(MULTI_WINDOW_CHECK_DEBOUNCE_MILLIS)
+                        try { checkMultiWindow() } catch (e: Exception) { Log.e(TAG, "checkMultiWindow failed", e) }
+                    }
+                }
+                return
+            }
             val packageName = event?.packageName?.toString() ?: return
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
                 // Fires constantly while a page loads/scrolls: only browsers matter, and at
@@ -145,6 +198,7 @@ class BlockingAccessibilityService : AccessibilityService() {
                 return
             }
             if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+            if (BlockingStateHolder.state.value.isBlocking && checkMultiWindow()) return
             // Coming back to a browser re-checks its site even if it's the same one as before
             // (the block screen was dismissed, but the tab is still on that site).
             if (BrowserUrlReader.isSupportedBrowser(packageName)) lastCheckedHost = null
@@ -244,5 +298,10 @@ class BlockingAccessibilityService : AccessibilityService() {
         const val RETRY_DELAY_MILLIS = 140L
         const val RETRY_COOLDOWN_MILLIS = 2_500L
         const val BROWSER_CHECK_INTERVAL_MILLIS = 300L
+        const val MULTI_WINDOW_CHECK_DEBOUNCE_MILLIS = 150L
+        const val SYSTEM_UI_PACKAGE = "com.android.systemui"
+        // Long enough for the Home transition, so the block screen opens full-screen afterwards.
+        const val MULTI_WINDOW_BLOCK_DELAY_MILLIS = 240L
+        const val MULTI_WINDOW_BLOCK_COOLDOWN_MILLIS = 1_000L
     }
 }

@@ -50,6 +50,13 @@ project follows the same approach:
   once that dialog closes. The in-app disclosure and the service description state that the
   address bar is read. Verified on the emulator with Chrome: block, re-block on return,
   www./path variants, unrelated site allowed, nothing blocked once the session ends.
+- **Split screen / pop-up windows**: there `BlockerActivity` opens in its own window instead of
+  covering the blocked app, which stays usable. The service also listens to
+  `TYPE_WINDOWS_CHANGED` (debounced 150 ms) and checks every visible app window; if a blocked app
+  is next to another window it goes Home (leaves split screen, hides One UI pop-ups — verified on
+  a Galaxy A56 / One UI 8) and shows the block screen 240 ms later, at most once a second per app.
+  `com.android.systemui` is ignored in that count because it reports app-type windows even with
+  one full-screen app. Same approach as Switchly's `multiWindowBlockFallbackDetails()`.
 - **"Block Adult Websites"** (`blocking/AdultDomainList`): iOS uses Apple's system content filter;
   Android has no equivalent for apps, so Ctrus ships The Block List Project's adult list
   (public domain / MIT, credited in the License sheet and `assets/blocklists/NOTICE.txt`) as
