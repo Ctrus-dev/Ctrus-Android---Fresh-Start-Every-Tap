@@ -114,9 +114,12 @@ fun PermissionsSheet(
             }
 
             SettingsSection(title = stringResource(R.string.permissions_recommended_header)) {
-                // Tapping anywhere in this block relaunches the system's "exempt this app" dialog;
-                // when already exempt that's a harmless no-op, so it stays tappable.
-                Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onRequestBatteryOptimizationExemption)) {
+                // Tappable only while optimization is still on (red), like the Required rows.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (isBatteryOptimizationExempt) Modifier else Modifier.clickable(onClick = onRequestBatteryOptimizationExemption)),
+                ) {
                     SettingsRow(
                         title = stringResource(R.string.settings_battery_optimization),
                         contentPadding = PaddingValues(
@@ -144,7 +147,8 @@ fun PermissionsSheet(
                     SettingsRow(title = stringResource(R.string.oem_keep_alive_title), showChevron = true, onClick = { showOemGuide = true })
                 }
                 SettingsDivider()
-                SettingsLinkRow(title = stringResource(R.string.settings_background_launch_help)) { showBackgroundLaunchHelp = true }
+                // Chevron like "Keep Ctrus Running": both open a dialog here, not an external link.
+                SettingsRow(title = stringResource(R.string.settings_background_launch_help), showChevron = true, onClick = { showBackgroundLaunchHelp = true })
             }
         }
     }
