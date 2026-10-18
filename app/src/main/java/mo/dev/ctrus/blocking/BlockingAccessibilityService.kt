@@ -3,9 +3,11 @@ package mo.dev.ctrus.blocking
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
+import android.graphics.Rect
 import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityWindowInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import mo.dev.ctrus.CtrusApp
@@ -134,41 +136,163 @@ class BlockingAccessibilityService : AccessibilityService() {
 
     private var multiWindowCheckJob: Job? = null
     private val lastMultiWindowBlockAtRealtime = HashMap<String, Long>()
+    private val lastHomeForMultiWindowAtRealtime = HashMap<String, Long>()
+    private var lastPopupBackAtRealtime = 0L
+    // Split screen / pop-up handling moves windows around for a moment; verifyBlockerVisible
+    // would read that as a failed launch and add extra block screens.
+    private var lastMultiWindowActionAtRealtime = 0L
 
     /**
      * Split screen and pop-up (freeform) windows. There, the blocked app keeps its own window and
      * BlockerActivity opens in a separate one instead of covering it, so the app stays usable
-     * next to (or above) the block screen, and switching between the two windows doesn't always
-     * fire a window-state event for the blocked app. So every visible app window is checked, not
-     * just the active one, and when a blocked app shows up next to another window this goes Home
-     * first, which leaves split screen and hides pop-ups (checked on One UI 8), then shows the
-     * block screen full-screen. Same approach as Switchly's multiWindowBlockFallbackDetails().
+     * next to (or above) the block screen, and switching windows doesn't always fire a
+     * window-state event for it. So every visible app window is checked, not just the active one.
+     *
+     * A blocked app counts as handled only when a full-screen Ctrus window sits above it (the
+     * block screen is translucent, so the app is still listed behind it). Window bounds can't be
+     * trusted on their own: MIUI reports a split-screen app at nearly full-screen size. Otherwise:
+     * - it's the only app window: show the block screen;
+     * - it's a pop-up the user is using (focused): press Back a few times to close it. MIUI keeps
+     *   pop-ups above every full-screen window, the block screen included, and Home doesn't hide
+     *   them there;
+     * - first time it's next to other windows: go Home, which leaves split screen and hides
+     *   pop-ups on One UI (Switchly's multiWindowBlockFallbackDetails() does the same);
+     * - still split after that (MIUI keeps split screen and puts the launcher in the other half):
+     *   toggle split screen off, then the app fills the screen and gets blocked. Only for
+     *   full-width windows, since on a pop-up that toggle could enter split screen instead.
      * Returns true when it handled a blocked app.
      */
-    private fun checkMultiWindow(): Boolean {
+    private fun checkMultiWindow(followUp: Boolean = false): Boolean {
+        val screen = Rect(0, 0, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
+        val appWindows = windows
+            .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+            .mapNotNull { window -> window.root?.packageName?.toString()?.let { AppWindow(it, window) } }
+            // System UI reports app-type windows even with one full-screen app (seen on One UI).
+            .filter { it.packageName != SYSTEM_UI_PACKAGE }
+        // Each app's largest window: apps can own tiny helper windows too (Reddit has a 3x3 px
+        // one), which would otherwise be mistaken for the app's actual window.
+        val blocked = appWindows
+            .groupBy { it.packageName }
+            .mapNotNull { (pkg, list) ->
+                (BlockDecisionEngine.decide(this, pkg) as? BlockDecision.Block)?.let { decision ->
+                    decision to list.maxBy { it.bounds.width().toLong() * it.bounds.height() }
+                }
+            }
+            .firstOrNull()
+            ?: return false
+        val (decision, window) = blocked
+        // A pop-up minimized to its small floating icon (Home does this on One UI) is still listed
+        // as the app's window, but there's nothing usable in it: acting on it re-opened the block
+        // screen over the home screen again and again. Tapping the icon restores the pop-up,
+        // which then has focus and gets closed below.
+        if (window.isMinimized(screen)) return false
+        // Split screen windows span the full width (portrait); pop-ups don't, though One UI's are
+        // as wide as ~85% of the screen, so this can't share FULL_SCREEN_FRACTION.
+        val coversWidth = window.bounds.width() >= screen.width() * SPLIT_WIDTH_FRACTION
+        val othersVisible = appWindows.any { it.packageName != decision.packageName }
+
+        // A pop-up being used is closed right away, without the waits below: every moment it
+        // stays open is usable.
+        if (!coversWidth && window.focused && othersVisible) {
+            Log.i(TAG, "Pop-up check: ${decision.packageName} bounds=${window.bounds} focused=${window.focused}")
+            closePopup(decision.packageName)
+            return true
+        }
         val now = SystemClock.elapsedRealtime()
-        val appPackages = windows
-            .filter { it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION }
-            .mapNotNull { it.root?.packageName?.toString() }
-            // System UI reports app-type windows even with one full-screen app (seen on One UI);
-            // counting it would send every normal block through Home and flash the launcher.
-            .filter { it != SYSTEM_UI_PACKAGE }
-            .toSet()
-        if (appPackages.size <= 1) return false
-        val decision = appPackages.firstNotNullOfOrNull { BlockDecisionEngine.decide(this, it) as? BlockDecision.Block } ?: return false
+
+        // Just launched the block screen for it: let that land (and verifyBlockerVisible check it)
+        // before reading windows mid-transition, where the launcher can still be listed.
+        val sinceLaunch = SystemClock.elapsedRealtime() - (lastBlockerLaunchAtRealtime[decision.packageName] ?: 0L)
+        if (!followUp && sinceLaunch < BLOCKER_SETTLE_MILLIS) return true
+
+        val coveredByBlockScreen = appWindows.any {
+            it.packageName == packageName && it.layer > window.layer && it.coversScreen(screen)
+        }
+        if (coveredByBlockScreen) return true
 
         val lastBlock = lastMultiWindowBlockAtRealtime[decision.packageName] ?: 0L
-        if (now - lastBlock < MULTI_WINDOW_BLOCK_COOLDOWN_MILLIS) return true
+        if (!followUp && now - lastBlock < MULTI_WINDOW_BLOCK_COOLDOWN_MILLIS) return true
         lastMultiWindowBlockAtRealtime[decision.packageName] = now
-        Log.i(TAG, "Blocked app ${decision.packageName} visible in multi-window ($appPackages), leaving via Home")
 
-        goHome()
+        if (!othersVisible) {
+            Log.i(TAG, "Blocked app ${decision.packageName} alone on screen (bounds=${window.bounds}), showing block screen")
+            showBlocker(decision, checkSplitAfter = false)
+            return true
+        }
+
+        val homeAlreadyTried = now - (lastHomeForMultiWindowAtRealtime[decision.packageName] ?: 0L) < HOME_RETRY_WINDOW_MILLIS
+        when {
+            !homeAlreadyTried -> {
+                Log.i(TAG, "Blocked app ${decision.packageName} next to other windows (bounds=${window.bounds}, others=${appWindows.map { it.packageName }}), leaving via Home")
+                lastHomeForMultiWindowAtRealtime[decision.packageName] = now
+                lastMultiWindowActionAtRealtime = now
+                goHome()
+                // Look again as soon as Home has settled instead of waiting for the next window
+                // event: if Home hid the app (One UI) there's nothing left to do; if it's still
+                // split (MIUI), the toggle below runs right away.
+                serviceScope.launch {
+                    delay(HOME_RECHECK_DELAY_MILLIS)
+                    try { checkMultiWindow(followUp = true) } catch (e: Exception) { Log.e(TAG, "checkMultiWindow failed", e) }
+                }
+                return true
+            }
+            else -> {
+                Log.i(TAG, "Blocked app ${decision.packageName} still split after Home, toggling split screen off")
+                lastMultiWindowActionAtRealtime = now
+                performGlobalAction(GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN)
+            }
+        }
         serviceScope.launch {
             delay(MULTI_WINDOW_BLOCK_DELAY_MILLIS)
-            lastHandledPackage = decision.packageName
-            showBlocker(decision)
+            showBlocker(decision, checkSplitAfter = false)
         }
         return true
+    }
+
+    /**
+     * Closes a blocked app's focused pop-up by pressing Back until its window is gone (at most
+     * [POPUP_BACK_PRESSES] times), stopping as soon as it closes so no extra Back reaches
+     * whatever is underneath. No block screen afterwards: the app is closed, and if it's somehow
+     * still there the next window check deals with it.
+     */
+    private fun closePopup(blockedPackage: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastPopupBackAtRealtime < POPUP_BACK_PRESSES * POPUP_BACK_INTERVAL_MILLIS) return
+        lastPopupBackAtRealtime = now
+        lastMultiWindowActionAtRealtime = now
+        Log.i(TAG, "Blocked app $blockedPackage used in a pop-up, closing it with Back")
+        serviceScope.launch {
+            for (i in 0 until POPUP_BACK_PRESSES) {
+                performGlobalAction(GLOBAL_ACTION_BACK)
+                delay(POPUP_BACK_INTERVAL_MILLIS)
+                val stillOpen = windows.any { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.root?.packageName?.toString() == blockedPackage }
+                if (!stillOpen) break
+            }
+            lastPopupBackAtRealtime = SystemClock.elapsedRealtime()
+        }
+    }
+
+    /** Whether the blocked app is in a pop-up the user is using right now (has focus). */
+    private fun isFocusedPopup(blockedPackage: String): Boolean {
+        val screenWidth = resources.displayMetrics.widthPixels
+        val appWindows = windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+        val own = appWindows.filter { it.root?.packageName?.toString() == blockedPackage }
+        if (own.isEmpty() || appWindows.size == own.size) return false
+        val main = own.maxBy { w -> Rect().also(w::getBoundsInScreen).let { it.width().toLong() * it.height() } }
+        val bounds = Rect().also(main::getBoundsInScreen)
+        return bounds.width() < screenWidth * SPLIT_WIDTH_FRACTION && (main.isFocused || main.isActive)
+    }
+
+    private class AppWindow(val packageName: String, info: AccessibilityWindowInfo) {
+        val bounds = Rect().also(info::getBoundsInScreen)
+        val layer = info.layer
+        val focused = info.isFocused || info.isActive
+
+        fun isMinimized(screen: Rect) =
+            bounds.width() < screen.width() * MINIMIZED_FRACTION && bounds.height() < screen.height() * MINIMIZED_FRACTION
+
+        fun coversScreen(screen: Rect) =
+            bounds.width() >= screen.width() * FULL_SCREEN_FRACTION && bounds.height() >= screen.height() * FULL_SCREEN_FRACTION
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -198,7 +322,6 @@ class BlockingAccessibilityService : AccessibilityService() {
                 return
             }
             if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
-            if (BlockingStateHolder.state.value.isBlocking && checkMultiWindow()) return
             // Coming back to a browser re-checks its site even if it's the same one as before
             // (the block screen was dismissed, but the tab is still on that site).
             if (BrowserUrlReader.isSupportedBrowser(packageName)) lastCheckedHost = null
@@ -206,7 +329,9 @@ class BlockingAccessibilityService : AccessibilityService() {
             lastHandledPackage = packageName
 
             when (val decision = BlockDecisionEngine.decide(this, packageName)) {
-                is BlockDecision.Block -> showBlocker(decision)
+                // Opened straight into a pop-up: close it now rather than putting the block
+                // screen under it (MIUI keeps pop-ups above full-screen windows).
+                is BlockDecision.Block -> if (isFocusedPopup(packageName)) closePopup(packageName) else showBlocker(decision)
                 BlockDecision.Dismiss -> goHome()
                 BlockDecision.Allow -> rootInActiveWindow?.let { checkBrowserSite(it, packageName) }
             }
@@ -226,13 +351,33 @@ class BlockingAccessibilityService : AccessibilityService() {
         performGlobalAction(GLOBAL_ACTION_HOME)
     }
 
-    private fun showBlocker(decision: BlockDecision.Block) {
+    /**
+     * [checkSplitAfter]: in split screen the block screen opens in the other half, leaving the
+     * blocked app usable, and no further window event may come to notice it. So once it has
+     * settled, the windows are checked again (checkMultiWindow does nothing when a full-screen
+     * block screen covers the app). Off when called from checkMultiWindow itself.
+     */
+    private fun showBlocker(decision: BlockDecision.Block, checkSplitAfter: Boolean = true) {
+        // Already on screen for this app: launching again only pauses/resumes it for nothing.
+        if (BlockerActivity.isShowingFor(decision.packageName) && isOwnWindowFocused()) return
         launchBlocker(decision)
         serviceScope.launch {
             delay(VERIFY_DELAY_MILLIS)
             verifyBlockerVisible(decision)
         }
+        if (checkSplitAfter) {
+            serviceScope.launch {
+                delay(BLOCKER_SETTLE_MILLIS)
+                try { checkMultiWindow(followUp = true) } catch (e: Exception) { Log.e(TAG, "checkMultiWindow failed", e) }
+            }
+        }
     }
+
+    /** Whether a Ctrus window (the block screen) has focus right now, read from the window list
+     *  rather than BlockerActivity's own flags, which an instance that's finishing can clear
+     *  after the next one has already taken focus. */
+    private fun isOwnWindowFocused(): Boolean =
+        windows.any { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.isFocused && it.root?.packageName?.toString() == packageName }
 
     /** Launched immediately, on top of the blocked app, with no performGlobalAction(HOME) kick
      *  first — that used to flash the launcher for ~250ms before BlockerActivity came up, which
@@ -243,7 +388,10 @@ class BlockingAccessibilityService : AccessibilityService() {
      *  behavior that can otherwise let the blocked app redraw a frame first, CLEAR_TOP ensures a
      *  second launch (the visibility retry below) reuses/updates the same instance rather than
      *  stacking a duplicate. */
+    private val lastBlockerLaunchAtRealtime = HashMap<String, Long>()
+
     private fun launchBlocker(decision: BlockDecision.Block) {
+        lastBlockerLaunchAtRealtime[decision.packageName] = SystemClock.elapsedRealtime()
         val intent = Intent(this, BlockerActivity::class.java)
             .putExtra(BlockerActivity.EXTRA_PACKAGE_NAME, decision.packageName)
             .putExtra(BlockerActivity.EXTRA_PROFILE_NAME, decision.profileName)
@@ -265,7 +413,11 @@ class BlockingAccessibilityService : AccessibilityService() {
      *  front even though the Activity launch succeeded — bouncing Home first makes the retry much
      *  more likely to get a real focused window") and relaunch once. */
     private fun verifyBlockerVisible(decision: BlockDecision.Block) {
-        if (BlockerActivity.isRecentlyFocusedFor(decision.packageName)) return
+        if (BlockerActivity.isRecentlyFocusedFor(decision.packageName) || BlockerActivity.isShowingFor(decision.packageName)) return
+        // The block screen can have focus while BlockerActivity's flags say otherwise (see
+        // isOwnWindowFocused); bouncing Home then flashed the home screen for nothing.
+        if (isOwnWindowFocused()) return
+        if (SystemClock.elapsedRealtime() - lastMultiWindowActionAtRealtime < MULTI_WINDOW_VERIFY_PAUSE_MILLIS) return
 
         val now = SystemClock.elapsedRealtime()
         val lastRetry = lastRetryAtRealtimeByPackage[decision.packageName] ?: 0L
@@ -298,8 +450,24 @@ class BlockingAccessibilityService : AccessibilityService() {
         const val RETRY_DELAY_MILLIS = 140L
         const val RETRY_COOLDOWN_MILLIS = 2_500L
         const val BROWSER_CHECK_INTERVAL_MILLIS = 300L
-        const val MULTI_WINDOW_CHECK_DEBOUNCE_MILLIS = 150L
+        const val MULTI_WINDOW_CHECK_DEBOUNCE_MILLIS = 100L
+        const val MULTI_WINDOW_VERIFY_PAUSE_MILLIS = 2_000L
         const val SYSTEM_UI_PACKAGE = "com.android.systemui"
+        // A window this close to the screen size counts as full screen (apps that don't draw
+        // behind the status/navigation bars are a bit shorter than the display).
+        const val FULL_SCREEN_FRACTION = 0.85f
+        const val SPLIT_WIDTH_FRACTION = 0.97f
+        // Smaller than this in both directions: a minimized pop-up's floating icon, not a window
+        // anyone can use (resized pop-ups stay well above it).
+        const val MINIMIZED_FRACTION = 0.3f
+        // If the blocked app is still in part of the screen this soon after going Home, Home
+        // didn't leave split screen (MIUI).
+        const val HOME_RETRY_WINDOW_MILLIS = 4_000L
+        // Enough Backs to leave most apps' inner screens and close the pop-up itself.
+        const val POPUP_BACK_PRESSES = 4
+        const val POPUP_BACK_INTERVAL_MILLIS = 120L
+        const val BLOCKER_SETTLE_MILLIS = 800L
+        const val HOME_RECHECK_DELAY_MILLIS = 350L
         // Long enough for the Home transition, so the block screen opens full-screen afterwards.
         const val MULTI_WINDOW_BLOCK_DELAY_MILLIS = 240L
         const val MULTI_WINDOW_BLOCK_COOLDOWN_MILLIS = 1_000L

@@ -105,16 +105,30 @@ class BlockerActivity : ComponentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        // A finishing instance can lose focus after the next one got it; only the newest one
+        // may clear the shared flags.
+        if (!hasFocus && current?.get() !== this) return
         hasWindowFocusNow = hasFocus
         if (hasFocus) {
+            current = java.lang.ref.WeakReference(this)
             isVisible = true
             visiblePackage = intent?.getStringExtra(EXTRA_PACKAGE_NAME)
             lastFocusedAtRealtime = SystemClock.elapsedRealtime()
         }
     }
 
+    // A second launch for an already-showing block screen (singleInstance → onNewIntent) pauses
+    // and resumes it without any focus change, so onWindowFocusChanged doesn't run again and the
+    // state onPause cleared stayed cleared: the service then read the block screen as missing and
+    // bounced Home, flashing the home screen and re-showing the block screen over it.
+    override fun onResume() {
+        super.onResume()
+        if (hasWindowFocus()) onWindowFocusChanged(true)
+    }
+
     override fun onPause() {
         super.onPause()
+        if (current?.get() !== this) return
         hasWindowFocusNow = false
         isVisible = false
         visiblePackage = null
@@ -149,10 +163,16 @@ class BlockerActivity : ComponentActivity() {
         private const val BLURRED_BACKGROUND_ALPHA = 0.9f
         private const val OPAQUE_BACKGROUND_ALPHA = 0.97f
 
+        @Volatile private var current: java.lang.ref.WeakReference<BlockerActivity>? = null
         @Volatile private var isVisible: Boolean = false
         @Volatile private var visiblePackage: String? = null
         @Volatile private var hasWindowFocusNow: Boolean = false
         @Volatile private var lastFocusedAtRealtime: Long = 0L
+
+        /** True while the block screen for [packageName] is showing and focused, however long ago it
+         *  got focus. */
+        fun isShowingFor(packageName: String): Boolean =
+            packageName.isNotBlank() && visiblePackage == packageName && isVisible && hasWindowFocusNow
 
         /** True if this Activity is currently focused and showing the block screen for [packageName],
          *  as of at most [ttlMillis] ago — used by BlockingAccessibilityService to verify a

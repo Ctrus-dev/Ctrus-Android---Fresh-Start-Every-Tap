@@ -35,7 +35,9 @@ project follows the same approach:
   (Samsung's Phone app is `com.samsung.android.dialer`), so on top of a list of known names it
   resolves the device's actual Settings handler, `ACTION_DIAL` handler, default dialer and home
   launcher (cached, since this runs on every window event). Protected apps are hidden from the
-  app picker. `isProtectedDomain` keeps `ctrus.pt` and every `*.ctrus.pt` (e.g. recover.ctrus.pt)
+  app picker. Every enabled keyboard (`Settings.Secure.ENABLED_INPUT_METHODS`, read on each check
+  since keyboards change) is protected too: an IME window fires the same window-state event as an
+  app, so allow-mode used to block Gboard while typing in an allowed app. `isProtectedDomain` keeps `ctrus.pt` and every `*.ctrus.pt` (e.g. recover.ctrus.pt)
   unblockable, and the Domains field refuses to add them.
 - **Per-site blocking** (`blocking/BrowserUrlReader`): Android has no API for "which URL is open",
   so, like Switchly, the Accessibility service reads the address bar of known browsers by view id
@@ -50,13 +52,37 @@ project follows the same approach:
   once that dialog closes. The in-app disclosure and the service description state that the
   address bar is read. Verified on the emulator with Chrome: block, re-block on return,
   www./path variants, unrelated site allowed, nothing blocked once the session ends.
-- **Split screen / pop-up windows**: there `BlockerActivity` opens in its own window instead of
-  covering the blocked app, which stays usable. The service also listens to
-  `TYPE_WINDOWS_CHANGED` (debounced 150 ms) and checks every visible app window; if a blocked app
-  is next to another window it goes Home (leaves split screen, hides One UI pop-ups — verified on
-  a Galaxy A56 / One UI 8) and shows the block screen 240 ms later, at most once a second per app.
-  `com.android.systemui` is ignored in that count because it reports app-type windows even with
-  one full-screen app. Same approach as Switchly's `multiWindowBlockFallbackDetails()`.
+- **Split screen / pop-up windows** (`checkMultiWindow` in the service): `BlockerActivity` opens
+  in its own window there, so the blocked app stays usable. The service listens to
+  `TYPE_WINDOWS_CHANGED` (debounced 100 ms) and checks every visible app window. Rules learned
+  on-device: use each app's *largest* window (Reddit owns a 3x3 px helper window); ignore
+  `com.android.systemui`; don't trust bounds alone (MIUI reports a split-screen app at nearly
+  full-screen size) — the app counts as handled only when a full-screen Ctrus window sits on a
+  higher layer. Then: only app window → block screen; focused pop-up → press Back until its window
+  is gone (MIUI keeps pop-ups above every full-screen window and Home doesn't hide them); else Home
+  (leaves split screen and hides pop-ups on One UI), re-check 350 ms later, and if still split
+  (MIUI keeps split screen and puts the launcher in the other half) `GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN`
+  — only for full-width windows (≥ 97% of the screen width; One UI pop-ups are ~85% wide), since
+  on a pop-up it could enter split screen. A pop-up opened straight away is closed from the
+  window-state event, before any block screen goes under it. A minimized pop-up (One UI's floating
+  icon, < 30% of the screen both ways) is ignored — acting on it re-opened the block screen over
+  the home screen in a loop; tapping it restores a focused pop-up, which gets closed. Every block
+  screen launched outside `checkMultiWindow` re-checks the windows 800 ms later, because in split
+  screen it opens in the other half and no further event may arrive.
+  `verifyBlockerVisible` pauses for 2 s after these actions, otherwise it adds extra block screens.
+  Verified on a POCO F2 Pro (MIUI 14, Android 12); the Home path was verified on a Galaxy A56
+  (One UI 8) with an earlier version of this logic. **Known limit (accepted)**: on MIUI, a game or
+  app that ignores Back stays usable in a pop-up. **Rejected** (don't retry): launching the app
+  again to force it full-screen (Android keeps its windowing mode; it looped block screens and
+  broke Reddit), `ActivityOptions.setLaunchBounds` (MIUI ignores it), an overlay sized to the
+  pop-up (MIUI reports wrong bounds and no events while it's dragged), and a full-screen overlay
+  (the user couldn't close the pop-up underneath).
+- **Block screen visibility**: `BlockerActivity` is `singleInstance`, so launching it again while it
+  shows pauses/resumes it without a focus change; and a finishing instance can lose focus after
+  the next one got it. Both used to clear its "visible" flags, so `verifyBlockerVisible` bounced
+  Home and the block screen flashed back over the home screen. Now only the newest instance clears
+  them, `onResume` restores them, `showBlocker` skips a block screen already showing for that app,
+  and the verify also accepts a focused Ctrus window from the accessibility window list.
 - **"Block Adult Websites"** (`blocking/AdultDomainList`): iOS uses Apple's system content filter;
   Android has no equivalent for apps, so Ctrus ships The Block List Project's adult list
   (public domain / MIT, credited in the License sheet and `assets/blocklists/NOTICE.txt`) as

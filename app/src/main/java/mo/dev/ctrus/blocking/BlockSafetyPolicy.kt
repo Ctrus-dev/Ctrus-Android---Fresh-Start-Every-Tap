@@ -17,6 +17,8 @@ import android.telecom.TelecomManager
  *   known names this asks the OS which app actually handles Settings and which one is the default
  *   dialer on *this* device.
  * - The home launcher, system UI and the emergency/in-call screens.
+ * - Every enabled keyboard (e.g. Gboard). Its window fires the same window-state event as an app
+ *   when it opens, so in allow-mode typing in an allowed app showed the block screen for Gboard.
  * The app picker hides all of these, so they can't even be selected.
  */
 object BlockSafetyPolicy {
@@ -46,7 +48,20 @@ object BlockSafetyPolicy {
     fun isProtected(context: Context, packageName: String): Boolean {
         if (packageName == context.packageName) return true
         if (packageName in NEVER_BLOCK) return true
+        if (isEnabledKeyboard(context, packageName)) return true
         return packageName in resolvedPackages(context)
+    }
+
+    // Not cached with the others: keyboards can be added or switched at any time. Settings.Secure
+    // reads are served from a local cache, so this is cheap enough for every event.
+    // ENABLED_INPUT_METHODS is "pkg/.Service:pkg2/.Service;subtype…".
+    private fun isEnabledKeyboard(context: Context, packageName: String): Boolean {
+        val resolver = context.contentResolver
+        val ids = listOfNotNull(
+            runCatching { Settings.Secure.getString(resolver, Settings.Secure.ENABLED_INPUT_METHODS) }.getOrNull(),
+            runCatching { Settings.Secure.getString(resolver, Settings.Secure.DEFAULT_INPUT_METHOD) }.getOrNull(),
+        ).joinToString(":")
+        return ids.split(':').any { it.substringBefore('/') == packageName }
     }
 
     /** ctrus.pt itself or any subdomain of it. */
