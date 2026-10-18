@@ -16,22 +16,50 @@ import android.telecom.TelecomManager
  *   Phone app is com.samsung.android.dialer, not AOSP's com.android.dialer), so besides a list of
  *   known names this asks the OS which app actually handles Settings and which one is the default
  *   dialer on *this* device.
- * - The home launcher, system UI and the emergency/in-call screens.
+ * - The home launcher, system UI, the lock screen's unlock (fingerprint/face) screens,
+ *   permission prompts, the emergency/in-call/SOS screens, and the Clock (a ringing alarm).
+ * - The OEM screens Ctrus itself sends people to (MIUI Security/Autostart, battery settings).
  * - Every enabled keyboard (e.g. Gboard). Its window fires the same window-state event as an app
  *   when it opens, so in allow-mode typing in an allowed app showed the block screen for Gboard.
  * The app picker hides all of these, so they can't even be selected.
  */
 object BlockSafetyPolicy {
     private val NEVER_BLOCK = setOf(
+        // Settings
         "com.android.settings",
+        // Phone, calls and emergency calls
         "com.android.dialer",
         "com.google.android.dialer",
         "com.samsung.android.dialer",
         "com.android.phone",
+        "com.android.server.telecom",
         "com.android.incallui",
         "com.samsung.android.incallui",
+        "com.samsung.android.app.telephonyui",
+        // System UI, the lock screen and unlocking (fingerprint/face)
+        "android",
         "com.android.systemui",
+        "com.samsung.android.biometrics.app.setting",
+        "com.miui.face",
+        // Permission prompts
+        "com.android.permissioncontroller",
+        "com.google.android.permissioncontroller",
+        "com.lbe.security.miui",
+        // Emergency info, SOS and emergency alerts
         "com.android.emergency",
+        "com.samsung.android.emergency",
+        "com.sec.android.emergencylauncher",
+        "com.google.android.apps.safetyhub",
+        "com.android.cellbroadcastreceiver",
+        "com.google.android.cellbroadcastreceiver",
+        // Clock: a ringing alarm must always be stoppable
+        "com.android.deskclock",
+        "com.google.android.deskclock",
+        "com.sec.android.app.clockpackage",
+        // Where Ctrus sends people to fix its own permissions (Autostart, battery)
+        "com.miui.securitycenter",
+        "com.miui.powerkeeper",
+        "com.samsung.android.lool",
     )
 
     private const val CTRUS_DOMAIN = "ctrus.pt"

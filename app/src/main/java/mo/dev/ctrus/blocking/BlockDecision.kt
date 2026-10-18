@@ -61,6 +61,11 @@ object BlockDecisionEngine {
         if (BlockSafetyPolicy.isProtected(context, foregroundPackage)) {
             return BlockDecision.Allow
         }
+        // Nothing is blocked on the lock screen: whatever opens there is part of unlocking,
+        // a call, an alarm or the camera, and the block screen (showWhenLocked) would cover
+        // the unlock itself — that locked a Galaxy A56 out when its fingerprint screen was
+        // blocked. Apps get checked again once the phone is unlocked.
+        if (isLocked(context)) return BlockDecision.Allow
 
         val state = BlockingStateHolder.state.value
         if (state.isInstallBlockActive && foregroundPackage in PLAY_STORE_PACKAGES) {
@@ -69,7 +74,10 @@ object BlockDecisionEngine {
         if (state.isDeletionBlockActive && isPackageInstallerSurface(context, foregroundPackage)) {
             return BlockDecision.Dismiss
         }
-        return if (state.isPackageBlocked(foregroundPackage)) {
+        // Only apps with a launcher icon (the ones the picker offers) can be blocked. In
+        // allow-mode everything unselected is blocked, which used to include system parts that
+        // open their own windows, e.g. Samsung's fingerprint screen (seen on One UI 8).
+        return if (state.isPackageBlocked(foregroundPackage) && isLaunchable(context, foregroundPackage)) {
             BlockDecision.Block(packageName = foregroundPackage, profileName = state.profileName)
         } else {
             BlockDecision.Allow
@@ -89,6 +97,17 @@ object BlockDecisionEngine {
             BlockDecision.Allow
         }
     }
+
+    private fun isLocked(context: android.content.Context): Boolean =
+        runCatching { context.getSystemService(android.app.KeyguardManager::class.java)?.isKeyguardLocked == true }.getOrDefault(false)
+
+    // Launcher icons rarely change, and this runs on every window event: one lookup per package.
+    private val launchableByPackage = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+    private fun isLaunchable(context: android.content.Context, packageName: String): Boolean =
+        launchableByPackage.getOrPut(packageName) {
+            runCatching { context.packageManager.getLaunchIntentForPackage(packageName) != null }.getOrDefault(true)
+        }
 
     private fun isPackageInstallerSurface(context: android.content.Context, foregroundPackage: String): Boolean {
         if (foregroundPackage in KNOWN_PACKAGE_INSTALLER_PACKAGES) return true

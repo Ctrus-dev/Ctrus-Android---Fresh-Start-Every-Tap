@@ -35,7 +35,13 @@ project follows the same approach:
   (Samsung's Phone app is `com.samsung.android.dialer`), so on top of a list of known names it
   resolves the device's actual Settings handler, `ACTION_DIAL` handler, default dialer and home
   launcher (cached, since this runs on every window event). Protected apps are hidden from the
-  app picker. Every enabled keyboard (`Settings.Secure.ENABLED_INPUT_METHODS`, read on each check
+  app picker. Lock-out safety, after a Galaxy A56 couldn't be unlocked in allow-mode because
+  Samsung's fingerprint screen (`com.samsung.android.biometrics.app.setting`) got blocked: nothing
+  is blocked while the keyguard is locked; only apps with a launcher icon can be blocked (system
+  parts never can — the Play Store/uninstall `Dismiss` checks run before this); and the never-block
+  list covers unlock (biometrics, MIUI face), permission prompts, phone/telecom/emergency/SOS/
+  emergency alerts, the Clock (ringing alarms), and the OEM screens Ctrus sends people to (MIUI
+  Security/Autostart, battery). Every enabled keyboard (`Settings.Secure.ENABLED_INPUT_METHODS`, read on each check
   since keyboards change) is protected too: an IME window fires the same window-state event as an
   app, so allow-mode used to block Gboard while typing in an allowed app. `isProtectedDomain` keeps `ctrus.pt` and every `*.ctrus.pt` (e.g. recover.ctrus.pt)
   unblockable, and the Domains field refuses to add them.
@@ -58,31 +64,44 @@ project follows the same approach:
   on-device: use each app's *largest* window (Reddit owns a 3x3 px helper window); ignore
   `com.android.systemui`; don't trust bounds alone (MIUI reports a split-screen app at nearly
   full-screen size) — the app counts as handled only when a full-screen Ctrus window sits on a
-  higher layer. Then: only app window → block screen; focused pop-up → press Back until its window
-  is gone (MIUI keeps pop-ups above every full-screen window and Home doesn't hide them); else Home
-  (leaves split screen and hides pop-ups on One UI), re-check 350 ms later, and if still split
-  (MIUI keeps split screen and puts the launcher in the other half) `GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN`
-  — only for full-width windows (≥ 97% of the screen width; One UI pop-ups are ~85% wide), since
-  on a pop-up it could enter split screen. A pop-up opened straight away is closed from the
-  window-state event, before any block screen goes under it. A minimized pop-up (One UI's floating
-  icon, < 30% of the screen both ways) is ignored — acting on it re-opened the block screen over
-  the home screen in a loop; tapping it restores a focused pop-up, which gets closed. Every block
-  screen launched outside `checkMultiWindow` re-checks the windows 800 ms later, because in split
-  screen it opens in the other half and no further event may arrive.
+  higher layer (or the launcher covers it: One UI keeps a split pair listed behind the home
+  screen after Home). Then: only app window → block screen; focused pop-up → press Back until the
+  app loses focus (stopping there, so no extra Back hits the block screen or whatever is in front),
+  then Home if it's still open (Waze's "exit?" prompt, games: One UI then minimizes it to a
+  floating icon — accepted; Instagram/WhatsApp close with Back and leave none). A pop-up is only
+  closed if it still is one 400 ms later: an app opening from its icon is reported at the launch
+  animation's size, a narrow window mid-screen, and used to get closed before its block screen.
+  With no other window listed (One UI doesn't always list the launcher under a pop-up) it must be
+  under 90% of the screen width (≥ 97% = split screen; One UI pop-ups are ~85% wide, MIUI's ~70%).
+  Split screen → Home, re-check 350 ms later, and if still split (MIUI keeps it, launcher in the
+  other half) `GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN` then Home again — **never a block screen over the
+  home screen**: the app is simply closed. A blocked app opened straight into split screen goes
+  through this path instead of opening the block screen in the other half. A minimized pop-up
+  (floating icon, < 30% of the screen both ways) is ignored — acting on it re-opened the block
+  screen over the home screen in a loop. Every block screen launched outside `checkMultiWindow`
+  re-checks the windows 800 ms later, since in split screen no further event may arrive. A
+  window-state event only blocks if that app owns the active window (else re-check 300 ms later):
+  apps fire it while leaving the screen too (under the block screen after OK, a closing pop-up),
+  which re-showed the block screen over the home screen.
   `verifyBlockerVisible` pauses for 2 s after these actions, otherwise it adds extra block screens.
-  Verified on a POCO F2 Pro (MIUI 14, Android 12); the Home path was verified on a Galaxy A56
-  (One UI 8) with an earlier version of this logic. **Known limit (accepted)**: on MIUI, a game or
-  app that ignores Back stays usable in a pop-up. **Rejected** (don't retry): launching the app
-  again to force it full-screen (Android keeps its windowing mode; it looped block screens and
-  broke Reddit), `ActivityOptions.setLaunchBounds` (MIUI ignores it), an overlay sized to the
-  pop-up (MIUI reports wrong bounds and no events while it's dragged), and a full-screen overlay
-  (the user couldn't close the pop-up underneath).
+  Verified on a POCO F2 Pro (MIUI 14, Android 12) and a Galaxy A56 (One UI 8, Android 16).
+  **Known limits (accepted)**: on MIUI, a game or app that ignores Back stays usable in a pop-up;
+  on One UI such an app (Waze) is hidden to a floating icon rather than closed. **Rejected** (don't
+  retry): launching the app again to force it full-screen (Android keeps its windowing mode; it
+  looped block screens and broke Reddit), `ActivityOptions.setLaunchBounds` (MIUI ignores it), an
+  overlay sized to the pop-up (MIUI reports wrong bounds and no events while it's dragged), a
+  full-screen overlay (the user couldn't close the pop-up underneath), and Home-only pop-up closing
+  on One UI (always leaves the floating icon).
 - **Block screen visibility**: `BlockerActivity` is `singleInstance`, so launching it again while it
   shows pauses/resumes it without a focus change; and a finishing instance can lose focus after
   the next one got it. Both used to clear its "visible" flags, so `verifyBlockerVisible` bounced
   Home and the block screen flashed back over the home screen. Now only the newest instance clears
-  them, `onResume` restores them, `showBlocker` skips a block screen already showing for that app,
-  and the verify also accepts a focused Ctrus window from the accessibility window list.
+  them, `onResume` restores them, `showBlocker` skips a block screen already showing for that app
+  and launches within 300 ms of each other, and the verify accepts a focused or topmost full-screen
+  Ctrus window from the accessibility window list, and gives up if the block screen was shown
+  since the launch (it was already dismissed with OK — retrying re-opened it over Home).
+  Background: blurred (`FLAG_BLUR_BEHIND`, 40 dp, alpha 0.9) where cross-window blur works;
+  fully opaque where it doesn't (e.g. this Galaxy A56: `mBlurEnabled=false`).
 - **"Block Adult Websites"** (`blocking/AdultDomainList`): iOS uses Apple's system content filter;
   Android has no equivalent for apps, so Ctrus ships The Block List Project's adult list
   (public domain / MIT, credited in the License sheet and `assets/blocklists/NOTICE.txt`) as

@@ -111,6 +111,8 @@ class BlockerActivity : ComponentActivity() {
         hasWindowFocusNow = hasFocus
         if (hasFocus) {
             current = java.lang.ref.WeakReference(this)
+            lastShownPackage = intent?.getStringExtra(EXTRA_PACKAGE_NAME)
+            lastShownAtRealtime = SystemClock.elapsedRealtime()
             isVisible = true
             visiblePackage = intent?.getStringExtra(EXTRA_PACKAGE_NAME)
             lastFocusedAtRealtime = SystemClock.elapsedRealtime()
@@ -161,9 +163,16 @@ class BlockerActivity : ComponentActivity() {
         private const val VISIBLE_TTL_MILLIS = 2_500L
         private const val BLUR_RADIUS_DP = 40
         private const val BLURRED_BACKGROUND_ALPHA = 0.9f
-        private const val OPAQUE_BACKGROUND_ALPHA = 0.97f
+        private const val OPAQUE_BACKGROUND_ALPHA = 1f
 
         @Volatile private var current: java.lang.ref.WeakReference<BlockerActivity>? = null
+        // Not cleared when it closes: tells a launch that worked (then OK'd) from one that failed.
+        @Volatile private var lastShownPackage: String? = null
+        @Volatile private var lastShownAtRealtime: Long = 0L
+
+        /** True if the block screen for [packageName] got focus at or after [sinceRealtime]. */
+        fun wasShownSince(packageName: String, sinceRealtime: Long): Boolean =
+            lastShownPackage == packageName && lastShownAtRealtime >= sinceRealtime
         @Volatile private var isVisible: Boolean = false
         @Volatile private var visiblePackage: String? = null
         @Volatile private var hasWindowFocusNow: Boolean = false
