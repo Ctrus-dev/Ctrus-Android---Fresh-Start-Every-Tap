@@ -64,9 +64,11 @@ project follows the same approach:
   on-device: use each app's *largest* window (Reddit owns a 3x3 px helper window); ignore
   `com.android.systemui`; don't trust bounds alone (MIUI reports a split-screen app at nearly
   full-screen size) — the app counts as handled only when a full-screen Ctrus window sits on a
-  higher layer (or the launcher covers it: One UI keeps a split pair listed behind the home
-  screen after Home). Then: only app window → block screen; focused pop-up → press Back until the
-  app loses focus (stopping there, so no extra Back hits the block screen or whatever is in front),
+  higher layer (not the launcher: MIUI reports its split-screen half at full-screen size on a
+  higher layer). Then: only app window → block screen; focused pop-up → press Back until the
+  pop-up is gone or a Ctrus window has focus (stopping there, so no extra Back hits the block
+  screen or whatever is in front; not just "app lost focus": on MIUI the pop-up can briefly lose
+  focus to the launcher while still open),
   then Home if it's still open (Waze's "exit?" prompt, games: One UI then minimizes it to a
   floating icon — accepted; Instagram/WhatsApp close with Back and leave none). A pop-up is only
   closed if it still is one 400 ms later: an app opening from its icon is reported at the launch
@@ -74,8 +76,9 @@ project follows the same approach:
   With no other window listed (One UI doesn't always list the launcher under a pop-up) it must be
   under 90% of the screen width (≥ 97% = split screen; One UI pop-ups are ~85% wide, MIUI's ~70%).
   Split screen → Home, re-check 350 ms later, and if still split (MIUI keeps it, launcher in the
-  other half) `GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN` then Home again — **never a block screen over the
-  home screen**: the app is simply closed. A blocked app opened straight into split screen goes
+  other half; One UI keeps the pair listed behind the home screen) `GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN`,
+  and 450 ms later the block screen only if the app is now the topmost full-screen window (MIUI) —
+  **never a block screen over the home screen** (One UI: nothing is in front, nothing is shown). A blocked app opened straight into split screen goes
   through this path instead of opening the block screen in the other half. A minimized pop-up
   (floating icon, < 30% of the screen both ways) is ignored — acting on it re-opened the block
   screen over the home screen in a loop. Every block screen launched outside `checkMultiWindow`

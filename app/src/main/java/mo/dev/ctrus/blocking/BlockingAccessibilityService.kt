@@ -207,12 +207,14 @@ class BlockingAccessibilityService : AccessibilityService() {
         val sinceLaunch = SystemClock.elapsedRealtime() - (lastBlockerLaunchAtRealtime[decision.packageName] ?: 0L)
         if (!followUp && sinceLaunch < BLOCKER_SETTLE_MILLIS) return true
 
-        // Covered by a full-screen window on a higher layer: the block screen, or the launcher
-        // after Home (One UI keeps a split pair listed behind it), so nothing of it is usable.
-        val covered = appWindows.any {
-            it.packageName != decision.packageName && it.layer > window.layer && it.coversScreen(screen)
+        // Only Ctrus's own window counts as covering it. Not the launcher: in MIUI split screen
+        // the launcher half is reported at full-screen size on a higher layer, which hid the
+        // split app from this check entirely (One UI's leftover split pair behind the home screen
+        // is handled below anyway: toggle + Home, no block screen).
+        val coveredByBlockScreen = appWindows.any {
+            it.packageName == packageName && it.layer > window.layer && it.coversScreen(screen)
         }
-        if (covered) return true
+        if (coveredByBlockScreen) return true
 
         val lastBlock = lastMultiWindowBlockAtRealtime[decision.packageName] ?: 0L
         if (!followUp && now - lastBlock < MULTI_WINDOW_BLOCK_COOLDOWN_MILLIS) return true
@@ -241,16 +243,17 @@ class BlockingAccessibilityService : AccessibilityService() {
                 return true
             }
             else -> {
-                // MIUI keeps split screen after Home, with the launcher in the other half. Leave
-                // it, then Home again so the app (now full screen) goes away too: no block screen
-                // over the home screen, the app is simply closed.
+                // Still listed after Home: MIUI keeps split screen (launcher in the other half),
+                // One UI just keeps the split pair listed behind the home screen. Leave it; then
+                // only if the app ended up in front, full screen (MIUI), it gets the block screen,
+                // over the app itself. On One UI nothing is in front, so nothing is shown: never a
+                // block screen over the home screen.
                 Log.i(TAG, "Blocked app ${decision.packageName} still split after Home, toggling split screen off")
                 lastMultiWindowActionAtRealtime = now
                 performGlobalAction(GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN)
                 serviceScope.launch {
-                    delay(MULTI_WINDOW_BLOCK_DELAY_MILLIS)
-                    lastMultiWindowActionAtRealtime = SystemClock.elapsedRealtime()
-                    goHome()
+                    delay(SPLIT_TOGGLE_SETTLE_MILLIS)
+                    if (isFullScreenOnTop(decision.packageName)) showBlocker(decision, checkSplitAfter = false)
                 }
             }
         }
@@ -273,10 +276,11 @@ class BlockingAccessibilityService : AccessibilityService() {
             for (i in 0 until POPUP_BACK_PRESSES) {
                 performGlobalAction(GLOBAL_ACTION_BACK)
                 delay(POPUP_BACK_INTERVAL_MILLIS)
-                // Stop once the app no longer has focus, not only once its window is gone: One UI
-                // can leave another of its windows behind, and further Backs then hit whatever is
-                // in front.
-                if (!ownsActiveWindow(blockedPackage)) break
+                // Stop once the pop-up is gone, or once something else took focus: on One UI the
+                // app can leave another of its windows behind, and further Backs then hit the
+                // block screen or whatever is in front. (Not just "app lost focus": on MIUI the
+                // pop-up can lose focus to the launcher for a moment and still be open.)
+                if (!isPopupOpen(blockedPackage) || isOwnWindowFocused()) break
             }
             // Still open (the app ignores Back, e.g. Waze's "exit?" prompt or games): Home hides
             // pop-ups on One UI, minimized to a floating icon (only for these apps; the rest close
@@ -329,6 +333,14 @@ class BlockingAccessibilityService : AccessibilityService() {
         return appWindows.any { it.packageName != pkg } &&
             main.bounds.width() >= screen.width() * SPLIT_WIDTH_FRACTION &&
             main.bounds.height() < screen.height() * FULL_SCREEN_FRACTION
+    }
+
+    /** Whether [pkg] still has a pop-up-sized window on screen (focused or not, not minimized). */
+    private fun isPopupOpen(pkg: String): Boolean {
+        val screen = Rect(0, 0, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
+        return windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.root?.packageName?.toString() == pkg }
+            .map { AppWindow(pkg, it) }
+            .any { it.bounds.width() < screen.width() * SPLIT_WIDTH_FRACTION && !it.isMinimized(screen) }
     }
 
     /** Whether one of [pkg]'s app windows is the active/focused one. */
@@ -454,9 +466,15 @@ class BlockingAccessibilityService : AccessibilityService() {
         }
     }
 
-    /** Whether a Ctrus window (the block screen) has focus right now, read from the window list
-     *  rather than BlockerActivity's own flags, which an instance that's finishing can clear
-     *  after the next one has already taken focus. */
+    /** Whether [pkg]'s window is the topmost app window and fills the screen. */
+    private fun isFullScreenOnTop(pkg: String): Boolean {
+        val screen = Rect(0, 0, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
+        val top = windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+            .filter { it.root?.packageName?.toString() != SYSTEM_UI_PACKAGE }
+            .maxByOrNull { it.layer } ?: return false
+        return top.root?.packageName?.toString() == pkg && AppWindow(pkg, top).coversScreen(screen)
+    }
+
     /** Whether the topmost app window is Ctrus's own and fills the screen, whatever has focus
      *  (focus can sit elsewhere for a moment, e.g. with the keyboard still open). */
     private fun isOwnWindowOnTop(): Boolean {
@@ -466,6 +484,9 @@ class BlockingAccessibilityService : AccessibilityService() {
             AppWindow(packageName, top).coversScreen(screen)
     }
 
+    /** Whether a Ctrus window (the block screen) has focus right now, read from the window list
+     *  rather than BlockerActivity's own flags, which an instance that's finishing can clear
+     *  after the next one has already taken focus. */
     private fun isOwnWindowFocused(): Boolean =
         windows.any { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.isFocused && it.root?.packageName?.toString() == packageName }
 
@@ -556,6 +577,8 @@ class BlockingAccessibilityService : AccessibilityService() {
         // Longer than an app's launch animation.
         const val POPUP_CONFIRM_DELAY_MILLIS = 400L
         const val DUPLICATE_LAUNCH_MILLIS = 300L
+        // Long enough for MIUI to finish leaving split screen.
+        const val SPLIT_TOGGLE_SETTLE_MILLIS = 450L
         // Smaller than this in both directions: a minimized pop-up's floating icon, not a window
         // anyone can use (resized pop-ups stay well above it).
         const val MINIMIZED_FRACTION = 0.3f
@@ -568,8 +591,6 @@ class BlockingAccessibilityService : AccessibilityService() {
         const val BLOCKER_SETTLE_MILLIS = 800L
         const val INACTIVE_RECHECK_DELAY_MILLIS = 300L
         const val HOME_RECHECK_DELAY_MILLIS = 350L
-        // Long enough for the Home transition, so the block screen opens full-screen afterwards.
-        const val MULTI_WINDOW_BLOCK_DELAY_MILLIS = 240L
         const val MULTI_WINDOW_BLOCK_COOLDOWN_MILLIS = 1_000L
     }
 }
