@@ -391,6 +391,11 @@ DeviceActivityCenter, and AlarmManager doesn't need one. Pieces:
   `CtrusApp`'s active-session observer, and is
   re-armed on boot. The iOS "clock counted down to 23:59" bug never existed here, because
   Android never stored a technical end time; keep it that way and don't add one.
+- The "starts in 5 minutes" reminder isn't shown while that profile's session is still running
+  (an indefinite schedule can outlast its next start; iOS `aa4ca14`). iOS's other fixes from that
+  period (`f5602f2` breaks/timers cut at 23:59:59; `651b631`/`ef95350` reminders wiped on session
+  start/end or break end) were bugs in DeviceActivity/UNCalendarNotificationTrigger handling.
+  Android has neither, because it uses epoch-millis alarms and re-arms the reminder every time it fires.
 - Not ported: iOS's "Automatic Start"/"NFC" tag badges on strategy rows, because this port has
   never shown strategy tags for any mode.
 Verified on the emulator: the reminder and the automatic start both fired on time, and a
