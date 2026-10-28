@@ -47,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -124,6 +126,16 @@ fun ParentConfirmationContent(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // The keyboard is put away before anything closes: left with the code field focused, it came
+    // back up over the screen underneath for a moment after this closed.
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    fun putKeyboardAway() {
+        focusManager.clearFocus(force = true)
+        keyboard?.hide()
+    }
+    val onClose = { putKeyboardAway(); onClose() }
+    val onConfirmed = { putKeyboardAway(); onConfirmed() }
     var step by remember { mutableStateOf(ConfirmStep.CODE) }
     var code by remember { mutableStateOf("") }
     var recoveryKey by remember { mutableStateOf("") }
@@ -148,11 +160,16 @@ fun ParentConfirmationContent(
     }
 
     fun checkCode(entered: String) {
+        // Away while the code is checked, so it's already gone if the sheet then closes; the field
+        // takes focus again by itself (and brings it back) if the code was wrong.
+        putKeyboardAway()
         isChecking = true
         scope.launch {
             val result = withContext(Dispatchers.Default) { ParentCredentials.verify(entered, Secret.PARENT_CODE) }
-            isChecking = false
             code = ""
+            // Left disabled when it's right: enabling the field again asks for the keyboard, which
+            // then came back up over the screen underneath as this closed.
+            if (result != VerifyResult.Valid) isChecking = false
             when (result) {
                 VerifyResult.Valid -> onConfirmed()
                 VerifyResult.Invalid -> message = context.getString(R.string.parent_confirm_wrong_code)
@@ -305,9 +322,9 @@ fun ParentConfirmationContent(
                                 step = ConfirmStep.NEW_CODE
                             } else {
                                 isChecking = true
+                                putKeyboardAway()
                                 scope.launch {
                                     withContext(Dispatchers.Default) { ParentCredentials.setParentCode(entered) }
-                                    isChecking = false
                                     onConfirmed()
                                 }
                             }
