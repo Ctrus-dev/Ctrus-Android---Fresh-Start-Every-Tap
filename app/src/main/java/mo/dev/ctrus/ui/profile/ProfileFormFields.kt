@@ -56,6 +56,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.blocking.BlockSafetyPolicy
 import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.data.PhysicalUnblockType
@@ -271,6 +272,10 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
 
 @Composable
 fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, nfcScanController: NfcScanController, disabled: Boolean) {
+    if (ChildModeStore.isChildMode) {
+        ChildModeProfileTagFields(draft, onDraftChange, nfcScanController, disabled)
+        return
+    }
     val context = LocalContext.current
     var isScanningTag by remember { mutableStateOf(false) }
     var scanError by remember { mutableStateOf<String?>(null) }
@@ -279,7 +284,8 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
 
     DisposableEffect(isScanningTag) {
         if (isScanningTag) {
-            nfcScanController.startScan { code ->
+            nfcScanController.startScan { read ->
+                val code = read.code
                 val normalized = PhysicalUnblockItem.normalizedCodeValue(code, PhysicalUnblockType.NFC)
                 val alreadyPresent = draft.physicalUnblockItems.any {
                     PhysicalUnblockItem.normalizedCodeValue(it.codeValue, it.type) == normalized
@@ -290,7 +296,7 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
                     else -> {
                         val nextIndex = draft.physicalUnblockItems.size + 1
                         onDraftChange(
-                            draft.copy(physicalUnblockItems = draft.physicalUnblockItems + PhysicalUnblockItem(name = "NFC $nextIndex", codeValue = normalized)),
+                            draft.copy(physicalUnblockItems = draft.physicalUnblockItems + PhysicalUnblockItem(name = context.getString(R.string.tag_default_name, nextIndex), codeValue = normalized)),
                         )
                     }
                 }
@@ -397,13 +403,16 @@ fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, d
             Text(
                 DateFormatters.formatTimeOfDay(context, draft.scheduleStartHour, draft.scheduleStartMinute),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Theme colour, like iOS 76d8163.
+                color = MaterialTheme.colorScheme.primary,
             )
         },
     )
 
     SettingsDivider()
     ScheduleDurationRow(draft, onDraftChange, disabled)
+    // Child Mode caps every session at 24 hours, so it says so right here.
+    if (ChildModeStore.isChildMode) ChildModeSessionLimitNote()
 
     SettingsDivider()
     CustomToggleRow(

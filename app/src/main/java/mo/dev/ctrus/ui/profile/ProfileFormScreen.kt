@@ -2,6 +2,7 @@ package mo.dev.ctrus.ui.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -47,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.data.BlockedProfileEntity
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
@@ -89,7 +91,7 @@ fun ProfileFormScreen(
     }
 
     fun attemptSave() {
-        if (draft.physicalUnblockItems.isEmpty()) {
+        if (!draft.hasRequiredUnlocks) {
             showMissingUnlockAlert = true
             return
         }
@@ -227,6 +229,18 @@ fun ProfileFormScreen(
             item {
                 SettingsSection(title = stringResource(R.string.profile_form_section_protection)) {
                     SafeguardsFields(draft, { draft = it }, disabled)
+                }
+            }
+            // A schedule already shows this under its duration.
+            if (ChildModeStore.isChildMode && !draft.useSchedule) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 20.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp)),
+                    ) { ChildModeSessionLimitNote() }
                 }
             }
         }

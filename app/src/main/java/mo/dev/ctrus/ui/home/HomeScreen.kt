@@ -44,7 +44,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.GppMaybe
+import mo.dev.ctrus.childmode.TamperLogEntry
+import mo.dev.ctrus.ui.common.IntroCard
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.HorizontalDivider
@@ -98,7 +103,6 @@ import mo.dev.ctrus.theme.FixedLightSecondaryText
 import mo.dev.ctrus.theme.ThemeManager
 import mo.dev.ctrus.theme.pastelBackground
 import mo.dev.ctrus.ui.common.AutoSizeText
-import mo.dev.ctrus.ui.common.CenteredActionBlock
 import mo.dev.ctrus.ui.dashboard.DefaultModel3DSize
 import mo.dev.ctrus.ui.dashboard.RotatingModel3DView
 import mo.dev.ctrus.ui.insights.ProfileUsageMiniBarChart
@@ -218,6 +222,12 @@ fun HomeScreen(
     isExactAlarmGranted: Boolean = true,
     isAutostartGranted: Boolean = true,
     onPermissionsAlertTapped: () -> Unit = {},
+    /** Child Mode's newest unseen attempt-log entry, shown as one more red pill. */
+    tamperEntry: TamperLogEntry? = null,
+    onTamperTapped: () -> Unit = {},
+    /** Normal Mode with no profiles yet: a mistaken pick of the mode can still be undone. */
+    canGoBackToModeChoice: Boolean = false,
+    onBackToModeChoice: () -> Unit = {},
 ) {
     val themeColor = themeManager.selectedColorOption.color
 
@@ -247,10 +257,27 @@ fun HomeScreen(
             // Accessibility and "Alarms & reminders": the permissions a session can't start
             // without. Battery-optimization exemption is a separate, non-blocking recommendation —
             // see its own one-time dialog (MainActivity's showBatteryOptimizationPrompt) and Settings row.
-            if (profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted || !isAutostartGranted)) {
+            val showsPermissionsPill = profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted || !isAutostartGranted)
+            // Missing permissions come first; what else was logged shows once they're back.
+            val visibleTamperEntry = tamperEntry.takeIf { !showsPermissionsPill }
+            if (showsPermissionsPill || visibleTamperEntry != null || canGoBackToModeChoice) {
                 item {
-                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                        AccessibilityAlertPill(onClick = onPermissionsAlertTapped)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (canGoBackToModeChoice) {
+                            HomeGlassIconButton(
+                                onClick = onBackToModeChoice,
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.guided_back_content_description),
+                            )
+                        }
+                        if (showsPermissionsPill) AccessibilityAlertPill(onClick = onPermissionsAlertTapped)
+                        visibleTamperEntry?.let {
+                            HomeAlertPill(icon = Icons.Filled.GppMaybe, title = stringResource(it.type.titleRes), onClick = onTamperTapped)
+                        }
                     }
                 }
             }
@@ -307,8 +334,17 @@ fun HomeScreen(
                 }
                 if (!hasCompletedFirstSession) {
                     item {
+                        // Schedule profiles can't be held to start — they start on their own — so
+                        // the hint says so when there are any (iOS d439d32).
+                        val scheduleCount = profiles.count { it.blockingStrategyId == StrategyIds.SCHEDULE }
                         Text(
-                            stringResource(R.string.home_first_session_hint),
+                            stringResource(
+                                when (scheduleCount) {
+                                    profiles.size -> R.string.home_hint_schedule_only
+                                    0 -> R.string.home_first_session_hint
+                                    else -> R.string.home_hint_schedule_mixed
+                                },
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = HomeOnPastelVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -318,12 +354,35 @@ fun HomeScreen(
                 }
             }
         }
+
+        // A thin strip on the left edge, above the list: dragging from it to the right goes back
+        // to the mode choice too (iOS's swipe from First Steps).
+        if (canGoBackToModeChoice) {
+            var dragged by remember { mutableStateOf(0f) }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxHeight()
+                    .width(24.dp)
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(
+                            onDragStart = { dragged = 0f },
+                            onDragEnd = { if (dragged > 60.dp.toPx()) onBackToModeChoice() },
+                        ) { _, amount -> dragged += amount }
+                    },
+            )
+        }
     }
 }
 
 /** Android equivalent of HomeAlertsView's HomeAlertCard: a red capsule pill, tapped to open the detail sheet. */
 @Composable
-private fun AccessibilityAlertPill(onClick: () -> Unit) {
+private fun AccessibilityAlertPill(onClick: () -> Unit) =
+    HomeAlertPill(icon = Icons.Filled.Warning, title = stringResource(R.string.home_permissions_alert_pill), onClick = onClick)
+
+/** HomeAlertsView's HomeAlertPill: a red capsule with a white icon and one line of white text. */
+@Composable
+private fun HomeAlertPill(icon: ImageVector, title: String, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -332,12 +391,13 @@ private fun AccessibilityAlertPill(onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 9.dp),
     ) {
-        Icon(Icons.Filled.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(
-            stringResource(R.string.home_permissions_alert_pill),
+            title,
             style = MaterialTheme.typography.labelLarge,
             color = Color.White,
+            maxLines = 1,
         )
     }
 }
@@ -360,13 +420,14 @@ private fun HomeGlassIconButton(onClick: () -> Unit, icon: ImageVector, contentD
 
 @Composable
 private fun WelcomeSection(themeColor: Color, onAddProfile: () -> Unit) {
-    CenteredActionBlock(
+    // Spec Part B, 5.1 / 14: a card like the mode choice's, title and subtitle inside it.
+    IntroCard(
         title = stringResource(R.string.home_getting_started_title),
         subtitle = stringResource(R.string.home_getting_started_body),
-        buttonText = stringResource(R.string.home_create_profile_button),
-        buttonIcon = Icons.Filled.AccountCircle,
+        icon = Icons.Filled.AccountCircle,
         themeColor = themeColor,
-        onButtonClick = onAddProfile,
+        onClick = onAddProfile,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 22.dp),
     )
 }
 

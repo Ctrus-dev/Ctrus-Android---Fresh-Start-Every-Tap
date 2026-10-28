@@ -15,12 +15,22 @@ import kotlinx.coroutines.withContext
  * NFCScannerUtil.writeURL have no real call site anywhere in the iOS Views/Components — nothing
  * in the shipped app ever writes a tag — so there's no NFC-write feature to port.
  */
+/**
+ * One tag read. [uid] is the tag's identifier as lowercase hex with no separators — the format
+ * both apps compare child mode's parents' and child's Ctrus in (by UID only, since a URL can be
+ * copied onto any tag). [code] is what normal mode stores and compares: the ctrus.pt URL if the
+ * tag has one, else the UID as uppercase hex.
+ */
+data class NfcTagRead(val uid: String, val url: String?) {
+    val code: String get() = url ?: uid.uppercase()
+}
+
 object NfcTagDecoder {
-    suspend fun decode(tag: Tag): String = withContext(Dispatchers.IO) { decodeBlocking(tag) }
+    suspend fun decode(tag: Tag): NfcTagRead = withContext(Dispatchers.IO) { decodeBlocking(tag) }
 
     /** Blocking read; call off the main thread (e.g. from a reader-mode callback). */
-    fun decodeBlocking(tag: Tag): String =
-        readNdefMessage(tag)?.let(::extractCtrusUrl) ?: tag.id.toHexString()
+    fun decodeBlocking(tag: Tag): NfcTagRead =
+        NfcTagRead(uid = tag.id.toHexString().lowercase(), url = readNdefMessage(tag)?.let(::extractCtrusUrl))
 
     private fun readNdefMessage(tag: Tag): NdefMessage? {
         val ndef = Ndef.get(tag) ?: return null

@@ -430,6 +430,39 @@ fix (changing 2↔4 weeks no longer restarts the cycle), the `enableEmergencyUnb
 the `updatedAt`/settle-window and tag-based scheduled-session bugs, the reminder background
 task, the "Schedule needs repair" alert, and the shield blur tweaks.
 
+**Child Mode (spec Part B v3, iOS branch `child-mode`; Android branch `child-mode`).** A whole-phone
+mode chosen on first launch (permissions → `ui/intro/ModeChoiceScreen` → `ui/childmode/ChildModeSetupScreen`)
+or later from Settings. Pieces, all in `childmode/` and `ui/childmode/`:
+- `ChildModeStore` (SharedPreferences + flows): `appMode`, `parentTags` (1+, recognised by UID only,
+  lowercase hex from `NfcTagRead.uid`), `tamperLog` (max 50) and `tamperLogUnseen`.
+- `ParentCredentials`: the 6-digit parent code and 12-char recovery key as PBKDF2-SHA256 hashes
+  (100k iterations) in EncryptedSharedPreferences; 5 wrong → waits of 1/5/15/60 min counted with
+  `TrustedClock`; the parents' Ctrus resets them. Hashing is slow: call it off the main thread.
+- `ParentConfirmationSheet` (`ParentConfirmationHost`/`Request`): the single confirmation (their
+  Ctrus, the code, or the recovery key and a new code), and the action runs after it closes. It's needed for
+  editing/deleting profiles, skipping sessions, ending a session from Settings, Child Mode
+  settings and the attempt log. Creating, duplicating and reordering profiles don't need it.
+- Ending a session: only a parents' Ctrus or the profile's child's Ctrus (if `childTagCanStop`)
+  in every strategy's `stopBlocking`, plus Settings (parents) and emergency (cycle fixed at 4 weeks).
+  No recover.ctrus.pt in Child Mode. Android has no shortcuts/widget/deep-link stop to disable.
+- `ChildSessionLimit`: every session ends after 24 h of *real* time (or the schedule's
+  duration, or 5 min before the same schedule's next unskipped session, posting its reminder).
+  Driven by an exact alarm to `ScheduleReceiver.ACTION_CHILD_SESSION_LIMIT`, re-checked on app
+  resume, boot and date changes; the schedule's own `ACTION_END` does nothing in Child Mode.
+- Attempt log: `permissionRevoked` (service `onUnbind` / app resume, once per change),
+  `appStopped` (`ServiceStopWatch`: service back in the same boot, or a skipped boot such as safe
+  mode, but not an ordinary reboot, as agreed with the user), `clockChanged` (`clockWatch` TrustedClock,
+  >5 min), `pinLockout`. A red pill on Home, hidden while the permissions pill shows.
+- `ParentGuardActivity`: during a Child Mode session the service puts the parent confirmation
+  over Ctrus's own Accessibility page (matched by the service description) or App info
+  (`entity_header_title` / MIUI's details activity). Confirming frees it until Settings is left,
+  and ✕/Back goes Home.
+- Leaving Child Mode (`ChildModeSwitcher`): each profile gets the parents' Ctrus and its own
+  child's Ctrus as physical unlocks ("Ctrus N", URL else uppercase UID, no duplicates).
+Section 14 normal-mode changes made here too: welcome/First Steps are `IntroCard`s with full stops,
+schedule-aware home hint, "Ctrus N" tag names, theme-coloured start time, and in Normal Mode with
+no profiles a back arrow/left-edge swipe to the mode choice. Unit tests: `ChildModeTest`.
+
 **Unlock cycles count real time (`util/TrustedClock`, spec Part A1).** The emergency (3 per 2/4
 weeks) and recovery (2 per 4 weeks, cycle starts on the first one used) cycles add up
 `TrustedClock.trustedElapsedMillis()` into `emergencyCycleElapsed`/`recoveryCycleElapsed` instead

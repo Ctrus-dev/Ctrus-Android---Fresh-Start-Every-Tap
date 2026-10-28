@@ -59,6 +59,8 @@ fun SkipUntilSheet(
     schedule: ProfileSchedule,
     themeColor: Color,
     errorMessage: String?,
+    /** "Skip with Ctrus", or "Skip" in Child Mode, where the parents confirm instead of a tag. */
+    buttonText: String = stringResource(R.string.skip_sheet_button),
     onDismissError: () -> Unit,
     onClose: () -> Unit,
     onSkip: (LocalDate) -> Unit,
@@ -145,7 +147,7 @@ fun SkipUntilSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = themeColor, contentColor = Color.White),
                 modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 24.dp).height(56.dp),
             ) {
-                Text(stringResource(R.string.skip_sheet_button))
+                Text(buttonText)
             }
         }
     }

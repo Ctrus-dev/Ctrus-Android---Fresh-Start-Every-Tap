@@ -1,5 +1,7 @@
 package mo.dev.ctrus.ui.profile
 
+import mo.dev.ctrus.childmode.ChildModeStore
+import mo.dev.ctrus.childmode.ChildTag
 import mo.dev.ctrus.data.BlockedProfileEntity
 import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.data.ProfileSchedule
@@ -28,7 +30,13 @@ data class ProfileDraft(
     /** `null` = Indefinite (NFC-only stop). */
     val scheduleDurationHours: Int? = null,
     val allowSkip: Boolean = false,
+    /** Child Mode only (spec Part B, 6.1). */
+    val childTag: ChildTag? = null,
+    val childTagCanStop: Boolean = false,
 ) {
+    /** Child Mode's master key is the parents' Ctrus, so a profile doesn't need tags of its own there. */
+    val hasRequiredUnlocks: Boolean get() = ChildModeStore.isChildMode || physicalUnblockItems.isNotEmpty()
+
     /** Mirrors BlockedProfileDraft.useSchedule. */
     val useSchedule: Boolean get() = strategyId == StrategyIds.SCHEDULE
 
@@ -67,6 +75,8 @@ fun BlockedProfileEntity.toDraft() = ProfileDraft(
     scheduleStartMinute = schedule?.startMinute ?: 0,
     scheduleDurationHours = schedule?.durationInHours,
     allowSkip = allowSkip,
+    childTag = childTag,
+    childTagCanStop = childTagCanStop,
 )
 
 /** Writes every draft field onto [profile] (edit), or onto a fresh entity when creating. */
@@ -90,4 +100,6 @@ fun ProfileDraft.applyTo(profile: BlockedProfileEntity): BlockedProfileEntity = 
     // Turning skipping off drops any skip already set, like iOS's BlockedProfiles.updateProfile.
     skipNextOccurrence = profile.skipNextOccurrence.takeIf { allowSkip },
     skipUntil = profile.skipUntil.takeIf { allowSkip },
+    childTag = childTag,
+    childTagCanStop = childTag != null && childTagCanStop,
 )

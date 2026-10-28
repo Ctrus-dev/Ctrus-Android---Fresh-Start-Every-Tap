@@ -129,6 +129,18 @@
             android:showWhenLocked="true"
             android:theme="@style/Theme.Ctrus.Blocker" />
 
+        <!-- Child Mode: the parent confirmation shown over Ctrus's own Settings pages during a
+             session (see childmode/ParentGuardActivity) -->
+        <activity
+            android:name=".childmode.ParentGuardActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Ctrus" />
+
         <!-- Fired by AlarmSchedulingGateway to auto-end/resume sessions, breaks, pauses, and grants -->
         <receiver
             android:name=".scheduling.ExpiryReceiver"

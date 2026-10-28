@@ -1,6 +1,8 @@
 package mo.dev.ctrus.util
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Port of iOS's TrustedClockTests. */
@@ -79,5 +81,34 @@ class TrustedClockTest {
         uptime += 100_000
         first.trustedElapsedMillis()
         assertEquals(100_000, second.trustedElapsedMillis())
+    }
+
+    @Test
+    fun dateMovedForwardIsAClockJump() {
+        val clock = makeClock()
+        clock.read()
+        wallClock += day
+        uptime += 60_000
+        val reading = clock.read()
+        assertEquals(60_000, reading.elapsedMillis)
+        assertTrue(reading.clockJumped)
+    }
+
+    @Test
+    fun ordinaryTimeIsNotAClockJump() {
+        val clock = makeClock()
+        clock.read()
+        wallClock += 3_600_000 + 1_000
+        uptime += 3_600_000
+        assertFalse(clock.read().clockJumped)
+    }
+
+    @Test
+    fun rebootWithDateMovedBackIsAClockJump() {
+        val clock = makeClock()
+        clock.read()
+        wallClock -= day
+        uptime = 300_000
+        assertTrue(clock.read().clockJumped)
     }
 }

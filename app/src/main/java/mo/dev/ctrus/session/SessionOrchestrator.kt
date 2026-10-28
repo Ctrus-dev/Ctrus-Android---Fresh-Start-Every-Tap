@@ -237,7 +237,15 @@ class SessionOrchestrator(
      * still-open session, matching iOS's "deactivate restrictions anyway" safety net, since
      * blocking here is derived from any open session in Room.
      */
-    suspend fun recoveryUnblock() {
+    suspend fun recoveryUnblock() = endEveryOpenSession()
+
+    /**
+     * Child Mode: ends the active session once the parents have confirmed it (their Ctrus or their
+     * code), without using an emergency unblock. Mirrors iOS's endSessionConfirmedByParents.
+     */
+    suspend fun endSessionConfirmedByParents() = endEveryOpenSession()
+
+    private suspend fun endEveryOpenSession() {
         while (true) {
             val session = sessions.mostRecentActive() ?: break
             scheduling.cancelBreakExpiry(session.id)

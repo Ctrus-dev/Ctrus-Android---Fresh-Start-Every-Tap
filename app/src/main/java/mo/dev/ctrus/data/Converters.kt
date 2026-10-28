@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.serializer
+import mo.dev.ctrus.childmode.ChildTag
 
 private val json = Json { ignoreUnknownKeys = true }
 
@@ -26,6 +27,14 @@ class Converters {
         value?.let {
             runCatching { json.decodeFromString(ListSerializer(PhysicalUnblockItem.serializer()), it) }.getOrNull()
         }
+
+    @TypeConverter
+    fun childTagToJson(value: ChildTag?): String? =
+        value?.let { json.encodeToString(ChildTag.serializer(), it) }
+
+    @TypeConverter
+    fun jsonToChildTag(value: String?): ChildTag? =
+        value?.let { runCatching { json.decodeFromString(ChildTag.serializer(), it) }.getOrNull() }
 
     @TypeConverter
     fun scheduleToJson(value: ProfileSchedule?): String? =

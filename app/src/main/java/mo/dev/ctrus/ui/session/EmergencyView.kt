@@ -61,6 +61,8 @@ fun EmergencyView(
     onResetPeriodSelected: (Int) -> Unit,
     onConfirmUnblock: () -> Unit,
     onDismiss: () -> Unit,
+    /** Child Mode's cycle is fixed at 4 weeks, so there's no period to pick. */
+    showsResetPeriodPicker: Boolean = true,
 ) {
     // skipPartiallyExpanded avoids an intermediate "half open" resting state — without it, on a
     // device with the 3-button navigation bar the sheet can first settle partially behind that
@@ -72,7 +74,7 @@ fun EmergencyView(
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.emergency_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                EmergencyResetGearButton(resetPeriodWeeks = resetPeriodWeeks, onResetPeriodSelected = onResetPeriodSelected)
+                if (showsResetPeriodPicker) EmergencyResetGearButton(resetPeriodWeeks = resetPeriodWeeks, onResetPeriodSelected = onResetPeriodSelected)
             }
             Spacer(Modifier.height(4.dp))
             EmergencyResetStatusRow(resetDateMillis = resetDateMillis)

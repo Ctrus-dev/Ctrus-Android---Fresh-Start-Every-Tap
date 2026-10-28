@@ -1,6 +1,7 @@
 package mo.dev.ctrus.strategy
 
 import mo.dev.ctrus.R
+import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.data.BlockedProfileEntity
 import mo.dev.ctrus.data.BlockedProfileSessionEntity
 import mo.dev.ctrus.data.SessionRepository
@@ -36,8 +37,19 @@ class NfcBlockingStrategy(private val sessions: SessionRepository) : BlockingStr
     override fun stopRequirement(profile: BlockedProfileEntity, session: BlockedProfileSessionEntity) = StrategyRequirement.ScanNfcTag
 
     override suspend fun stopBlocking(profile: BlockedProfileEntity, session: BlockedProfileSessionEntity, input: StrategyInput): StrategyResult {
-        val tag = (input as? StrategyInput.NfcTag)?.code
+        val scanned = input as? StrategyInput.NfcTag
             ?: return StrategyResult.NeedsInput(StrategyRequirement.ScanNfcTag)
+        val tag = scanned.code
+
+        // Child Mode: only the parents' Ctrus, or an allowed child's one, ends a session —
+        // never the profile's own tags, or any tag on a profile without them.
+        if (ChildModeStore.isChildMode) {
+            if (!profile.childModeAllowsEnding(scanned.uid)) {
+                return StrategyResult.NeedsInput(StrategyRequirement.ScanNfcTag, UiText(R.string.error_not_allowed_to_unblock))
+            }
+            sessions.endSession(session)
+            return StrategyResult.Ended(profile.id)
+        }
 
         val authorized = profile.canUnblockWithNfcCode(tag) || session.forceStarted || tag == session.tag
         if (!authorized) {

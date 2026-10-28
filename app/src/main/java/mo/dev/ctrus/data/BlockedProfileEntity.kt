@@ -2,6 +2,8 @@ package mo.dev.ctrus.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import mo.dev.ctrus.childmode.ChildModeStore
+import mo.dev.ctrus.childmode.ChildTag
 import mo.dev.ctrus.strategy.StrategyIds
 import java.time.Instant
 import java.util.UUID
@@ -55,6 +57,11 @@ data class BlockedProfileEntity(
     val skipNextOccurrence: Long? = null,
     /** Epoch millis of the start of the last skipped day. */
     val skipUntil: Long? = null,
+
+    /** Child Mode only: the optional child's Ctrus. */
+    val childTag: ChildTag? = null,
+    /** Child Mode only: whether [childTag] can end sessions too. Always false without one. */
+    val childTagCanStop: Boolean = false,
 ) {
     /** Ignored unless [allowSkip] is on, like iOS's snapshot. */
     val scheduleSkip: ScheduleSkip
@@ -63,8 +70,21 @@ data class BlockedProfileEntity(
             skipUntil = skipUntil?.let(Instant::ofEpochMilli),
         )
 
-    /** Skipping needs one of the profile's own tags to authorize it, so a profile without one never offers it. */
+    /**
+     * Skipping needs one of the profile's own tags to authorize it, so a profile without one never
+     * offers it. In Child Mode the parents authorize it instead, so no tag is needed there.
+     */
     val canSkipSessions: Boolean
         get() = allowSkip && blockingStrategyId == StrategyIds.SCHEDULE && schedule?.isActive == true &&
-            physicalUnblockItems.any { it.type == PhysicalUnblockType.NFC }
+            (ChildModeStore.isChildMode || physicalUnblockItems.any { it.type == PhysicalUnblockType.NFC })
+
+    /**
+     * Child Mode: only a parents' Ctrus, or this profile's child's Ctrus when it's allowed to, can
+     * end a session — matched by UID, never by URL.
+     */
+    fun childModeAllowsEnding(uid: String): Boolean {
+        if (ChildModeStore.isParentTag(uid)) return true
+        val childTag = childTag ?: return false
+        return childTagCanStop && ChildModeStore.normalizedUid(childTag.uid) == ChildModeStore.normalizedUid(uid)
+    }
 }

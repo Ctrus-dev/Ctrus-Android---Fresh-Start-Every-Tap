@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import mo.dev.ctrus.blocking.AdultDomainList
+import mo.dev.ctrus.childmode.ChildModeStore
+import mo.dev.ctrus.childmode.ChildSessionLimit
+import mo.dev.ctrus.childmode.ParentCredentials
 import mo.dev.ctrus.blocking.BlockingHealthMonitor
 import mo.dev.ctrus.blocking.BlockingStateHolder
 import mo.dev.ctrus.data.CtrusDatabase
@@ -50,6 +53,8 @@ class CtrusApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        ChildModeStore.init(this)
+        ParentCredentials.init(this)
         database = CtrusDatabase.getInstance(this)
         profileRepository = ProfileRepository(database.blockedProfileDao())
         schedulingGateway = AlarmSchedulingGateway(this)
@@ -88,6 +93,13 @@ class CtrusApp : Application() {
         applicationScope.launch {
             sessionRepository.observeMostRecentActive().map { it?.id }.distinctUntilChanged().drop(1).collect {
                 preferences.checkUnlockCycles()
+            }
+        }
+        // Child Mode's 24-hour (or shorter) automatic end, armed for each new session and dropped
+        // when it ends, however it started or ended.
+        applicationScope.launch {
+            sessionRepository.observeMostRecentActive().map { it?.id }.distinctUntilChanged().collect {
+                ChildSessionLimit.sync(this@CtrusApp)
             }
         }
 

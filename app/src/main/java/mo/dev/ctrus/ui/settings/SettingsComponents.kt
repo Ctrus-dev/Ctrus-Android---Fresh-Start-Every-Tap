@@ -90,6 +90,8 @@ fun SettingsRow(
     // that pairing needs a tight bottom gap like a title-to-subtitle pair (see Device ID's own
     // 2.dp), not this row's usual 16.dp edge inset, which would read as two unrelated blocks.
     contentPadding: PaddingValues = PaddingValues(16.dp),
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
     Row(
@@ -99,10 +101,14 @@ fun SettingsRow(
             .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (leading != null) {
+            leading()
+            Spacer(Modifier.width(12.dp))
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = titleColor,
             modifier = Modifier.weight(1f)
         )
         // Minimum gap so a long title (e.g. "Acesso de Acessibilidade") can never run right up
@@ -207,15 +213,17 @@ fun CustomToggleRow(
         }
         // Tight, matching Device ID's own title-to-subtitle gap — this description is describing
         // the title right above it, not a separate block.
-        Spacer(Modifier.height(2.dp))
-        Text(
-            description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            // Wraps before reaching the switch's own column — without this, a long description
-            // used the row's full width and its wrapped lines ran directly under the switch.
-            modifier = Modifier.padding(end = ToggleSwitchColumnWidth),
-        )
+        if (description.isNotEmpty()) {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Wraps before reaching the switch's own column — without this, a long description
+                // used the row's full width and its wrapped lines ran directly under the switch.
+                modifier = Modifier.padding(end = ToggleSwitchColumnWidth),
+            )
+        }
     }
 }
 

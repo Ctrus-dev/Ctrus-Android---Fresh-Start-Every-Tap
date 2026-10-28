@@ -4,6 +4,16 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
 import android.graphics.Rect
+import android.net.Uri
+import android.provider.Settings
+import android.view.accessibility.AccessibilityNodeInfo
+import mo.dev.ctrus.R
+import mo.dev.ctrus.childmode.ChildModeStore
+import mo.dev.ctrus.childmode.ParentGuard
+import mo.dev.ctrus.childmode.ParentGuardActivity
+import mo.dev.ctrus.childmode.ServiceStopWatch
+import mo.dev.ctrus.childmode.TamperLogEntry
+import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
@@ -57,6 +67,21 @@ class BlockingAccessibilityService : AccessibilityService() {
             notificationTimeout = 100
         }
         Log.i(TAG, "BlockingAccessibilityService connected")
+
+        // Child Mode's attempt log: the service came back after stopping mid-session, and the
+        // Accessibility permission is on again (so turning it off later is logged once).
+        val app = CtrusApp.from(this)
+        app.applicationScope.launch {
+            app.preferences.swapLastKnownAccessibilityEnabled(true)
+            ServiceStopWatch.onServiceConnected(app)
+        }
+        guardedSettingsPackages = listOf(
+            Intent(Settings.ACTION_SETTINGS),
+            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)),
+        ).mapNotNull { intent -> runCatching { packageManager.resolveActivity(intent, 0)?.activityInfo?.packageName }.getOrNull() }
+            .plus("com.android.settings")
+            .toSet()
 
         // A profile can be started (or a break can end) while its target app is already the
         // foreground window — no fresh TYPE_WINDOW_STATE_CHANGED event fires in that case, since
@@ -390,6 +415,8 @@ class BlockingAccessibilityService : AccessibilityService() {
                 return
             }
             val packageName = event?.packageName?.toString() ?: return
+            // Before the per-package dedupe below: Settings stays one package across its pages.
+            checkParentGuard(event, packageName)
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
                 // Fires constantly while a page loads/scrolls: only browsers matter, and at
                 // most a few checks per second.
@@ -429,6 +456,65 @@ class BlockingAccessibilityService : AccessibilityService() {
             // throw uncaught, or the OS can disable this service as "malfunctioning".
             Log.e(TAG, "onAccessibilityEvent failed", e)
         }
+    }
+
+    private var guardedSettingsPackages: Set<String> = emptySet()
+    private var lastGuardCheckAtRealtime = 0L
+
+    /**
+     * Child Mode, during a session: Ctrus's own Accessibility page or App info page in Settings
+     * gets the parent confirmation over it ([ParentGuardActivity]). Once confirmed, it's left
+     * alone until Settings is left (spec Part B, section 10).
+     */
+    private fun checkParentGuard(event: AccessibilityEvent, eventPackage: String) {
+        if (!ChildModeStore.isChildMode || BlockingStateHolder.state.value.sessionId == null) {
+            ParentGuard.isPassed = false
+            return
+        }
+        if (eventPackage == packageName) return
+        if (eventPackage !in guardedSettingsPackages) {
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) ParentGuard.isPassed = false
+            return
+        }
+        if (ParentGuard.isPassed || ParentGuard.isShowing) return
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastGuardCheckAtRealtime < BROWSER_CHECK_INTERVAL_MILLIS) return
+            lastGuardCheckAtRealtime = now
+        }
+        val root = rootInActiveWindow ?: return
+        if (root.packageName?.toString() != eventPackage) return
+        if (isCtrusSettingsPage(root, eventPackage, event.className?.toString().orEmpty())) {
+            ParentGuard.isShowing = true
+            startActivity(Intent(this, ParentGuardActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    private fun isCtrusSettingsPage(root: AccessibilityNodeInfo, settingsPackage: String, className: String): Boolean {
+        // Ctrus's Accessibility page shows the service's own description.
+        val description = getString(R.string.accessibility_service_description).take(40)
+        if (root.findAccessibilityNodeInfosByText(description).isNotEmpty()) return true
+
+        // App info: AOSP (and One UI) head it with the app's name; MIUI's own App info is its
+        // own activity, with the name shown in it.
+        val appName = getString(R.string.app_name)
+        val header = root.findAccessibilityNodeInfosByViewId("$settingsPackage:id/entity_header_title")
+        if (header.any { it.text?.toString() == appName }) return true
+        val looksLikeAppInfo = className.contains("Detail", ignoreCase = true) || className.contains("AppInfo", ignoreCase = true)
+        return looksLikeAppInfo && root.findAccessibilityNodeInfosByText(appName).any { it.text?.toString() == appName }
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        // The Accessibility permission was turned off (spec Part B, section 10) — only when it
+        // really was in Settings; the service is also unbound for a while without that.
+        val app = CtrusApp.from(this)
+        if (AccessibilityPermissionUtil.isTurnedOnInSettings(this)) return super.onUnbind(intent)
+        app.applicationScope.launch {
+            if (app.preferences.swapLastKnownAccessibilityEnabled(false)) {
+                ChildModeStore.logTamper(TamperLogEntry.Kind.PERMISSION_REVOKED)
+            }
+        }
+        return super.onUnbind(intent)
     }
 
     /** Leaves the Play Store / uninstall-confirmation surface without the citrus shield screen.

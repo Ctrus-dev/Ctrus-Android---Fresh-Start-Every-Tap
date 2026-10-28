@@ -46,7 +46,8 @@ import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.theme.FixedLightPrimaryText
 import mo.dev.ctrus.theme.FixedLightSecondaryText
 import mo.dev.ctrus.theme.pastelBackground
-import mo.dev.ctrus.ui.common.CenteredActionBlock
+import mo.dev.ctrus.ui.common.IntroCard
+import androidx.compose.material.icons.filled.HourglassEmpty
 import mo.dev.ctrus.ui.dashboard.DefaultModel3DSize
 import mo.dev.ctrus.ui.dashboard.RotatingModel3DView
 
@@ -125,41 +126,40 @@ fun PermissionsIntroScreen(
                 .padding(top = 16.dp),
         )
 
-        CenteredActionBlock(
-            title = stringResource(R.string.intro_welcome_title),
-            subtitle = stringResource(R.string.intro_welcome_subtitle),
-            buttonText = stringResource(step.buttonRes),
-            buttonIcon = step.icon,
-            themeColor = themeColor,
-            onButtonClick = {
-                if (step == IntroStep.ACCESSIBILITY) showDisclosure = true else request(step)
-            },
-            aboveButtonContent = {
-                Column(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                    ChecklistRow(stringResource(R.string.settings_accessibility_access), isAccessibilityEnabled, themeColor)
-                    if (showsExactAlarm) ChecklistRow(stringResource(R.string.settings_exact_alarms), isExactAlarmGranted, themeColor)
-                    if (showsAutostart) ChecklistRow(stringResource(R.string.settings_autostart), isAutostartGranted, themeColor)
+        // Spec Part B, 5.1: the title, subtitle and button are one card now; tapping it asks for
+        // the next missing permission. The checklist and the "still here?" nudge stay below it.
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 22.dp)) {
+            IntroCard(
+                title = stringResource(R.string.intro_welcome_title),
+                subtitle = stringResource(R.string.intro_welcome_subtitle),
+                icon = Icons.Filled.HourglassEmpty,
+                themeColor = themeColor,
+                onClick = { if (step == IntroStep.ACCESSIBILITY) showDisclosure = true else request(step) },
+            )
+            Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(top = 20.dp, bottom = 16.dp)) {
+                ChecklistRow(stringResource(R.string.settings_accessibility_access), isAccessibilityEnabled, themeColor)
+                if (showsExactAlarm) ChecklistRow(stringResource(R.string.settings_exact_alarms), isExactAlarmGranted, themeColor)
+                if (showsAutostart) ChecklistRow(stringResource(R.string.settings_autostart), isAutostartGranted, themeColor)
+            }
+            AnimatedVisibility(visible = showNudge) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .background(Color(0xFFFF9500).copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFFF9500))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(step.nudgeRes),
+                        color = Color(0xFFFF9500),
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                    )
                 }
-                AnimatedVisibility(visible = showNudge) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(bottom = 16.dp)
-                            .background(Color(0xFFFF9500).copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                    ) {
-                        Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFFF9500))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            stringResource(step.nudgeRes),
-                            color = Color(0xFFFF9500),
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            },
-        )
+            }
+        }
     }
 
     if (showDisclosure) {

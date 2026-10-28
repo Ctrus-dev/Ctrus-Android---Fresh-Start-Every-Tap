@@ -33,6 +33,14 @@ object AccessibilityPermissionUtil {
         return isEnabledInSettings(context, expected)
     }
 
+    /**
+     * Only the toggle in Settings, not whether the service is bound right now: the system also
+     * unbinds services for a while without the user turning anything off (e.g. while a
+     * UiAutomation client such as `uiautomator` is connected).
+     */
+    fun isTurnedOnInSettings(context: Context): Boolean =
+        isEnabledInSettings(context, ComponentName(context, BlockingAccessibilityService::class.java))
+
     private fun isEnabledInSettings(context: Context, expected: ComponentName): Boolean {
         val masterSwitchOn = Settings.Secure.getInt(context.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1
         if (!masterSwitchOn) return false

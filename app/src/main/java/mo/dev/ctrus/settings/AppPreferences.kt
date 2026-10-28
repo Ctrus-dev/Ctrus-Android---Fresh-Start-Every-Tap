@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.icon.AppIcon
 import mo.dev.ctrus.icon.DefaultAppIcon
 import mo.dev.ctrus.util.TrustedClock
@@ -39,6 +40,11 @@ class AppPreferences(private val context: Context) {
 
         val DEVICE_ID = stringPreferencesKey("recovery_device_id")
         val SHOW_INTRO = booleanPreferencesKey("show_intro_screen")
+        // Remembered so a Child Mode setup interrupted by closing the app picks up where it left
+        // off instead of going back to the mode choice.
+        val PENDING_CHILD_MODE_SETUP = booleanPreferencesKey("pendingChildModeSetup")
+        // Last seen state of the Accessibility service, so turning it off is logged once.
+        val LAST_KNOWN_ACCESSIBILITY_ENABLED = booleanPreferencesKey("lastKnownAccessibilityEnabled")
         val SHOWN_BATTERY_OPTIMIZATION_PROMPT = booleanPreferencesKey("shown_battery_optimization_prompt")
         val LAUNCH_COUNT = intPreferencesKey("launch_count")
         val SELECTED_APP_ICON = stringPreferencesKey("selected_app_icon")
@@ -66,8 +72,10 @@ class AppPreferences(private val context: Context) {
         return context.dataStore.data.first()[Keys.EMERGENCY_REMAINING] ?: DEFAULT_EMERGENCY_UNBLOCKS
     }
 
+    /** Child Mode's cycle is fixed at 4 weeks (spec Part B, 8.4). */
     suspend fun resetPeriodWeeksEmergency(): Int =
-        context.dataStore.data.first()[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
+        if (ChildModeStore.isChildMode) DEFAULT_RESET_PERIOD_WEEKS
+        else context.dataStore.data.first()[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
 
     /**
      * Mirrors iOS 319a1eb: changing the cycle length must not throw away however much of the wait
@@ -80,9 +88,8 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun nextEmergencyResetDate(): Instant {
-        val prefs = context.dataStore.data.first()
-        val period = (prefs[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS) * weekMillis
-        val remaining = (period - (prefs[Keys.EMERGENCY_CYCLE_ELAPSED] ?: 0)).coerceAtLeast(0)
+        val period = resetPeriodWeeksEmergency() * weekMillis
+        val remaining = (period - (context.dataStore.data.first()[Keys.EMERGENCY_CYCLE_ELAPSED] ?: 0)).coerceAtLeast(0)
         return Instant.now().plusMillis(remaining)
     }
 
@@ -98,8 +105,8 @@ class AppPreferences(private val context: Context) {
      * the phone's date to the last reset, which came back early once the date was moved forward.
      */
     private suspend fun checkAndResetEmergencyUnblocks() {
+        val period = resetPeriodWeeksEmergency() * weekMillis
         context.dataStore.edit {
-            val period = (it[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS) * weekMillis
             val elapsed = (it[Keys.EMERGENCY_CYCLE_ELAPSED] ?: 0) + emergencyCycleClock.trustedElapsedMillis()
             if (elapsed >= period) {
                 it[Keys.EMERGENCY_REMAINING] = DEFAULT_EMERGENCY_UNBLOCKS
@@ -169,6 +176,22 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setShowIntroScreen(show: Boolean) {
         context.dataStore.edit { it[Keys.SHOW_INTRO] = show }
+    }
+
+    suspend fun pendingChildModeSetup(): Boolean = context.dataStore.data.first()[Keys.PENDING_CHILD_MODE_SETUP] ?: false
+
+    suspend fun setPendingChildModeSetup(pending: Boolean) {
+        context.dataStore.edit { it[Keys.PENDING_CHILD_MODE_SETUP] = pending }
+    }
+
+    /** Stores [enabled] and returns the previous value (true when never stored). */
+    suspend fun swapLastKnownAccessibilityEnabled(enabled: Boolean): Boolean {
+        var previous = true
+        context.dataStore.edit {
+            previous = it[Keys.LAST_KNOWN_ACCESSIBILITY_ENABLED] ?: true
+            it[Keys.LAST_KNOWN_ACCESSIBILITY_ENABLED] = enabled
+        }
+        return previous
     }
 
     suspend fun hasShownBatteryOptimizationPrompt(): Boolean =

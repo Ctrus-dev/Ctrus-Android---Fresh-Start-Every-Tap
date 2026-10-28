@@ -16,7 +16,8 @@ sealed interface StrategyRequirement {
 
 sealed interface StrategyInput {
     data object None : StrategyInput
-    data class NfcTag(val code: String) : StrategyInput
+    /** [code] is the URL-or-UID normal mode compares; [uid] is what child mode compares. */
+    data class NfcTag(val code: String, val uid: String) : StrategyInput
 }
 
 sealed interface StrategyResult {

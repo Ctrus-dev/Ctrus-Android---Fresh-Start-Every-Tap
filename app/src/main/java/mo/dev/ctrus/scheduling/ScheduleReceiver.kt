@@ -17,6 +17,8 @@ import kotlinx.coroutines.sync.withLock
 import mo.dev.ctrus.CtrusApp
 import mo.dev.ctrus.MainActivity
 import mo.dev.ctrus.R
+import mo.dev.ctrus.childmode.ChildModeStore
+import mo.dev.ctrus.childmode.ChildSessionLimit
 import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
@@ -40,7 +42,12 @@ class ScheduleReceiver : BroadcastReceiver() {
                     ACTION_START -> intent.getStringExtra(EXTRA_PROFILE_ID)?.let { onScheduledStart(context, app, it) }
                     ACTION_REMINDER -> intent.getStringExtra(EXTRA_PROFILE_ID)?.let { onReminder(context, app, it) }
                     ACTION_END -> intent.getStringExtra(EXTRA_SESSION_ID)?.let { onScheduledEnd(app, it) }
+                    ACTION_CHILD_SESSION_LIMIT -> ChildSessionLimit.sync(app)
                     else -> {
+                        // A date change, a reboot (where the 24-hour limit's alarm is lost) or an
+                        // update: Child Mode logs a moved date and re-checks the session's end.
+                        if (ChildModeStore.isChildMode) ChildModeStore.checkForClockChange()
+                        ChildSessionLimit.sync(app)
                         app.scheduleAlarmScheduler.syncAll(app.profileRepository.getAll())
                         val active = app.sessionRepository.mostRecentActive()
                         val activeProfile = active?.let { app.profileRepository.find(it.profileId) }
@@ -119,6 +126,9 @@ class ScheduleReceiver : BroadcastReceiver() {
         if (session.endTimeEpochMilli != null) return@withLock
         val profile = app.profileRepository.find(session.profileId) ?: return@withLock
         if (profile.blockingStrategyId != StrategyIds.SCHEDULE || profile.schedule?.durationInHours == null) return@withLock
+        // Child Mode ends sessions through ChildSessionLimit, which checks the real time passed
+        // instead of trusting this wall-clock alarm.
+        if (ChildModeStore.isChildMode) return@withLock
         app.sessionRepository.endSession(session)
     }
 
@@ -137,12 +147,7 @@ class ScheduleReceiver : BroadcastReceiver() {
             app.scheduleAlarmScheduler.sync(profile)
             return
         }
-        notify(
-            context,
-            "reminder:$profileId",
-            context.getString(R.string.schedule_reminder_notification_title),
-            context.getString(R.string.schedule_reminder_notification_body, profile.name),
-        )
+        notifyStartingSoon(context, profile)
         app.scheduleAlarmScheduler.sync(profile)
     }
 
@@ -171,6 +176,21 @@ class ScheduleReceiver : BroadcastReceiver() {
         const val ACTION_END = "mo.dev.ctrus.scheduling.SCHEDULE_END"
         const val EXTRA_PROFILE_ID = "profile_id"
         const val EXTRA_SESSION_ID = "session_id"
+
+        const val ACTION_CHILD_SESSION_LIMIT = "mo.dev.ctrus.scheduling.CHILD_SESSION_LIMIT"
+
+        /**
+         * "Starting Soon!" for [profile]. Keyed by profile, so Child Mode ending a session to make
+         * way for the next one and the reminder alarm itself never show it twice.
+         */
+        fun notifyStartingSoon(context: Context, profile: mo.dev.ctrus.data.BlockedProfileEntity) {
+            ScheduleReceiver().notify(
+                context,
+                "reminder:${profile.id}",
+                context.getString(R.string.schedule_reminder_notification_title),
+                context.getString(R.string.schedule_reminder_notification_body, profile.name),
+            )
+        }
 
         /** Two schedules firing in the same minute must not both see "no active session". */
         private val startLock = Mutex()
