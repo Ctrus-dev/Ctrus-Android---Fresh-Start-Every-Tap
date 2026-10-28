@@ -6,6 +6,9 @@ import android.app.NotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import mo.dev.ctrus.blocking.AdultDomainList
 import mo.dev.ctrus.blocking.BlockingHealthMonitor
@@ -77,6 +80,14 @@ class CtrusApp : Application() {
                 BlockingHealthMonitor.sync(this@CtrusApp, session?.id)
                 val profile = session?.let { profileRepository.find(it.profileId) } ?: return@collect
                 scheduleAlarmScheduler.syncSessionEnd(session, profile)
+            }
+        }
+
+        // Mirrors StrategyManager's handleSessionStarted/handleSessionEnded checking both unlock
+        // cycles, however the session started or ended (app, schedule, NFC, emergency).
+        applicationScope.launch {
+            sessionRepository.observeMostRecentActive().map { it?.id }.distinctUntilChanged().drop(1).collect {
+                preferences.checkUnlockCycles()
             }
         }
 

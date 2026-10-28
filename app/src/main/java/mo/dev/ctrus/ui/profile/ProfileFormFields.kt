@@ -405,6 +405,15 @@ fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, d
     SettingsDivider()
     ScheduleDurationRow(draft, onDraftChange, disabled)
 
+    SettingsDivider()
+    CustomToggleRow(
+        title = stringResource(R.string.skip_toggle),
+        description = stringResource(R.string.skip_note),
+        checked = draft.allowSkip,
+        enabled = !disabled,
+        onCheckedChange = { onDraftChange(draft.copy(allowSkip = it)) },
+    )
+
     if (showTimePicker) {
         CtrusTimePickerDialog(
             initialHour = draft.scheduleStartHour,

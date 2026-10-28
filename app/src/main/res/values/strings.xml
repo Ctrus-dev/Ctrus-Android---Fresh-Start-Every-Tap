@@ -424,4 +424,21 @@
     <string name="blocking_status_channel_description">Lets you know when blocking stopped during a session.</string>
     <string name="blocking_stopped_title">Blocking stopped</string>
     <string name="blocking_stopped_body">%1$s is still running, but Ctrus can\'t block apps right now. Open Ctrus to fix it.</string>
+
+    <!-- Skipping schedule sessions (spec Part A, A3) -->
+    <string name="skip_toggle">Allow skipping sessions</string>
+    <string name="skip_note">You\'ll find this option in the profile\'s ⋯ menu.</string>
+    <string name="skip_next">Skip next session</string>
+    <string name="skip_until">Skip until…</string>
+    <string name="skip_resume">Resume schedule</string>
+    <string name="skip_sheet_none">There are no sessions on those days.</string>
+    <string name="skip_sheet_button">Skip with Ctrus</string>
+    <string name="skip_done_next">Done. The session on %1$s won\'t start.</string>
+    <string name="skip_done_until">Done. The schedule is back on %1$s.</string>
+    <string name="skip_wrong_tag">This Ctrus isn\'t linked to this profile.</string>
+    <string name="skip_save_failed">Failed to save changes: %1$s</string>
+    <plurals name="skip_sheet_summary">
+        <item quantity="one">Skips %1$d session, until %2$s.</item>
+        <item quantity="other">Skips %1$d sessions, until %2$s.</item>
+    </plurals>
 </resources>

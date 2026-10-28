@@ -396,6 +396,20 @@ DeviceActivityCenter, and AlarmManager doesn't need one. Pieces:
   period (`f5602f2` breaks/timers cut at 23:59:59; `651b631`/`ef95350` reminders wiped on session
   start/end or break end) were bugs in DeviceActivity/UNCalendarNotificationTrigger handling.
   Android has neither, because it uses epoch-millis alarms and re-arms the reminder every time it fires.
+- **Skipping sessions (spec Part A, iOS `ee78b30`/`c9910e0`/`9d830f0`)**: `allowSkip` (toggle at
+  the end of the schedule fields), `skipNextOccurrence` and `skipUntil` (epoch millis, Room v2→v3)
+  on the profile, read through `BlockedProfileEntity.scheduleSkip` (empty unless `allowSkip`), with
+  the logic in `data/ScheduleSkip`. The profile's ⋯ menu offers Skip next session / Skip until… /
+  Resume schedule when `canSkipSessions` (schedule + at least one tag), with or without a session
+  running. Both skips need one of the profile's own tags (`canUnblockWithNfcCode`); resume doesn't.
+  `ui/home/SkipUntilSheet` uses Material 3 `DatePicker` with no initial selection and only today…+30
+  selectable; its errors show inside the sheet. `ui/common/ToastBanner` gives the 3 s confirmation.
+  Skipped occurrences get neither the start nor the reminder alarm (`nextTrigger(skip=)` looks 42
+  days ahead), and `ScheduleReceiver` re-checks the skip when either alarm fires. The card's next-start line passes
+  over skipped occurrences and shows no skip line of its own. Expired skips are cleared on every app resume.
+  Dates use the system's own pattern for each skeleton (`DateFormatters.formatSkip*`), so pt-PT
+  shows "sexta-feira, 30/10" rather than the spec's "30 out". That's deliberate (the user's call),
+  so don't force an abbreviated month.
 - Not ported: iOS's "Automatic Start"/"NFC" tag badges on strategy rows, because this port has
   never shown strategy tags for any mode.
 Verified on the emulator: the reminder and the automatic start both fired on time, and a
@@ -415,6 +429,15 @@ fix (changing 2↔4 weeks no longer restarts the cycle), the `enableEmergencyUnb
 (with the "…" character). Not applicable here, all specific to iOS's DeviceActivity/Shield APIs:
 the `updatedAt`/settle-window and tag-based scheduled-session bugs, the reminder background
 task, the "Schedule needs repair" alert, and the shield blur tweaks.
+
+**Unlock cycles count real time (`util/TrustedClock`, spec Part A1).** The emergency (3 per 2/4
+weeks) and recovery (2 per 4 weeks, cycle starts on the first one used) cycles add up
+`TrustedClock.trustedElapsedMillis()` into `emergencyCycleElapsed`/`recoveryCycleElapsed` instead
+of comparing the phone's date, which came back early once the date was moved forward. The clock
+uses `SystemClock.elapsedRealtime()` (keeps counting asleep) and, across a reboot, trusts the
+date for at most 24 h; each cycle has its own key. Checked on app resume, session start/end
+(`CtrusApp`), the emergency screen and Settings. The old `*_last_reset/unlock` keys are just
+ignored, with no migration. Unit tests: `TrustedClockTest`, `ScheduleSkipTest` (`./gradlew :app:testDebugUnitTest`).
 
 **Exact alarms: SCHEDULE_EXACT_ALARM only, never USE_EXACT_ALARM.** Google Play reserves
 USE_EXACT_ALARM for alarm-clock/calendar apps, so it was removed. SCHEDULE_EXACT_ALARM ("Alarms &

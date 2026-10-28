@@ -27,6 +27,7 @@ data class ProfileDraft(
     val scheduleStartMinute: Int = 0,
     /** `null` = Indefinite (NFC-only stop). */
     val scheduleDurationHours: Int? = null,
+    val allowSkip: Boolean = false,
 ) {
     /** Mirrors BlockedProfileDraft.useSchedule. */
     val useSchedule: Boolean get() = strategyId == StrategyIds.SCHEDULE
@@ -65,6 +66,7 @@ fun BlockedProfileEntity.toDraft() = ProfileDraft(
     scheduleStartHour = schedule?.startHour ?: 9,
     scheduleStartMinute = schedule?.startMinute ?: 0,
     scheduleDurationHours = schedule?.durationInHours,
+    allowSkip = allowSkip,
 )
 
 /** Writes every draft field onto [profile] (edit), or onto a fresh entity when creating. */
@@ -84,4 +86,8 @@ fun ProfileDraft.applyTo(profile: BlockedProfileEntity): BlockedProfileEntity = 
     enableStrictMode = enableStrictMode,
     enableBlockAppInstallation = enableBlockAppInstallation,
     schedule = schedule,
+    allowSkip = allowSkip,
+    // Turning skipping off drops any skip already set, like iOS's BlockedProfiles.updateProfile.
+    skipNextOccurrence = profile.skipNextOccurrence.takeIf { allowSkip },
+    skipUntil = profile.skipUntil.takeIf { allowSkip },
 )

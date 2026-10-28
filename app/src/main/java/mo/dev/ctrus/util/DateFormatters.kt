@@ -20,6 +20,27 @@ object DateFormatters {
         return android.text.format.DateFormat.getTimeFormat(context).format(calendar.time)
     }
 
+    // Dates in the schedule-skip messages, in the phone's own language and format — the same
+    // skeletons as iOS's ScheduleSkipUtil ("dMMM", "EEEEdMMM", "EEEEdMMMjm").
+
+    /** "Oct 29" — the day the schedule is back on. */
+    fun formatSkipShortDay(context: android.content.Context, date: java.time.ZonedDateTime): String =
+        formatSkeleton(context, date, "dMMM")
+
+    /** "Wednesday, Oct 28" — the last skipped day. */
+    fun formatSkipWeekdayAndDay(context: android.content.Context, date: java.time.ZonedDateTime): String =
+        formatSkeleton(context, date, "EEEEdMMM")
+
+    /** "Wednesday, Oct 28, 22:50" — the one skipped occurrence. */
+    fun formatSkipOccurrence(context: android.content.Context, date: java.time.ZonedDateTime): String =
+        formatSkeleton(context, date, if (android.text.format.DateFormat.is24HourFormat(context)) "EEEEdMMMHm" else "EEEEdMMMhma")
+
+    private fun formatSkeleton(context: android.content.Context, date: java.time.ZonedDateTime, skeleton: String): String {
+        val locale = context.resources.configuration.locales[0]
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton)
+        return date.format(java.time.format.DateTimeFormatter.ofPattern(pattern, locale))
+    }
+
     /** "1h 2m 3s" / "2m 3s" / "3s". */
     fun formatDuration(durationSeconds: Double): String {
         val total = durationSeconds.toInt()

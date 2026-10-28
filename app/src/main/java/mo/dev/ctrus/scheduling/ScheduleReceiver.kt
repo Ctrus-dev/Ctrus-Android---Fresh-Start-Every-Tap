@@ -21,6 +21,7 @@ import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.strategy.StrategyIds
+import java.time.Instant
 
 /**
  * Handles [ScheduleAlarmScheduler]'s alarms — the Android side of iOS's ScheduleTimerActivity
@@ -56,6 +57,14 @@ class ScheduleReceiver : BroadcastReceiver() {
         val profile = app.profileRepository.find(profileId) ?: return@withLock
         if (profile.blockingStrategyId != StrategyIds.SCHEDULE || profile.schedule?.isActive != true) {
             app.scheduleAlarmScheduler.cancel(profileId)
+            return@withLock
+        }
+
+        // A skipped occurrence leaves everything as it is — a session that's already running
+        // carries on, nothing new starts, and there's no "couldn't start" notification. Normally
+        // this alarm isn't even armed for it; this covers a skip set after the alarm was.
+        if (profile.scheduleSkip.skips(Instant.now())) {
+            app.scheduleAlarmScheduler.sync(profile)
             return@withLock
         }
 
@@ -122,7 +131,9 @@ class ScheduleReceiver : BroadcastReceiver() {
         // Mirrors iOS aa4ca14: an indefinite schedule can still be running at its next start, so
         // "starts in 5 minutes" would be wrong. iOS cancels its repeating reminders for the length
         // of the session; this alarm is one-shot, so it just checks here and stays armed for the next.
-        if (app.sessionRepository.mostRecentActive()?.profileId == profile.id) {
+        if (app.sessionRepository.mostRecentActive()?.profileId == profile.id ||
+            profile.scheduleSkip.skips(Instant.now().plusSeconds(ScheduleAlarmScheduler.REMINDER_MINUTES_BEFORE * 60))
+        ) {
             app.scheduleAlarmScheduler.sync(profile)
             return
         }

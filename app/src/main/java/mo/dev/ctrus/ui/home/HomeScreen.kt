@@ -2,6 +2,7 @@ package mo.dev.ctrus.ui.home
 
 import mo.dev.ctrus.strategy.StrategyIds
 import mo.dev.ctrus.data.ProfileSchedule
+import mo.dev.ctrus.data.ScheduleSkip
 import java.time.ZonedDateTime
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.produceState
@@ -43,6 +44,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.BarChart
@@ -206,6 +211,9 @@ fun HomeScreen(
     onEmergencyTapped: () -> Unit,
     onInsightsTapped: (BlockedProfileEntity) -> Unit,
     onManageTapped: () -> Unit,
+    onSkipNextTapped: (BlockedProfileEntity) -> Unit = {},
+    onSkipUntilTapped: (BlockedProfileEntity) -> Unit = {},
+    onResumeScheduleTapped: (BlockedProfileEntity) -> Unit = {},
     isAccessibilityEnabled: Boolean = true,
     isExactAlarmGranted: Boolean = true,
     isAutostartGranted: Boolean = true,
@@ -291,6 +299,9 @@ fun HomeScreen(
                         onBreak = onBreakTapped,
                         onEmergency = onEmergencyTapped,
                         onInsights = { onInsightsTapped(profile) },
+                        onSkipNext = { onSkipNextTapped(profile) },
+                        onSkipUntil = { onSkipUntilTapped(profile) },
+                        onResumeSchedule = { onResumeScheduleTapped(profile) },
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
@@ -379,6 +390,9 @@ private fun ProfileBalloonCard(
     onBreak: () -> Unit,
     onEmergency: () -> Unit,
     onInsights: () -> Unit,
+    onSkipNext: () -> Unit,
+    onSkipUntil: () -> Unit,
+    onResumeSchedule: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isExpanded by remember(profile.id) { mutableStateOf(false) }
@@ -419,6 +433,9 @@ private fun ProfileBalloonCard(
             onStart = onStart,
             onStop = onStop,
             onInsights = onInsights,
+            onSkipNext = onSkipNext,
+            onSkipUntil = onSkipUntil,
+            onResumeSchedule = onResumeSchedule,
         )
 
         AnimatedVisibility(
@@ -453,6 +470,9 @@ private fun BalloonHeader(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onInsights: () -> Unit,
+    onSkipNext: () -> Unit,
+    onSkipUntil: () -> Unit,
+    onResumeSchedule: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -473,7 +493,7 @@ private fun BalloonHeader(
             // 22:00" is noise. It only matters once the session has ended.
             profile.schedule?.takeIf { !isActive && it.isActive && profile.blockingStrategyId == StrategyIds.SCHEDULE }?.let {
                 Spacer(Modifier.height(2.dp))
-                NextScheduleLine(it)
+                NextScheduleLine(it, profile.scheduleSkip)
             }
         }
 
@@ -507,6 +527,11 @@ private fun BalloonHeader(
             onEdit = onEdit,
             onStart = onStart,
             onStop = onStop,
+            canSkip = profile.canSkipSessions,
+            hasActiveSkip = profile.scheduleSkip.isActive(),
+            onSkipNext = onSkipNext,
+            onSkipUntil = onSkipUntil,
+            onResumeSchedule = onResumeSchedule,
         )
     }
 }
@@ -551,6 +576,11 @@ private fun BalloonMenu(
     onEdit: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
+    canSkip: Boolean,
+    hasActiveSkip: Boolean,
+    onSkipNext: () -> Unit,
+    onSkipUntil: () -> Unit,
+    onResumeSchedule: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Box {
@@ -601,6 +631,27 @@ private fun BalloonMenu(
                     enabled = canStart,
                     onClick = { showMenu = false; onStart() },
                 )
+            }
+            // With or without a session running, after the usual options (iOS's skipMenuItems).
+            if (canSkip) {
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.skip_next)) },
+                    leadingIcon = { Icon(Icons.Filled.SkipNext, contentDescription = null) },
+                    onClick = { showMenu = false; onSkipNext() },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.skip_until)) },
+                    leadingIcon = { Icon(Icons.Filled.CalendarMonth, contentDescription = null) },
+                    onClick = { showMenu = false; onSkipUntil() },
+                )
+                if (hasActiveSkip) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.skip_resume)) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null) },
+                        onClick = { showMenu = false; onResumeSchedule() },
+                    )
+                }
             }
         }
     }
@@ -739,10 +790,11 @@ private fun SessionPillButton(
  * there's no 15-minute buffer. iOS skips starts less than 15 minutes away only because
  * DeviceActivity can't schedule that soon, but the AlarmManager start here fires on time, so this
  * shows the start that will actually happen. It re-reads the clock every minute so "Today" rolls
- * over to the next occurrence once a start has passed.
+ * over to the next occurrence once a start has passed. Skipped occurrences are passed over, so
+ * with a skip active this names the first session that will actually start.
  */
 @Composable
-private fun NextScheduleLine(schedule: ProfileSchedule) {
+private fun NextScheduleLine(schedule: ProfileSchedule, skip: ScheduleSkip) {
     val context = LocalContext.current
     val now by produceState(initialValue = ZonedDateTime.now()) {
         while (true) {
@@ -750,7 +802,7 @@ private fun NextScheduleLine(schedule: ProfileSchedule) {
             value = ZonedDateTime.now()
         }
     }
-    val next = schedule.nextTrigger(now) ?: return
+    val next = schedule.nextTrigger(now, skip = skip) ?: return
     val time = DateFormatters.formatTimeOfDay(context, next.hour, next.minute)
     val message = when (next.toLocalDate()) {
         now.toLocalDate() -> stringResource(R.string.home_next_start_today, time)

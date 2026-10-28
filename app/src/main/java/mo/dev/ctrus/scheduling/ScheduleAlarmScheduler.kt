@@ -32,8 +32,11 @@ class ScheduleAlarmScheduler(private val context: Context) {
             cancel(profile.id)
             return
         }
-        schedule.nextTrigger()?.let { arm(ScheduleReceiver.ACTION_START, profile.id, it.toInstant().toEpochMilli()) }
-        schedule.nextTrigger(offsetMinutes = -REMINDER_MINUTES_BEFORE)?.let {
+        // Skipped occurrences get neither alarm, so their reminder never shows. Whenever the skip
+        // changes, the profile row changes too and CtrusApp re-syncs here.
+        val skip = profile.scheduleSkip
+        schedule.nextTrigger(skip = skip)?.let { arm(ScheduleReceiver.ACTION_START, profile.id, it.toInstant().toEpochMilli()) }
+        schedule.nextTrigger(offsetMinutes = -REMINDER_MINUTES_BEFORE, skip = skip)?.let {
             arm(ScheduleReceiver.ACTION_REMINDER, profile.id, it.toInstant().toEpochMilli())
         }
     }

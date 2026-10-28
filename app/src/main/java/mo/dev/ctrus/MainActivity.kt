@@ -84,6 +84,15 @@ import mo.dev.ctrus.ui.session.EmergencyView
 import mo.dev.ctrus.ui.settings.SettingsScreen
 import mo.dev.ctrus.ui.strategy.PendingRequirementDialog
 import mo.dev.ctrus.util.resolve
+import mo.dev.ctrus.data.ScheduleSkip
+import mo.dev.ctrus.data.canUnblockWithNfcCode
+import mo.dev.ctrus.ui.common.NfcScanDialog
+import mo.dev.ctrus.ui.common.ToastBanner
+import mo.dev.ctrus.ui.home.SkipUntilSheet
+import mo.dev.ctrus.util.DateFormatters
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 // androidx.activity's own defaults for the 3-button navigation bar scrim.
 private val LightNavigationBarScrim = android.graphics.Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
@@ -200,6 +209,12 @@ private fun CtrusNavHost(
                 isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
                 isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
                 isAutostartGranted = XiaomiAutostartUtil.isGranted(context)
+                // Mirrors HomeView's loadApp/onAppearApp: bring the unlock cycles up to date and
+                // drop schedule skips whose days are over.
+                coroutineScope.launch {
+                    app.preferences.checkUnlockCycles()
+                    app.profileRepository.clearExpiredScheduleSkips()
+                }
                 // The intro asks for every permission that gates a start, not just Accessibility.
                 if (showIntroScreen == true && enabled && isExactAlarmGranted && isAutostartGranted) {
                     showIntroScreen = false
@@ -378,6 +393,7 @@ private fun CtrusNavHost(
                             enableStrictMode = draft.enableStrictMode,
                             enableBlockAppInstallation = draft.enableBlockAppInstallation,
                             schedule = draft.schedule,
+                            allowSkip = draft.allowSkip,
                         )
                         showCreateProfile = false
                     }
@@ -596,7 +612,7 @@ private fun CtrusNavHost(
     suspend fun refreshEmergencyState() {
         emergencyRemaining = app.preferences.remainingEmergencyUnblocks()
         emergencyResetWeeks = app.preferences.resetPeriodWeeksEmergency()
-        emergencyResetDateMillis = app.preferences.nextEmergencyResetDate()?.toEpochMilli()
+        emergencyResetDateMillis = app.preferences.nextEmergencyResetDate().toEpochMilli()
     }
     // Mirrors EmergencyView's `.onAppear { strategyManager.checkAndResetEmergencyUnblocks() }`.
     LaunchedEffect(showEmergencySheet) { if (showEmergencySheet) refreshEmergencyState() }
@@ -618,6 +634,88 @@ private fun CtrusNavHost(
                 showEmergencySheet = false
             },
             onDismiss = { showEmergencySheet = false },
+        )
+    }
+
+    // Skipping schedule sessions (iOS's ScheduleSkipUtil + HomeView wiring). Both skips are
+    // authorized by a tap of one of the profile's own tags, the same ones that end its session;
+    // resuming only adds blocking back, so it doesn't ask for one.
+    var pendingSkip by remember { mutableStateOf<PendingSkip?>(null) }
+    var skipUntilProfileId by remember { mutableStateOf<String?>(null) }
+    var skipUntilErrorMessage by remember { mutableStateOf<String?>(null) }
+    var skipNextErrorMessage by remember { mutableStateOf<String?>(null) }
+    var toastMessage by remember { mutableStateOf<String?>(null) }
+
+    fun skipFailed(request: PendingSkip, message: String) {
+        // With "Skip until…" open the error goes inside that sheet, which covers Home.
+        if (request is PendingSkip.Until) skipUntilErrorMessage = message else skipNextErrorMessage = message
+    }
+
+    fun applySkip(request: PendingSkip, code: String) {
+        val profile = profiles.firstOrNull { it.id == request.profileId } ?: return
+        if (!profile.canUnblockWithNfcCode(code)) {
+            skipFailed(request, context.getString(R.string.skip_wrong_tag))
+            return
+        }
+        coroutineScope.launch {
+            val zone = ZoneId.systemDefault()
+            val (skip, message) = when (request) {
+                is PendingSkip.Next -> profile.scheduleSkip.copy(skipNextOccurrence = request.occurrenceStart.toInstant()) to
+                    context.getString(R.string.skip_done_next, DateFormatters.formatSkipOccurrence(context, request.occurrenceStart))
+                is PendingSkip.Until -> profile.scheduleSkip.copy(skipUntil = ScheduleSkip.startOfDay(request.lastDay, zone)) to
+                    context.getString(R.string.skip_done_until, DateFormatters.formatSkipShortDay(context, request.lastDay.plusDays(1).atStartOfDay(zone)))
+            }
+            runCatching { app.profileRepository.updateScheduleSkip(profile, skip) }
+                .onSuccess {
+                    if (request is PendingSkip.Until) skipUntilProfileId = null
+                    toastMessage = message
+                }
+                .onFailure { skipFailed(request, context.getString(R.string.skip_save_failed, it.localizedMessage.orEmpty())) }
+        }
+    }
+
+    DisposableEffect(pendingSkip) {
+        val request = pendingSkip
+        if (request != null) {
+            nfcScanController.startScan { code ->
+                pendingSkip = null
+                applySkip(request, code)
+            }
+        }
+        onDispose { if (request != null) nfcScanController.stopScan() }
+    }
+
+    if (pendingSkip != null) {
+        // Cancelling the scan isn't an error, so it just closes.
+        NfcScanDialog(
+            availability = nfcScanController.availability,
+            onDismiss = { pendingSkip = null },
+            onOpenNfcSettings = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) },
+        )
+    }
+
+    skipUntilProfileId?.let { profileId ->
+        val schedule = profiles.firstOrNull { it.id == profileId }?.schedule
+        if (schedule != null) {
+            ModalBottomSheet(onDismissRequest = { skipUntilProfileId = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+                SkipUntilSheet(
+                    schedule = schedule,
+                    themeColor = themeManager.selectedColorOption.color,
+                    errorMessage = skipUntilErrorMessage,
+                    onDismissError = { skipUntilErrorMessage = null },
+                    onClose = { skipUntilProfileId = null },
+                    onSkip = { day -> pendingSkip = PendingSkip.Until(profileId, day) },
+                )
+            }
+        }
+    }
+
+    skipNextErrorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { skipNextErrorMessage = null },
+            title = { Text(stringResource(R.string.error_dialog_title)) },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = { skipNextErrorMessage = null }) { Text(stringResource(R.string.common_ok)) } },
         )
     }
 
@@ -656,6 +754,18 @@ private fun CtrusNavHost(
                 onEmergencyTapped = { showEmergencySheet = true },
                 onInsightsTapped = { profile -> insightsProfileId = profile.id },
                 onManageTapped = { showManageProfiles = true },
+                onSkipNextTapped = { profile ->
+                    // The next occurrence that hasn't started yet, even if another skip already
+                    // covers it, matching iOS's nextStartDate(bufferSeconds: 0).
+                    profile.schedule?.nextTrigger()?.let { pendingSkip = PendingSkip.Next(profile.id, it) }
+                },
+                onSkipUntilTapped = { profile ->
+                    skipUntilErrorMessage = null
+                    skipUntilProfileId = profile.id
+                },
+                onResumeScheduleTapped = { profile ->
+                    coroutineScope.launch { runCatching { app.profileRepository.updateScheduleSkip(profile, ScheduleSkip()) } }
+                },
                 isAccessibilityEnabled = isAccessibilityEnabled,
                 isExactAlarmGranted = isExactAlarmGranted,
                 isAutostartGranted = isAutostartGranted,
@@ -663,5 +773,15 @@ private fun CtrusNavHost(
             )
         }
     }
+
+    ToastBanner(message = toastMessage, onDismiss = { toastMessage = null })
 }
 
+/** A skip waiting for the profile's Ctrus to be tapped. */
+private sealed interface PendingSkip {
+    val profileId: String
+
+    data class Next(override val profileId: String, val occurrenceStart: ZonedDateTime) : PendingSkip
+
+    data class Until(override val profileId: String, val lastDay: LocalDate) : PendingSkip
+}

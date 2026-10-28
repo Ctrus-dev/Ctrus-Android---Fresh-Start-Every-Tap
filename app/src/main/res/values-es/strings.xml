@@ -422,4 +422,22 @@
     <string name="blocking_status_channel_description">Te avisa cuando el bloqueo se detuvo durante una sesión.</string>
     <string name="blocking_stopped_title">El bloqueo se detuvo</string>
     <string name="blocking_stopped_body">%1$s sigue activo, pero Ctrus no puede bloquear apps ahora mismo. Abre Ctrus para solucionarlo.</string>
+
+    <!-- Skipping schedule sessions (spec Part A, A3) -->
+    <string name="skip_toggle">Permitir saltar sesiones</string>
+    <string name="skip_note">Encontrarás esta opción en el menú ⋯ del perfil.</string>
+    <string name="skip_next">Saltar la próxima sesión</string>
+    <string name="skip_until">Saltar hasta…</string>
+    <string name="skip_resume">Reanudar horario</string>
+    <string name="skip_sheet_none">No hay sesiones esos días.</string>
+    <string name="skip_sheet_button">Saltar con el Ctrus</string>
+    <string name="skip_done_next">Hecho. La sesión del %1$s no empezará.</string>
+    <string name="skip_done_until">Hecho. El horario vuelve el %1$s.</string>
+    <string name="skip_wrong_tag">Este Ctrus no es de este perfil.</string>
+    <string name="skip_save_failed">No se pudieron guardar los cambios: %1$s</string>
+    <plurals name="skip_sheet_summary">
+        <item quantity="one">Se salta %1$d sesión, hasta el %2$s.</item>
+        <item quantity="many">Se salta %1$d sesiones, hasta el %2$s.</item>
+        <item quantity="other">Se salta %1$d sesiones, hasta el %2$s.</item>
+    </plurals>
 </resources>

@@ -35,6 +35,7 @@ class ProfileRepository(private val dao: BlockedProfileDao) {
         disableBackgroundStops: Boolean = false,
         enableEmergencyUnblock: Boolean = true,
         schedule: ProfileSchedule? = null,
+        allowSkip: Boolean = false,
     ): BlockedProfileEntity {
         val nextOrder = (dao.getMaxOrder() ?: -1) + 1
         val profile = BlockedProfileEntity(
@@ -57,6 +58,7 @@ class ProfileRepository(private val dao: BlockedProfileDao) {
             disableBackgroundStops = disableBackgroundStops,
             enableEmergencyUnblock = enableEmergencyUnblock,
             schedule = schedule,
+            allowSkip = allowSkip,
         )
         dao.upsert(profile)
         return profile
@@ -83,9 +85,34 @@ class ProfileRepository(private val dao: BlockedProfileDao) {
             order = nextOrder,
             createdAtEpochMilli = Instant.now().toEpochMilli(),
             updatedAtEpochMilli = Instant.now().toEpochMilli(),
+            // allowSkip carries over, the skips themselves don't (iOS's clone does the same).
+            skipNextOccurrence = null,
+            skipUntil = null,
         )
         dao.upsert(cloned)
         return cloned
+    }
+
+    /** Mirrors BlockedProfiles.updateScheduleSkip. Leaves `updatedAt` alone, like iOS. */
+    suspend fun updateScheduleSkip(profile: BlockedProfileEntity, skip: ScheduleSkip): BlockedProfileEntity {
+        val updated = profile.copy(
+            skipNextOccurrence = skip.skipNextOccurrence?.toEpochMilli(),
+            skipUntil = skip.skipUntil?.toEpochMilli(),
+        )
+        dao.update(updated)
+        return updated
+    }
+
+    /** Mirrors BlockedProfiles.clearExpiredScheduleSkips — run on app open and return. */
+    suspend fun clearExpiredScheduleSkips() {
+        dao.getAll().forEach { profile ->
+            val skip = ScheduleSkip(
+                skipNextOccurrence = profile.skipNextOccurrence?.let(Instant::ofEpochMilli),
+                skipUntil = profile.skipUntil?.let(Instant::ofEpochMilli),
+            )
+            val active = skip.clearingExpired()
+            if (active != skip) updateScheduleSkip(profile, active)
+        }
     }
 
     suspend fun reorder(profiles: List<BlockedProfileEntity>) {

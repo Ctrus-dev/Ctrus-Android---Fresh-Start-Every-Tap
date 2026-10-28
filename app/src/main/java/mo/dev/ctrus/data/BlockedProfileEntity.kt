@@ -2,6 +2,7 @@ package mo.dev.ctrus.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import mo.dev.ctrus.strategy.StrategyIds
 import java.time.Instant
 import java.util.UUID
 
@@ -47,4 +48,23 @@ data class BlockedProfileEntity(
 
     /** Only set for "Schedule + Ctrus NFC" profiles — see [ProfileSchedule]. */
     val schedule: ProfileSchedule? = null,
-)
+
+    /** Lets the profile's ⋯ menu skip schedule sessions — see [ScheduleSkip]. */
+    val allowSkip: Boolean = false,
+    /** Epoch millis of the one skipped occurrence's start. */
+    val skipNextOccurrence: Long? = null,
+    /** Epoch millis of the start of the last skipped day. */
+    val skipUntil: Long? = null,
+) {
+    /** Ignored unless [allowSkip] is on, like iOS's snapshot. */
+    val scheduleSkip: ScheduleSkip
+        get() = if (!allowSkip) ScheduleSkip() else ScheduleSkip(
+            skipNextOccurrence = skipNextOccurrence?.let(Instant::ofEpochMilli),
+            skipUntil = skipUntil?.let(Instant::ofEpochMilli),
+        )
+
+    /** Skipping needs one of the profile's own tags to authorize it, so a profile without one never offers it. */
+    val canSkipSessions: Boolean
+        get() = allowSkip && blockingStrategyId == StrategyIds.SCHEDULE && schedule?.isActive == true &&
+            physicalUnblockItems.any { it.type == PhysicalUnblockType.NFC }
+}

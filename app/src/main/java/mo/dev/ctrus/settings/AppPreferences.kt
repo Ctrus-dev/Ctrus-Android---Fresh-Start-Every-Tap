@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import mo.dev.ctrus.icon.AppIcon
 import mo.dev.ctrus.icon.DefaultAppIcon
+import mo.dev.ctrus.util.TrustedClock
 import java.time.Instant
 import java.util.UUID
 
@@ -26,11 +27,15 @@ class AppPreferences(private val context: Context) {
     private object Keys {
         val EMERGENCY_REMAINING = intPreferencesKey("emergency_unblocks_remaining")
         val EMERGENCY_RESET_WEEKS = intPreferencesKey("emergency_reset_period_weeks")
-        val EMERGENCY_LAST_RESET = longPreferencesKey("emergency_last_reset_epoch_milli")
+        // Real time counted towards the current cycle by TrustedClock, in millis — the phone's
+        // date can be moved forward, so it isn't used to tell when the unlocks come back.
+        val EMERGENCY_CYCLE_ELAPSED = longPreferencesKey("emergencyCycleElapsed")
 
         val RECOVERY_REMAINING = intPreferencesKey("recovery_unlocks_remaining")
         val RECOVERY_RESET_WEEKS = intPreferencesKey("recovery_reset_period_weeks")
-        val RECOVERY_LAST_UNLOCK = longPreferencesKey("recovery_last_unlock_epoch_milli")
+        // Same as the emergency cycle, but only counted from the first unlock of the cycle.
+        val RECOVERY_CYCLE_ELAPSED = longPreferencesKey("recoveryCycleElapsed")
+        val IS_RECOVERY_CYCLE_RUNNING = booleanPreferencesKey("isRecoveryCycleRunning")
 
         val DEVICE_ID = stringPreferencesKey("recovery_device_id")
         val SHOW_INTRO = booleanPreferencesKey("show_intro_screen")
@@ -43,6 +48,10 @@ class AppPreferences(private val context: Context) {
     }
 
     private val weekMillis = 7L * 24 * 60 * 60 * 1000
+
+    private val trustedClockStore = TrustedClock.SharedPreferencesStore(context)
+    private val emergencyCycleClock = TrustedClock("emergencyCycle", trustedClockStore)
+    private val recoveryCycleClock = TrustedClock("recoveryCycle", trustedClockStore)
 
     suspend fun deviceId(): String {
         val prefs = context.dataStore.data.first()
@@ -61,19 +70,20 @@ class AppPreferences(private val context: Context) {
         context.dataStore.data.first()[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
 
     /**
-     * Mirrors iOS 319a1eb: changing the cycle length must not move when the current cycle
-     * started, since that throws away however much of the wait was already done. Only the length
-     * changes, and the re-check resets right away if the new, shorter period has already passed.
+     * Mirrors iOS 319a1eb: changing the cycle length must not throw away however much of the wait
+     * was already done. Only the length changes; the counter is just compared against the new one,
+     * and the re-check resets right away if the new, shorter period has already passed.
      */
     suspend fun setResetPeriodWeeksEmergency(weeks: Int) {
         context.dataStore.edit { it[Keys.EMERGENCY_RESET_WEEKS] = weeks }
         checkAndResetEmergencyUnblocks()
     }
 
-    suspend fun nextEmergencyResetDate(): Instant? {
-        val last = context.dataStore.data.first()[Keys.EMERGENCY_LAST_RESET] ?: return null
-        val weeks = resetPeriodWeeksEmergency()
-        return Instant.ofEpochMilli(last + weeks * weekMillis)
+    suspend fun nextEmergencyResetDate(): Instant {
+        val prefs = context.dataStore.data.first()
+        val period = (prefs[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS) * weekMillis
+        val remaining = (period - (prefs[Keys.EMERGENCY_CYCLE_ELAPSED] ?: 0)).coerceAtLeast(0)
+        return Instant.now().plusMillis(remaining)
     }
 
     suspend fun consumeEmergencyUnblock(): Boolean {
@@ -83,22 +93,27 @@ class AppPreferences(private val context: Context) {
         return true
     }
 
+    /**
+     * Mirrors iOS ee78b30: the cycle adds up real time from [TrustedClock] instead of comparing
+     * the phone's date to the last reset, which came back early once the date was moved forward.
+     */
     private suspend fun checkAndResetEmergencyUnblocks() {
-        val prefs = context.dataStore.data.first()
-        val lastReset = prefs[Keys.EMERGENCY_LAST_RESET]
-        val weeks = prefs[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
-        val now = Instant.now().toEpochMilli()
-
-        if (lastReset == null) {
-            context.dataStore.edit { it[Keys.EMERGENCY_LAST_RESET] = now }
-            return
-        }
-        if (now - lastReset >= weeks * weekMillis) {
-            context.dataStore.edit {
+        context.dataStore.edit {
+            val period = (it[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS) * weekMillis
+            val elapsed = (it[Keys.EMERGENCY_CYCLE_ELAPSED] ?: 0) + emergencyCycleClock.trustedElapsedMillis()
+            if (elapsed >= period) {
                 it[Keys.EMERGENCY_REMAINING] = DEFAULT_EMERGENCY_UNBLOCKS
-                it[Keys.EMERGENCY_LAST_RESET] = now
+                it[Keys.EMERGENCY_CYCLE_ELAPSED] = 0
+            } else {
+                it[Keys.EMERGENCY_CYCLE_ELAPSED] = elapsed
             }
         }
+    }
+
+    /** Brings both unlock cycles up to date — on app open/return and when a session starts or ends. */
+    suspend fun checkUnlockCycles() {
+        checkAndResetEmergencyUnblocks()
+        checkAndResetRecoveryUnlocks()
     }
 
     suspend fun remainingRecoveryUnlocks(): Int {
@@ -110,9 +125,10 @@ class AppPreferences(private val context: Context) {
     // gone — the "1 left" status text needs this too, not only "0 left".
     suspend fun nextRecoveryResetDate(): Instant? {
         val prefs = context.dataStore.data.first()
-        val last = prefs[Keys.RECOVERY_LAST_UNLOCK] ?: return null
-        val weeks = prefs[Keys.RECOVERY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
-        return Instant.ofEpochMilli(last + weeks * weekMillis)
+        if (prefs[Keys.IS_RECOVERY_CYCLE_RUNNING] != true) return null
+        val period = (prefs[Keys.RECOVERY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS) * weekMillis
+        val remaining = (period - (prefs[Keys.RECOVERY_CYCLE_ELAPSED] ?: 0)).coerceAtLeast(0)
+        return Instant.now().plusMillis(remaining)
     }
 
     suspend fun consumeRecoveryUnlock(): Boolean {
@@ -121,22 +137,30 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit {
             it[Keys.RECOVERY_REMAINING] = remaining - 1
             // The 4-week cooldown starts on the first unlock of the cycle — using the second
-            // one shouldn't push the reset date back further.
-            if (it[Keys.RECOVERY_LAST_UNLOCK] == null) {
-                it[Keys.RECOVERY_LAST_UNLOCK] = Instant.now().toEpochMilli()
+            // one shouldn't push the reset date back further. remainingRecoveryUnlocks() above
+            // just read the clock, so the new cycle only counts time from here.
+            if (it[Keys.IS_RECOVERY_CYCLE_RUNNING] != true) {
+                it[Keys.RECOVERY_CYCLE_ELAPSED] = 0
+                it[Keys.IS_RECOVERY_CYCLE_RUNNING] = true
             }
         }
         return true
     }
 
     private suspend fun checkAndResetRecoveryUnlocks() {
-        val prefs = context.dataStore.data.first()
-        val last = prefs[Keys.RECOVERY_LAST_UNLOCK] ?: return
-        val weeks = prefs[Keys.RECOVERY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
-        if (Instant.now().toEpochMilli() - last >= weeks * weekMillis) {
-            context.dataStore.edit {
+        context.dataStore.edit {
+            // Read every time, even with no cycle running, so a cycle that starts later only
+            // counts time from its own start.
+            val elapsedNow = recoveryCycleClock.trustedElapsedMillis()
+            if (it[Keys.IS_RECOVERY_CYCLE_RUNNING] != true) return@edit
+            val period = (it[Keys.RECOVERY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS) * weekMillis
+            val elapsed = (it[Keys.RECOVERY_CYCLE_ELAPSED] ?: 0) + elapsedNow
+            if (elapsed >= period) {
                 it[Keys.RECOVERY_REMAINING] = DEFAULT_RECOVERY_UNLOCKS
-                it.remove(Keys.RECOVERY_LAST_UNLOCK)
+                it[Keys.RECOVERY_CYCLE_ELAPSED] = 0
+                it[Keys.IS_RECOVERY_CYCLE_RUNNING] = false
+            } else {
+                it[Keys.RECOVERY_CYCLE_ELAPSED] = elapsed
             }
         }
     }
