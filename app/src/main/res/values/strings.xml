@@ -491,7 +491,7 @@
     <string name="settings_child_new_key_warning">The current recovery key stops working as soon as a new one is created.</string>
     <string name="settings_child_log">Attempt log</string>
     <string name="settings_child_to_normal">Switch to Normal Mode</string>
-    <string name="settings_child_to_normal_body">The parent code, recovery key, parents\' Ctrus and attempt log are deleted. Your profiles stay.</string>
+    <string name="settings_child_to_normal_body">The parent code, recovery key and attempt log are deleted. Your profiles stay, and can still be unblocked with the Ctrus they used in Child Mode.</string>
     <string name="settings_child_enable">Turn on Child Mode</string>
     <string name="tamper_permission_revoked">Some permissions may have been turned off</string>
     <string name="tamper_app_stopped">A session may have been stopped from the phone\'s settings</string>

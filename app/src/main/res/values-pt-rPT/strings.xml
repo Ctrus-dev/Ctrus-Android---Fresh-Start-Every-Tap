@@ -490,7 +490,7 @@
     <string name="settings_child_new_key_warning">A chave de recuperação atual deixa de valer assim que for gerada uma nova.</string>
     <string name="settings_child_log">Registo de tentativas</string>
     <string name="settings_child_to_normal">Passar para o Modo Normal</string>
-    <string name="settings_child_to_normal_body">O código dos pais, a chave de recuperação, os Ctrus dos pais e o registo de tentativas são apagados. Os perfis mantêm-se.</string>
+    <string name="settings_child_to_normal_body">O código dos pais, a chave de recuperação e o registo de tentativas são apagados. Os perfis mantêm-se e continuam a poder ser desbloqueados com os Ctrus que usavam no Modo Criança.</string>
     <string name="settings_child_enable">Ativar Modo Criança</string>
     <string name="tamper_permission_revoked">Algumas permissões podem ter sido desligadas</string>
     <string name="tamper_app_stopped">Uma sessão pode ter sido parada pelas definições do telemóvel</string>

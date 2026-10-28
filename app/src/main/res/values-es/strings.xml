@@ -490,7 +490,7 @@
     <string name="settings_child_new_key_warning">La clave de recuperación actual deja de valer en cuanto se genera una nueva.</string>
     <string name="settings_child_log">Registro de intentos</string>
     <string name="settings_child_to_normal">Cambiar al Modo Normal</string>
-    <string name="settings_child_to_normal_body">Se borran el código parental, la clave de recuperación, los Ctrus de los padres y el registro de intentos. Los perfiles se mantienen.</string>
+    <string name="settings_child_to_normal_body">Se borran el código parental, la clave de recuperación y el registro de intentos. Los perfiles se mantienen y se pueden seguir desbloqueando con los Ctrus que usaban en el Modo Infantil.</string>
     <string name="settings_child_enable">Activar Modo Infantil</string>
     <string name="tamper_permission_revoked">Es posible que se hayan desactivado algunos permisos</string>
     <string name="tamper_app_stopped">Es posible que una sesión se haya detenido desde los ajustes del móvil</string>
