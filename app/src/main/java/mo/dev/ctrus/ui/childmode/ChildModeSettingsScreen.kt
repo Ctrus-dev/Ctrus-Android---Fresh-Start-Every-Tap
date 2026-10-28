@@ -35,12 +35,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -274,7 +272,7 @@ private fun ParentTagsPage(themeColor: Color, nfcScanController: NfcScanControll
             parentTags.forEachIndexed { index, tag ->
                 if (index > 0) SettingsDivider()
                 key(tag.uid) {
-                    ParentTagSwipeRow(
+                    ParentTagRow(
                         tag = tag,
                         themeColor = themeColor,
                         // There always has to be at least one.
@@ -324,35 +322,22 @@ private fun ParentTagsPage(themeColor: Color, nfcScanController: NfcScanControll
     }
 }
 
+/** iOS 9b780d3: deleted with its own button rather than a swipe, which isn't obvious. */
 @Composable
-private fun ParentTagSwipeRow(tag: ParentTag, themeColor: Color, canDelete: Boolean, onDelete: () -> Unit) {
-    val state = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart && canDelete) {
-                onDelete()
-                true
-            } else {
-                false
+private fun ParentTagRow(tag: ParentTag, themeColor: Color, canDelete: Boolean, onDelete: () -> Unit) {
+    SettingsRow(
+        title = tag.label,
+        leading = { Icon(Icons.Filled.Nfc, contentDescription = null, tint = themeColor) },
+        trailing = if (canDelete) {
+            {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.common_delete), tint = MaterialTheme.colorScheme.error)
+                }
             }
+        } else {
+            null
         },
     )
-    SwipeToDismissBox(
-        state = state,
-        enableDismissFromStartToEnd = false,
-        enableDismissFromEndToStart = canDelete,
-        backgroundContent = {
-            Box(
-                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.error, RoundedCornerShape(20.dp)).padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) { Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.common_delete), tint = Color.White) }
-        },
-    ) {
-        SettingsRow(
-            title = tag.label,
-            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp)),
-            leading = { Icon(Icons.Filled.Nfc, contentDescription = null, tint = themeColor) },
-        )
-    }
 }
 
 @Composable

@@ -450,9 +450,13 @@ or later from Settings. Pieces, all in `childmode/` and `ui/childmode/`:
   Driven by an exact alarm to `ScheduleReceiver.ACTION_CHILD_SESSION_LIMIT`, re-checked on app
   resume, boot and date changes; the schedule's own `ACTION_END` does nothing in Child Mode.
 - Attempt log: `permissionRevoked` (service `onUnbind` / app resume, once per change),
-  `appStopped` (`ServiceStopWatch`: service back in the same boot, or a skipped boot such as safe
-  mode, but not an ordinary reboot, as agreed with the user), `clockChanged` (`clockWatch` TrustedClock,
-  >5 min), `pinLockout`. A red pill on Home, hidden while the permissions pill shows.
+  `appStopped` ("Ctrus was stopped in the phone's settings": `ServiceStopWatch`, a new process in the
+  same boot whose last exit was a user force stop (API 30+ `ApplicationExitInfo`), or a skipped
+  boot such as safe mode, but not an ordinary reboot or the system killing it; iOS dropped this
+  entry as unused there, Android keeps it on purpose), `clockChanged` (`clockWatch` TrustedClock,
+  >5 min), `pinLockout`. `permissionRevoked` reads "Some permissions may have been turned off"
+  (iOS 481aefa). A red pill on Home, hidden while the permissions pill shows. Parents' Ctrus are
+  deleted with a red trash button, hidden for the last one (iOS 9b780d3).
 - `ParentGuardActivity`: during a Child Mode session the service puts the parent confirmation
   over Ctrus's own Accessibility page (matched by the service description) or App info
   (`entity_header_title` / MIUI's details activity). Confirming frees it until Settings is left,

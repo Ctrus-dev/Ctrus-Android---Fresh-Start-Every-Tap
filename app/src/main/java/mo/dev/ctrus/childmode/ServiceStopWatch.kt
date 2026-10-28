@@ -1,6 +1,9 @@
 package mo.dev.ctrus.childmode
 
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import android.content.Context
+import android.os.Build
 import android.provider.Settings
 import mo.dev.ctrus.CtrusApp
 
@@ -10,8 +13,8 @@ import mo.dev.ctrus.CtrusApp
  *
  * Checked each time the service connects, against the boot it last connected in
  * (`Settings.Global.BOOT_COUNT`):
- * - same boot: it stopped and came back without a reboot (force stop, the system killing it,
- *   …) — logged, unless the app was just updated;
+ * - same boot: it was force-stopped and came back without a reboot — logged, unless the app was
+ *   just updated (and, from Android 11, not when the system killed it — see [wasStoppedByUser]);
  * - the very next boot: an ordinary reboot — not logged (agreed with the user);
  * - a boot was skipped: Ctrus didn't run in one of them, which is what safe mode looks like —
  *   logged.
@@ -41,11 +44,24 @@ object ServiceStopWatch {
         val stopped = when {
             bootCount == lastBootCount -> {
                 val updatedAt = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).lastUpdateTime }.getOrDefault(0)
-                session.startTimeEpochMilli < lastConnectedAt && updatedAt < lastConnectedAt
+                session.startTimeEpochMilli < lastConnectedAt && updatedAt < lastConnectedAt && wasStoppedByUser(app)
             }
             bootCount > lastBootCount + 1 -> true
             else -> false
         }
         if (stopped) ChildModeStore.logTamper(TamperLogEntry.Kind.APP_STOPPED)
+    }
+
+    /**
+     * The entry says Ctrus was stopped in the phone's settings, so from Android 11 (where the
+     * reason the last process ended is known) only a force stop counts — not the system killing
+     * it for memory or battery, which MIUI does when the screen locks. Before 11 it can't tell.
+     */
+    private fun wasStoppedByUser(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return true
+        val reason = context.getSystemService(ActivityManager::class.java)
+            .getHistoricalProcessExitReasons(context.packageName, 0, 1)
+            .firstOrNull()?.reason ?: return true
+        return reason == ApplicationExitInfo.REASON_USER_REQUESTED || reason == ApplicationExitInfo.REASON_USER_STOPPED
     }
 }
