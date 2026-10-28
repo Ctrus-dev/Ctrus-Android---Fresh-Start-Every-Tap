@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
@@ -95,6 +96,8 @@ fun ParentConfirmationHost(
     val scope = rememberCoroutineScope()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         ParentConfirmationContent(
+            // Full height, like Settings, instead of only as tall as its content.
+            modifier = Modifier.fillMaxHeight(),
             reason = stringResource(request.reasonRes),
             nfcScanController = nfcScanController,
             themeColor = themeColor,

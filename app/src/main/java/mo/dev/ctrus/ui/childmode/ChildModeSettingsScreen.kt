@@ -165,9 +165,10 @@ private fun ChildModePage(
     trailing: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
+    // Full height in its sheet, like Settings, instead of only as tall as its content.
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .windowInsetsPadding(WindowInsets.navigationBars)
             .imePadding()
