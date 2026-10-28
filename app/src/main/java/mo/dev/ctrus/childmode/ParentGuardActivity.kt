@@ -6,13 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
@@ -41,20 +40,17 @@ class ParentGuardActivity : ComponentActivity() {
         setContent {
             CtrusTheme(themeManager) {
                 BackHandler(onBack = ::leave)
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .windowInsetsPadding(WindowInsets.statusBars),
-                ) {
+                // A Surface (not a plain background) so the text gets the theme's content colour.
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
                     ParentConfirmationContent(
+                        modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
                         reason = stringResource(R.string.parent_confirm_reason_settings),
                         nfcScanController = nfcScanController,
                         themeColor = themeManager.selectedColorOption.color,
                         onClose = ::leave,
                         onConfirmed = {
                             ParentGuard.isPassed = true
-                            finish()
+                            close()
                         },
                     )
                 }
@@ -64,7 +60,21 @@ class ParentGuardActivity : ComponentActivity() {
 
     private fun leave() {
         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        close()
+    }
+
+    // Marked closed right away: onDestroy can come seconds after finish() (seen on MIUI), and until
+    // then the service would think this was still up and leave the Settings page unguarded.
+    private fun close() {
+        ParentGuard.isShowing = false
         finish()
+    }
+
+    // Leaving it any other way (Home, Recents) counts as closing it without confirming, so the page
+    // is guarded again next time instead of this lingering in the background.
+    override fun onStop() {
+        super.onStop()
+        if (!isFinishing) close()
     }
 
     override fun onResume() {

@@ -80,7 +80,9 @@ class BlockingAccessibilityService : AccessibilityService() {
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)),
         ).mapNotNull { intent -> runCatching { packageManager.resolveActivity(intent, 0)?.activityInfo?.packageName }.getOrNull() }
-            .plus("com.android.settings")
+            // MIUI's App info lives in its Security app, which ACTION_APPLICATION_DETAILS_SETTINGS
+            // doesn't resolve to (Settings forwards to it).
+            .plus(listOf("com.android.settings", "com.miui.securitycenter"))
             .toSet()
 
         // A profile can be started (or a break can end) while its target app is already the
@@ -459,12 +461,17 @@ class BlockingAccessibilityService : AccessibilityService() {
     }
 
     private var guardedSettingsPackages: Set<String> = emptySet()
-    private var lastGuardCheckAtRealtime = 0L
+    private var guardCheckJob: Job? = null
+    /** The activity each guarded package last showed; content events only carry a view class. */
+    private val lastGuardWindowClass = HashMap<String, String>()
 
     /**
      * Child Mode, during a session: Ctrus's own Accessibility page or App info page in Settings
      * gets the parent confirmation over it ([ParentGuardActivity]). Once confirmed, it's left
      * alone until Settings is left (spec Part B, section 10).
+     *
+     * These pages fill in after they open, so each event (re)schedules one check for once they
+     * settle; a check skipped while they're still loading would never come round again.
      */
     private fun checkParentGuard(event: AccessibilityEvent, eventPackage: String) {
         if (!ChildModeStore.isChildMode || BlockingStateHolder.state.value.sessionId == null) {
@@ -476,17 +483,20 @@ class BlockingAccessibilityService : AccessibilityService() {
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) ParentGuard.isPassed = false
             return
         }
-        if (ParentGuard.isPassed || ParentGuard.isShowing) return
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-            val now = SystemClock.elapsedRealtime()
-            if (now - lastGuardCheckAtRealtime < BROWSER_CHECK_INTERVAL_MILLIS) return
-            lastGuardCheckAtRealtime = now
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            event.className?.toString()?.let { lastGuardWindowClass[eventPackage] = it }
         }
-        val root = rootInActiveWindow ?: return
-        if (root.packageName?.toString() != eventPackage) return
-        if (isCtrusSettingsPage(root, eventPackage, event.className?.toString().orEmpty())) {
-            ParentGuard.isShowing = true
-            startActivity(Intent(this, ParentGuardActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        if (ParentGuard.isPassed || ParentGuard.isShowing) return
+        guardCheckJob?.cancel()
+        guardCheckJob = serviceScope.launch {
+            delay(GUARD_CHECK_SETTLE_MILLIS)
+            if (ParentGuard.isPassed || ParentGuard.isShowing) return@launch
+            val root = rootInActiveWindow ?: return@launch
+            if (root.packageName?.toString() != eventPackage) return@launch
+            if (isCtrusSettingsPage(root, eventPackage, lastGuardWindowClass[eventPackage].orEmpty())) {
+                ParentGuard.isShowing = true
+                startActivity(Intent(this@BlockingAccessibilityService, ParentGuardActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
         }
     }
 
@@ -498,7 +508,9 @@ class BlockingAccessibilityService : AccessibilityService() {
         // App info: AOSP (and One UI) head it with the app's name; MIUI's own App info is its
         // own activity, with the name shown in it.
         val appName = getString(R.string.app_name)
-        val header = root.findAccessibilityNodeInfosByViewId("$settingsPackage:id/entity_header_title")
+        // AOSP/One UI's header, and MIUI's own App info label.
+        val header = root.findAccessibilityNodeInfosByViewId("$settingsPackage:id/entity_header_title") +
+            root.findAccessibilityNodeInfosByViewId("$settingsPackage:id/app_manager_details_applabel")
         if (header.any { it.text?.toString() == appName }) return true
         val looksLikeAppInfo = className.contains("Detail", ignoreCase = true) || className.contains("AppInfo", ignoreCase = true)
         return looksLikeAppInfo && root.findAccessibilityNodeInfosByText(appName).any { it.text?.toString() == appName }
@@ -651,6 +663,7 @@ class BlockingAccessibilityService : AccessibilityService() {
         const val RETRY_DELAY_MILLIS = 140L
         const val RETRY_COOLDOWN_MILLIS = 2_500L
         const val BROWSER_CHECK_INTERVAL_MILLIS = 300L
+        const val GUARD_CHECK_SETTLE_MILLIS = 250L
         const val MULTI_WINDOW_CHECK_DEBOUNCE_MILLIS = 100L
         const val MULTI_WINDOW_VERIFY_PAUSE_MILLIS = 2_000L
         const val SYSTEM_UI_PACKAGE = "com.android.systemui"

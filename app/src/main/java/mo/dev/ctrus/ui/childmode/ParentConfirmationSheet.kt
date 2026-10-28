@@ -120,6 +120,7 @@ fun ParentConfirmationContent(
     themeColor: Color,
     onClose: () -> Unit,
     onConfirmed: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -185,7 +186,7 @@ fun ParentConfirmationContent(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .windowInsetsPadding(WindowInsets.navigationBars)
