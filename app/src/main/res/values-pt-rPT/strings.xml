@@ -493,7 +493,7 @@
     <string name="settings_child_to_normal_body">O código dos pais, a chave de recuperação, os Ctrus dos pais e o registo de tentativas são apagados. Os perfis mantêm-se.</string>
     <string name="settings_child_enable">Ativar Modo Criança</string>
     <string name="tamper_permission_revoked">Algumas permissões podem ter sido desligadas</string>
-    <string name="tamper_app_stopped">A sessão pode ter sido parada pelas definições do telemóvel</string>
+    <string name="tamper_app_stopped">Uma sessão pode ter sido parada pelas definições do telemóvel</string>
     <string name="tamper_clock_changed">Data do telemóvel alterada</string>
     <string name="tamper_pin_lockout">5 códigos errados seguidos</string>
     <string name="tamper_empty">Ainda não há nada registado.</string>
