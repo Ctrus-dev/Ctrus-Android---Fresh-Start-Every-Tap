@@ -35,6 +35,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -185,10 +186,12 @@ fun ChildModeSetupScreen(
 
     BackHandler(onBack = ::goBack)
 
+    // A Surface, not a plain background: on first launch this is a full screen with no sheet around
+    // it, and text without its own colour (the add button, the Ctrus rows) came out black there.
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.statusBars)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .imePadding(),
@@ -275,6 +278,7 @@ fun ChildModeSetupScreen(
         ) {
             Text(stringResource(if (step == SetupStep.RECOVERY_KEY) R.string.child_recovery_saved else R.string.guided_next_button))
         }
+    }
     }
 
     if (isReadingTag) {
