@@ -450,7 +450,7 @@ or later from Settings. Pieces, all in `childmode/` and `ui/childmode/`:
   Driven by an exact alarm to `ScheduleReceiver.ACTION_CHILD_SESSION_LIMIT`, re-checked on app
   resume, boot and date changes; the schedule's own `ACTION_END` does nothing in Child Mode.
 - Attempt log: `permissionRevoked` (service `onUnbind` / app resume, once per change),
-  `appStopped` ("Ctrus was stopped in the phone's settings": `ServiceStopWatch`, a new process in the
+  `appStopped` ("The session may have been stopped from the phone's settings": `ServiceStopWatch`, a new process in the
   same boot whose last exit was a user force stop (API 30+ `ApplicationExitInfo`), or a skipped
   boot such as safe mode, but not an ordinary reboot or the system killing it; iOS dropped this
   entry as unused there, Android keeps it on purpose), `clockChanged` (`clockWatch` TrustedClock,

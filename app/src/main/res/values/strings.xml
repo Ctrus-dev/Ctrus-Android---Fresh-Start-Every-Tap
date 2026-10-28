@@ -494,7 +494,7 @@
     <string name="settings_child_to_normal_body">The parent code, recovery key, parents\' Ctrus and attempt log are deleted. Your profiles stay.</string>
     <string name="settings_child_enable">Turn on Child Mode</string>
     <string name="tamper_permission_revoked">Some permissions may have been turned off</string>
-    <string name="tamper_app_stopped">Ctrus was stopped in the phone\'s settings</string>
+    <string name="tamper_app_stopped">The session may have been stopped from the phone\'s settings</string>
     <string name="tamper_clock_changed">Phone date changed</string>
     <string name="tamper_pin_lockout">5 wrong codes in a row</string>
     <string name="tamper_empty">Nothing recorded yet.</string>

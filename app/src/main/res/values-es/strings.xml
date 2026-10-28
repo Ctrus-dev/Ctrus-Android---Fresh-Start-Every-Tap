@@ -493,7 +493,7 @@
     <string name="settings_child_to_normal_body">Se borran el código parental, la clave de recuperación, los Ctrus de los padres y el registro de intentos. Los perfiles se mantienen.</string>
     <string name="settings_child_enable">Activar Modo Infantil</string>
     <string name="tamper_permission_revoked">Es posible que se hayan desactivado algunos permisos</string>
-    <string name="tamper_app_stopped">Ctrus se detuvo desde los ajustes del móvil</string>
+    <string name="tamper_app_stopped">Es posible que la sesión se haya detenido desde los ajustes del móvil</string>
     <string name="tamper_clock_changed">Fecha del móvil cambiada</string>
     <string name="tamper_pin_lockout">5 códigos incorrectos seguidos</string>
     <string name="tamper_empty">Todavía no hay nada registrado.</string>
