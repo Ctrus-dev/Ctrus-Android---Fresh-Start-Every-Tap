@@ -106,12 +106,9 @@
     <string name="intro_open_source_prefix">Ctrus es 100% de código abierto,</string>
     <string name="intro_open_source_link">lee el código tú mismo</string>
     <string name="intro_open_source_suffix">si eres escéptico</string>
-    <string name="intro_nudge">¿Sigues ahí? Busca “Ctrus” en la lista de Accesibilidad y actívalo.</string>
     <string name="intro_allow_button">Permitir Acceso de Accesibilidad</string>
     <string name="intro_allow_alarms_button">Permitir Alarmas y Recordatorios</string>
     <string name="intro_allow_autostart_button">Permitir Inicio Automático</string>
-    <string name="intro_nudge_alarms">¿Sigues ahí? Activa “Permitir configurar alarmas y recordatorios” para Ctrus.</string>
-    <string name="intro_nudge_autostart">¿Sigues ahí? Busca “Ctrus” en la lista de Inicio automático y actívalo.</string>
     <string name="app_picker_title_allow">Seleccionar Apps a Permitir</string>
     <string name="app_picker_title_restrict">Seleccionar Apps a Restringir</string>
     <string name="app_picker_cancel_content_description">Cancelar</string>

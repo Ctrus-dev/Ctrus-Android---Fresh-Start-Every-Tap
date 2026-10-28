@@ -1,7 +1,6 @@
 package mo.dev.ctrus.ui.intro
 
 import android.os.Build
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,19 +13,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,9 +34,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 import mo.dev.ctrus.R
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.theme.FixedLightPrimaryText
@@ -51,10 +45,10 @@ import androidx.compose.material.icons.filled.HourglassEmpty
 import mo.dev.ctrus.ui.dashboard.DefaultModel3DSize
 import mo.dev.ctrus.ui.dashboard.RotatingModel3DView
 
-private enum class IntroStep(val buttonRes: Int, val nudgeRes: Int, val icon: ImageVector) {
-    ACCESSIBILITY(R.string.intro_allow_button, R.string.intro_nudge, Icons.Filled.Accessibility),
-    EXACT_ALARM(R.string.intro_allow_alarms_button, R.string.intro_nudge_alarms, Icons.Filled.Alarm),
-    AUTOSTART(R.string.intro_allow_autostart_button, R.string.intro_nudge_autostart, Icons.Filled.RestartAlt),
+private enum class IntroStep(val buttonRes: Int, val icon: ImageVector) {
+    ACCESSIBILITY(R.string.intro_allow_button, Icons.Filled.Accessibility),
+    EXACT_ALARM(R.string.intro_allow_alarms_button, Icons.Filled.Alarm),
+    AUTOSTART(R.string.intro_allow_autostart_button, Icons.Filled.RestartAlt),
 }
 
 /**
@@ -89,20 +83,8 @@ fun PermissionsIntroScreen(
     }
 
     var showDisclosure by remember { mutableStateOf(false) }
-    var requestedStep by remember { mutableStateOf<IntroStep?>(null) }
-    var showNudge by remember { mutableStateOf(false) }
-
-    // "Still here?" only for the step that was just requested, if it's still missing 3 s later.
-    LaunchedEffect(requestedStep, step) {
-        showNudge = false
-        if (requestedStep == step) {
-            delay(3_000)
-            showNudge = true
-        }
-    }
-
+    // No "still here?" nudge: iOS dropped its own one too (it cut into the button on small screens).
     fun request(target: IntroStep) {
-        requestedStep = target
         when (target) {
             IntroStep.ACCESSIBILITY -> onRequestAccessibility()
             IntroStep.EXACT_ALARM -> onRequestExactAlarm()
@@ -127,7 +109,7 @@ fun PermissionsIntroScreen(
         )
 
         // Spec Part B, 5.1: the title, subtitle and button are one card now; tapping it asks for
-        // the next missing permission. The checklist and the "still here?" nudge stay below it.
+        // the next missing permission. The checklist stays below it.
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 22.dp)) {
             IntroCard(
                 title = stringResource(R.string.intro_welcome_title),
@@ -140,24 +122,6 @@ fun PermissionsIntroScreen(
                 ChecklistRow(stringResource(R.string.settings_accessibility_access), isAccessibilityEnabled, themeColor)
                 if (showsExactAlarm) ChecklistRow(stringResource(R.string.settings_exact_alarms), isExactAlarmGranted, themeColor)
                 if (showsAutostart) ChecklistRow(stringResource(R.string.settings_autostart), isAutostartGranted, themeColor)
-            }
-            AnimatedVisibility(visible = showNudge) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(bottom = 16.dp)
-                        .background(Color(0xFFFF9500).copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                ) {
-                    Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFFF9500))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        stringResource(step.nudgeRes),
-                        color = Color(0xFFFF9500),
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                    )
-                }
             }
         }
     }
