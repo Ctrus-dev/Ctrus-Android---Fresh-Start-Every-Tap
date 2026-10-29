@@ -467,8 +467,8 @@ Section 14 normal-mode changes made here too: welcome/First Steps are `IntroCard
 schedule-aware home hint, "Ctrus N" tag names, theme-coloured start time, and in Normal Mode with
 no profiles a back arrow/left-edge swipe to the mode choice. Unit tests: `ChildModeTest`.
 
-**Unlock cycles count real time (`util/TrustedClock`, spec Part A1).** The emergency (3 per 2/4
-weeks) and recovery (2 per 4 weeks, cycle starts on the first one used) cycles add up
+**Unlock cycles count real time (`util/TrustedClock`, spec Part A1).** The emergency (3 per 4
+weeks — the 2-week choice and its gear menu were dropped in both modes, the user's call) and recovery (2 per 4 weeks, cycle starts on the first one used) cycles add up
 `TrustedClock.trustedElapsedMillis()` into `emergencyCycleElapsed`/`recoveryCycleElapsed` instead
 of comparing the phone's date, which came back early once the date was moved forward. The clock
 uses `SystemClock.elapsedRealtime()` (keeps counting asleep) and, across a reboot, trusts the

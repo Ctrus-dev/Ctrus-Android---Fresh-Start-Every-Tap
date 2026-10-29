@@ -9,7 +9,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.icon.AppIcon
 import mo.dev.ctrus.icon.DefaultAppIcon
 import mo.dev.ctrus.util.TrustedClock
@@ -27,7 +26,6 @@ private val Context.dataStore by preferencesDataStore(name = "mo.dev.ctrus.prefs
 class AppPreferences(private val context: Context) {
     private object Keys {
         val EMERGENCY_REMAINING = intPreferencesKey("emergency_unblocks_remaining")
-        val EMERGENCY_RESET_WEEKS = intPreferencesKey("emergency_reset_period_weeks")
         // Real time counted towards the current cycle by TrustedClock, in millis — the phone's
         // date can be moved forward, so it isn't used to tell when the unlocks come back.
         val EMERGENCY_CYCLE_ELAPSED = longPreferencesKey("emergencyCycleElapsed")
@@ -72,20 +70,8 @@ class AppPreferences(private val context: Context) {
         return context.dataStore.data.first()[Keys.EMERGENCY_REMAINING] ?: DEFAULT_EMERGENCY_UNBLOCKS
     }
 
-    /** Child Mode's cycle is fixed at 4 weeks (spec Part B, 8.4). */
-    suspend fun resetPeriodWeeksEmergency(): Int =
-        if (ChildModeStore.isChildMode) DEFAULT_RESET_PERIOD_WEEKS
-        else context.dataStore.data.first()[Keys.EMERGENCY_RESET_WEEKS] ?: DEFAULT_RESET_PERIOD_WEEKS
-
-    /**
-     * Mirrors iOS 319a1eb: changing the cycle length must not throw away however much of the wait
-     * was already done. Only the length changes; the counter is just compared against the new one,
-     * and the re-check resets right away if the new, shorter period has already passed.
-     */
-    suspend fun setResetPeriodWeeksEmergency(weeks: Int) {
-        context.dataStore.edit { it[Keys.EMERGENCY_RESET_WEEKS] = weeks }
-        checkAndResetEmergencyUnblocks()
-    }
+    /** Always 4 weeks: the 2-week choice was dropped (the user's call), in both modes. */
+    fun resetPeriodWeeksEmergency(): Int = DEFAULT_RESET_PERIOD_WEEKS
 
     suspend fun nextEmergencyResetDate(): Instant {
         val period = resetPeriodWeeksEmergency() * weekMillis

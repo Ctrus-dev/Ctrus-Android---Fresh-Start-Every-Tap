@@ -235,9 +235,6 @@
     <string name="emergency_hold_button">Pressiona para Desbloquear</string>
     <string name="emergency_reduce_notice">Isto reduz em 1 o teu número restante.</string>
     <string name="emergency_none_remaining">Sem desbloqueios de emergência restantes. Azar o teu.</string>
-    <string name="emergency_reset_period_content_description">Período de reinício</string>
-    <string name="emergency_reset_weeks_2">2 semanas</string>
-    <string name="emergency_reset_weeks_4">4 semanas</string>
     <string name="emergency_resets_in_hours">Reinicia em %1$dh</string>
     <string name="emergency_resets_on_date">Reinicia a %1$s</string>
     <string name="error_dialog_title">Algo correu mal</string>

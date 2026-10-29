@@ -236,9 +236,6 @@
     <string name="emergency_hold_button">Hold to Unblock</string>
     <string name="emergency_reduce_notice">This will reduce your remaining count by 1.</string>
     <string name="emergency_none_remaining">No emergency unblocks remaining. You\'re out of luck.</string>
-    <string name="emergency_reset_period_content_description">Reset period</string>
-    <string name="emergency_reset_weeks_2">2 weeks</string>
-    <string name="emergency_reset_weeks_4">4 weeks</string>
     <string name="emergency_resets_in_hours">Resets in %1$dh</string>
     <string name="emergency_resets_on_date">Resets %1$s</string>
     <string name="error_dialog_title">Something went wrong</string>

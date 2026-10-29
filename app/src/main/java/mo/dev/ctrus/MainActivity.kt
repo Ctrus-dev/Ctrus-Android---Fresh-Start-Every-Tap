@@ -714,11 +714,9 @@ private fun CtrusNavHost(
     // the limited-use count iOS enforces via EmergencyView.
     var showEmergencySheet by remember { mutableStateOf(false) }
     var emergencyRemaining by remember { mutableStateOf(AppPreferences.DEFAULT_EMERGENCY_UNBLOCKS) }
-    var emergencyResetWeeks by remember { mutableStateOf(AppPreferences.DEFAULT_RESET_PERIOD_WEEKS) }
     var emergencyResetDateMillis by remember { mutableStateOf<Long?>(null) }
     suspend fun refreshEmergencyState() {
         emergencyRemaining = app.preferences.remainingEmergencyUnblocks()
-        emergencyResetWeeks = app.preferences.resetPeriodWeeksEmergency()
         emergencyResetDateMillis = app.preferences.nextEmergencyResetDate().toEpochMilli()
     }
     // Mirrors EmergencyView's `.onAppear { strategyManager.checkAndResetEmergencyUnblocks() }`.
@@ -727,21 +725,13 @@ private fun CtrusNavHost(
     if (showEmergencySheet) {
         EmergencyView(
             remaining = emergencyRemaining,
-            resetPeriodWeeks = emergencyResetWeeks,
             resetDateMillis = emergencyResetDateMillis,
-            onResetPeriodSelected = { weeks ->
-                coroutineScope.launch {
-                    app.preferences.setResetPeriodWeeksEmergency(weeks)
-                    refreshEmergencyState()
-                }
-            },
             onConfirmUnblock = {
                 orchestrator.emergencyUnblock()
                 markFirstSessionCompleted()
                 showEmergencySheet = false
             },
             onDismiss = { showEmergencySheet = false },
-            showsResetPeriodPicker = !isChildMode,
         )
     }
 
