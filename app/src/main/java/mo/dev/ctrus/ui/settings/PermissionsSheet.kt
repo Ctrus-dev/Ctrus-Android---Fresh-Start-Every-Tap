@@ -42,6 +42,7 @@ import mo.dev.ctrus.R
 import mo.dev.ctrus.permissions.BackgroundLaunchHelpUtil
 import mo.dev.ctrus.permissions.OemBackgroundGuide
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
+import mo.dev.ctrus.permissions.XiaomiBackgroundPopupUtil
 import mo.dev.ctrus.ui.common.GlassIconButton
 
 private val GrantedGreen = Color(0xFF34C759)
@@ -59,10 +60,12 @@ fun PermissionsSheet(
     isAccessibilityEnabled: Boolean,
     isExactAlarmGranted: Boolean,
     isAutostartGranted: Boolean,
+    isBackgroundPopupsGranted: Boolean,
     isBatteryOptimizationExempt: Boolean,
     onRequestAccessibility: () -> Unit,
     onRequestExactAlarm: () -> Unit,
     onRequestAutostart: () -> Unit,
+    onRequestBackgroundPopups: () -> Unit,
     onRequestBatteryOptimizationExemption: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -109,6 +112,14 @@ fun PermissionsSheet(
                         title = stringResource(R.string.settings_autostart),
                         granted = isAutostartGranted,
                         onClick = onRequestAutostart,
+                    )
+                }
+                if (XiaomiBackgroundPopupUtil.isApplicable(context)) {
+                    SettingsDivider()
+                    PermissionStatusRow(
+                        title = stringResource(R.string.settings_background_popups),
+                        granted = isBackgroundPopupsGranted,
+                        onClick = onRequestBackgroundPopups,
                     )
                 }
             }

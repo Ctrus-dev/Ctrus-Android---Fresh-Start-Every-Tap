@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
+import mo.dev.ctrus.permissions.XiaomiBackgroundPopupUtil
 import mo.dev.ctrus.theme.FixedLightPrimaryText
 import mo.dev.ctrus.theme.FixedLightSecondaryText
 import mo.dev.ctrus.theme.pastelBackground
@@ -49,6 +50,7 @@ private enum class IntroStep(val buttonRes: Int, val icon: ImageVector) {
     ACCESSIBILITY(R.string.intro_allow_button, Icons.Filled.Accessibility),
     EXACT_ALARM(R.string.intro_allow_alarms_button, Icons.Filled.Alarm),
     AUTOSTART(R.string.intro_allow_autostart_button, Icons.Filled.RestartAlt),
+    BACKGROUND_POPUPS(R.string.intro_allow_background_popups_button, Icons.Filled.RestartAlt),
 }
 
 /**
@@ -67,17 +69,21 @@ fun PermissionsIntroScreen(
     isAccessibilityEnabled: Boolean,
     isExactAlarmGranted: Boolean,
     isAutostartGranted: Boolean,
+    isBackgroundPopupsGranted: Boolean,
     onRequestAccessibility: () -> Unit,
     onRequestExactAlarm: () -> Unit,
     onRequestAutostart: () -> Unit,
+    onRequestBackgroundPopups: () -> Unit,
 ) {
     val context = LocalContext.current
     val showsExactAlarm = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val showsAutostart = remember { XiaomiAutostartUtil.isApplicable(context) }
+    val showsBackgroundPopups = remember { XiaomiBackgroundPopupUtil.isApplicable(context) }
     val step = when {
         !isAccessibilityEnabled -> IntroStep.ACCESSIBILITY
         showsExactAlarm && !isExactAlarmGranted -> IntroStep.EXACT_ALARM
         showsAutostart && !isAutostartGranted -> IntroStep.AUTOSTART
+        showsBackgroundPopups && !isBackgroundPopupsGranted -> IntroStep.BACKGROUND_POPUPS
         // Everything's granted; MainActivity swaps this screen out on the same resume.
         else -> IntroStep.ACCESSIBILITY
     }
@@ -89,6 +95,7 @@ fun PermissionsIntroScreen(
             IntroStep.ACCESSIBILITY -> onRequestAccessibility()
             IntroStep.EXACT_ALARM -> onRequestExactAlarm()
             IntroStep.AUTOSTART -> onRequestAutostart()
+            IntroStep.BACKGROUND_POPUPS -> onRequestBackgroundPopups()
         }
     }
 
@@ -122,6 +129,7 @@ fun PermissionsIntroScreen(
                 ChecklistRow(stringResource(R.string.settings_accessibility_access), isAccessibilityEnabled, themeColor)
                 if (showsExactAlarm) ChecklistRow(stringResource(R.string.settings_exact_alarms), isExactAlarmGranted, themeColor)
                 if (showsAutostart) ChecklistRow(stringResource(R.string.settings_autostart), isAutostartGranted, themeColor)
+                if (showsBackgroundPopups) ChecklistRow(stringResource(R.string.settings_background_popups), isBackgroundPopupsGranted, themeColor)
             }
         }
     }

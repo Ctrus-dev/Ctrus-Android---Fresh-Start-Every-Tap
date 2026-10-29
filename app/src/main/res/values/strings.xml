@@ -385,6 +385,9 @@
     <string name="schedule_skipped_missing_alarms_body">%1$s didn\'t start because Alarms &amp; reminders is turned off. Turn it back on in Ctrus to resume blocking.</string>
     <string name="settings_autostart">Autostart</string>
     <string name="schedule_skipped_missing_autostart_body">%1$s didn\'t start because Autostart is turned off for Ctrus. Turn it on in Ctrus to resume blocking.</string>
+    <string name="settings_background_popups">Background pop-ups</string>
+    <string name="intro_allow_background_popups_button">Allow Background Pop-ups</string>
+    <string name="schedule_skipped_missing_background_popups_body">%1$s didn\'t start because background pop-ups are turned off for Ctrus. Turn them on in Ctrus to resume blocking.</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="field_domain_protected">Ctrus\'s own sites can\'t be blocked.</string>
     <string name="field_block_adult_websites_title">Block Adult Websites</string>

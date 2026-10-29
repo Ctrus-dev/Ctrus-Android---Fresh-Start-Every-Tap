@@ -22,6 +22,7 @@ import mo.dev.ctrus.childmode.ChildSessionLimit
 import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
+import mo.dev.ctrus.permissions.XiaomiBackgroundPopupUtil
 import mo.dev.ctrus.strategy.StrategyIds
 import java.time.Instant
 
@@ -87,6 +88,9 @@ class ScheduleReceiver : BroadcastReceiver() {
             // On Xiaomi, MIUI kills Ctrus once the screen locks and, with Autostart off, the
             // Accessibility service never comes back (see XiaomiAutostartUtil).
             !XiaomiAutostartUtil.isGranted(context) -> R.string.schedule_skipped_missing_autostart_body
+            // On Xiaomi, without background pop-ups MIUI refuses the block screen, so nothing
+            // would look blocked (see XiaomiBackgroundPopupUtil).
+            !XiaomiBackgroundPopupUtil.isGranted(context) -> R.string.schedule_skipped_missing_background_popups_body
             else -> null
         }
         if (missingPermissionBody != null) {

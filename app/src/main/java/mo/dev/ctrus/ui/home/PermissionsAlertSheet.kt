@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
+import mo.dev.ctrus.permissions.XiaomiBackgroundPopupUtil
 
 /**
  * Android equivalent of HomeAlertDetailView.swift's `.screenTimeAccess` case, listing the two
@@ -45,10 +46,12 @@ fun PermissionsAlertSheet(
     isAccessibilityEnabled: Boolean,
     isExactAlarmGranted: Boolean,
     isAutostartGranted: Boolean,
+    isBackgroundPopupsGranted: Boolean,
     onDismiss: () -> Unit,
     onFixAccessibility: () -> Unit,
     onFixExactAlarm: () -> Unit,
     onFixAutostart: () -> Unit,
+    onFixBackgroundPopups: () -> Unit,
 ) {
     val context = LocalContext.current
     // skipPartiallyExpanded avoids an intermediate "half open" resting state — without it, on a
@@ -101,6 +104,14 @@ fun PermissionsAlertSheet(
                     granted = isAutostartGranted,
                     actionLabel = stringResource(R.string.battery_optimization_allow),
                     onFix = onFixAutostart,
+                )
+            }
+            if (XiaomiBackgroundPopupUtil.isApplicable(context)) {
+                PermissionChecklistRow(
+                    title = stringResource(R.string.settings_background_popups),
+                    granted = isBackgroundPopupsGranted,
+                    actionLabel = stringResource(R.string.battery_optimization_allow),
+                    onFix = onFixBackgroundPopups,
                 )
             }
         }

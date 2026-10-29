@@ -62,6 +62,7 @@ import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.permissions.BatteryOptimizationUtil
 import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
+import mo.dev.ctrus.permissions.XiaomiBackgroundPopupUtil
 import mo.dev.ctrus.session.SessionOrchestrator
 import mo.dev.ctrus.strategy.StrategyCapabilities
 import mo.dev.ctrus.strategy.StrategyInput
@@ -238,6 +239,8 @@ private fun CtrusNavHost(
     var isExactAlarmGranted by remember { mutableStateOf(ExactAlarmPermissionUtil.isGranted(context)) }
     // Xiaomi's Autostart (always true elsewhere) — see XiaomiAutostartUtil.
     var isAutostartGranted by remember { mutableStateOf(XiaomiAutostartUtil.isGranted(context)) }
+    // Xiaomi's background pop-ups (always true elsewhere) — see XiaomiBackgroundPopupUtil.
+    var isBackgroundPopupsGranted by remember { mutableStateOf(XiaomiBackgroundPopupUtil.isGranted(context)) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -247,6 +250,7 @@ private fun CtrusNavHost(
                 isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
                 isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
                 isAutostartGranted = XiaomiAutostartUtil.isGranted(context)
+                isBackgroundPopupsGranted = XiaomiBackgroundPopupUtil.isGranted(context)
                 // Mirrors HomeView's loadApp/onAppearApp: bring the unlock cycles up to date and
                 // drop schedule skips whose days are over.
                 coroutineScope.launch {
@@ -274,7 +278,7 @@ private fun CtrusNavHost(
         }
         true -> {
             // The intro asks for every permission that gates a start, not just Accessibility.
-            if (isAccessibilityEnabled && isExactAlarmGranted && isAutostartGranted) {
+            if (isAccessibilityEnabled && isExactAlarmGranted && isAutostartGranted && isBackgroundPopupsGranted) {
                 if (pendingChildModeSetup) {
                     ChildModeSetupScreen(
                         themeColor = themeManager.selectedColorOption.color,
@@ -302,6 +306,8 @@ private fun CtrusNavHost(
                 onRequestAccessibility = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
                 onRequestExactAlarm = { ExactAlarmPermissionUtil.request(context) },
                 onRequestAutostart = { XiaomiAutostartUtil.request(context) },
+                isBackgroundPopupsGranted = isBackgroundPopupsGranted,
+                onRequestBackgroundPopups = { XiaomiBackgroundPopupUtil.request(context) },
             )
             return
         }
@@ -509,6 +515,8 @@ private fun CtrusNavHost(
                 onRequestExactAlarm = { ExactAlarmPermissionUtil.request(context) },
                 isAutostartGranted = isAutostartGranted,
                 onRequestAutostart = { XiaomiAutostartUtil.request(context) },
+                isBackgroundPopupsGranted = isBackgroundPopupsGranted,
+                onRequestBackgroundPopups = { XiaomiBackgroundPopupUtil.request(context) },
                 onRequestAccessibility = { showAccessibilityDisclosure = true },
                 onRequestBatteryOptimizationExemption = { BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context) },
                 appVersion = "1.0",
@@ -652,7 +660,8 @@ private fun CtrusNavHost(
         isAccessibilityEnabled = AccessibilityPermissionUtil.isEnabled(context)
         isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
         isAutostartGranted = XiaomiAutostartUtil.isGranted(context)
-        if (isAccessibilityEnabled && isExactAlarmGranted && isAutostartGranted) action() else showPermissionsAlertSheet = true
+        isBackgroundPopupsGranted = XiaomiBackgroundPopupUtil.isGranted(context)
+        if (isAccessibilityEnabled && isExactAlarmGranted && isAutostartGranted && isBackgroundPopupsGranted) action() else showPermissionsAlertSheet = true
     }
 
     if (showPermissionsAlertSheet) {
@@ -672,6 +681,11 @@ private fun CtrusNavHost(
             onFixAutostart = {
                 showPermissionsAlertSheet = false
                 XiaomiAutostartUtil.request(context)
+            },
+            isBackgroundPopupsGranted = isBackgroundPopupsGranted,
+            onFixBackgroundPopups = {
+                showPermissionsAlertSheet = false
+                XiaomiBackgroundPopupUtil.request(context)
             },
         )
     }
@@ -884,6 +898,7 @@ private fun CtrusNavHost(
                 isAccessibilityEnabled = isAccessibilityEnabled,
                 isExactAlarmGranted = isExactAlarmGranted,
                 isAutostartGranted = isAutostartGranted,
+                isBackgroundPopupsGranted = isBackgroundPopupsGranted,
                 onPermissionsAlertTapped = { showPermissionsAlertSheet = true },
                 tamperEntry = tamperLog.lastOrNull()?.takeIf { isChildMode && tamperLogUnseen },
                 onTamperTapped = {

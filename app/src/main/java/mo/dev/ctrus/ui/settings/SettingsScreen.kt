@@ -88,6 +88,8 @@ fun SettingsScreen(
     onRequestExactAlarm: () -> Unit,
     isAutostartGranted: Boolean,
     onRequestAutostart: () -> Unit,
+    isBackgroundPopupsGranted: Boolean = true,
+    onRequestBackgroundPopups: () -> Unit = {},
     onRequestBatteryOptimizationExemption: () -> Unit,
     appVersion: String,
     selectedAppIcon: AppIcon,
@@ -187,7 +189,7 @@ fun SettingsScreen(
             item {
                 // Everything permission-related lives in one sheet (see PermissionsSheet); this row
                 // only says whether the required ones are all granted.
-                val requiredGranted = isUsageAccessGranted && isExactAlarmGranted && isAutostartGranted
+                val requiredGranted = isUsageAccessGranted && isExactAlarmGranted && isAutostartGranted && isBackgroundPopupsGranted
                 SettingsSection(title = stringResource(R.string.settings_permissions)) {
                     SettingsRow(
                         title = stringResource(R.string.settings_permissions_manage),
@@ -370,10 +372,12 @@ fun SettingsScreen(
             isAccessibilityEnabled = isUsageAccessGranted,
             isExactAlarmGranted = isExactAlarmGranted,
             isAutostartGranted = isAutostartGranted,
+            isBackgroundPopupsGranted = isBackgroundPopupsGranted,
             isBatteryOptimizationExempt = isBatteryOptimizationExempt,
             onRequestAccessibility = onRequestAccessibility,
             onRequestExactAlarm = onRequestExactAlarm,
             onRequestAutostart = onRequestAutostart,
+            onRequestBackgroundPopups = onRequestBackgroundPopups,
             onRequestBatteryOptimizationExemption = onRequestBatteryOptimizationExemption,
             onDismiss = { showPermissions = false },
         )

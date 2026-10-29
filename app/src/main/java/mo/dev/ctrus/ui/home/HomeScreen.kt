@@ -221,6 +221,7 @@ fun HomeScreen(
     isAccessibilityEnabled: Boolean = true,
     isExactAlarmGranted: Boolean = true,
     isAutostartGranted: Boolean = true,
+    isBackgroundPopupsGranted: Boolean = true,
     onPermissionsAlertTapped: () -> Unit = {},
     /** Child Mode's newest unseen attempt-log entry, shown as one more red pill. */
     tamperEntry: TamperLogEntry? = null,
@@ -257,7 +258,7 @@ fun HomeScreen(
             // Accessibility and "Alarms & reminders": the permissions a session can't start
             // without. Battery-optimization exemption is a separate, non-blocking recommendation —
             // see its own one-time dialog (MainActivity's showBatteryOptimizationPrompt) and Settings row.
-            val showsPermissionsPill = profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted || !isAutostartGranted)
+            val showsPermissionsPill = profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted || !isAutostartGranted || !isBackgroundPopupsGranted)
             // Missing permissions come first; what else was logged shows once they're back.
             val visibleTamperEntry = tamperEntry.takeIf { !showsPermissionsPill }
             if (showsPermissionsPill || visibleTamperEntry != null || canGoBackToModeChoice) {

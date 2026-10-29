@@ -506,7 +506,10 @@ Switchly (reviewed for this) can't detect it either; it only shows per-brand ins
 Other brands get `OemBackgroundGuide` (Xiaomi, Huawei/Honor, Oppo/Realme/OnePlus, Vivo/iQOO,
 Samsung): per-brand steps plus a best-effort deep link, never gating. `BlockingHealthMonitor`
 checks every ~15 min during a session (inexact `setAndAllowWhileIdle`) and posts one dismissible
-"Blocking stopped" notification per session if Accessibility isn't running. Settings shows a
+"Blocking stopped" notification per session if Accessibility isn't running. **Xiaomi background pop-ups** (`XiaomiBackgroundPopupUtil`, app-op 10021, read the same way): without
+it MIUI refuses every activity the service opens (`Permission Denied Activity`), so nothing looks
+blocked. It gates exactly like Autostart (welcome checklist, Home sheet, Settings row, scheduled
+starts). On the POCO it's turned off again by every USB install. Settings shows a
 single "Manage Permissions" row; `ui/settings/PermissionsSheet` groups Required (Accessibility,
 Alarms & reminders, Xiaomi Autostart) and Recommended (battery, brand guide, pop-up help).
 
