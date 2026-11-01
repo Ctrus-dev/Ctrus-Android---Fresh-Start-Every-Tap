@@ -63,6 +63,7 @@ import mo.dev.ctrus.permissions.BatteryOptimizationUtil
 import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.permissions.XiaomiBackgroundPopupUtil
+import mo.dev.ctrus.permissions.XiaomiLockScreenUtil
 import mo.dev.ctrus.session.SessionOrchestrator
 import mo.dev.ctrus.strategy.StrategyCapabilities
 import mo.dev.ctrus.strategy.StrategyInput
@@ -99,6 +100,9 @@ import mo.dev.ctrus.childmode.ChildModeSwitcher
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.ModalBottomSheetProperties
 import mo.dev.ctrus.ui.intro.ModeChoiceScreen
+import mo.dev.ctrus.alarm.WakeAlarmManager
+import mo.dev.ctrus.permissions.AlarmPermissionUtil
+import androidx.lifecycle.repeatOnLifecycle
 import mo.dev.ctrus.data.ScheduleSkip
 import mo.dev.ctrus.data.canUnblockWithNfcCode
 import mo.dev.ctrus.ui.common.NfcScanDialog
@@ -114,6 +118,15 @@ private val LightNavigationBarScrim = android.graphics.Color.argb(0xe6, 0xFF, 0x
 private val DarkNavigationBarScrim = android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_ALARM_PROFILE_ID = "alarm_profile_id"
+
+        /** Ctrus is on screen; AlarmService doesn't bring the alarm screen back over it. */
+        @Volatile
+        var isVisible = false
+            private set
+    }
+
     private lateinit var nfcScanController: NfcScanController
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -132,6 +145,8 @@ class MainActivity : ComponentActivity() {
         val themeManager = ThemeManager.getInstance(applicationContext)
         nfcScanController = NfcScanController(this, lifecycleScope)
 
+        handleAlarmIntent(intent)
+
         setContent {
             CtrusTheme(themeManager) {
                 val navController = rememberNavController()
@@ -140,8 +155,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleAlarmIntent(intent)
+    }
+
+    /** Opened by sliding the alarm screen (spec D6.1): the profile's card opens and reads the Ctrus. */
+    private fun handleAlarmIntent(intent: Intent?) {
+        val profileId = intent?.getStringExtra(EXTRA_ALARM_PROFILE_ID) ?: return
+        intent.removeExtra(EXTRA_ALARM_PROFILE_ID)
+        val app = CtrusApp.from(this)
+        lifecycleScope.launch { WakeAlarmManager.alarmOpenedApp(app, profileId) }
+    }
+
     // Claims NFC reads for the entire time Ctrus is in the foreground, not just while a scan
     // dialog is open — see NfcScanController's kdoc.
+    override fun onStart() {
+        super.onStart()
+        isVisible = true
+    }
+
+    override fun onStop() {
+        isVisible = false
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         nfcScanController.attach()
@@ -263,11 +301,27 @@ private fun CtrusNavHost(
                     }
                     if (ChildModeStore.isChildMode) ChildModeStore.checkForClockChange()
                     ChildSessionLimit.sync(app)
+                    // Alarm mode (spec D4, D6.4, D8): catch up on a session the system didn't
+                    // start, bring every alarm in line, and ring again if it's due.
+                    WakeAlarmManager.startMissedAlarmSession(app)
+                    WakeAlarmManager.refreshAll(app)
+                    WakeAlarmManager.ensureRinging(app)
                 }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // While the app is open, a due alarm (its time, or the end of a snooze) starts ringing here
+    // straight away, without waiting for the system alarm.
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                WakeAlarmManager.ensureRinging(app)
+                kotlinx.coroutines.delay(1_000)
+            }
+        }
     }
 
     when (showIntroScreen) {
@@ -417,6 +471,52 @@ private fun CtrusNavHost(
             scheduleNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
+    // Alarm mode (spec D3.6): a profile isn't saved until notifications, "Alarms & reminders" and
+    // (Android 14+) full-screen notifications are allowed. Each tap of Save checks again.
+    var missingAlarmPermission by remember { mutableStateOf<AlarmPermissionUtil.Missing?>(null) }
+    val alarmNotificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (!granted || !AlarmPermissionUtil.notificationsAllowed(context)) AlarmPermissionUtil.openNotificationSettings(context) }
+    fun checkAlarmSetup(draft: ProfileDraft, proceed: () -> Unit) {
+        val missing = if (draft.useAlarm) AlarmPermissionUtil.firstMissing(context) else null
+        if (missing == null) proceed() else missingAlarmPermission = missing
+    }
+    missingAlarmPermission?.let { missing ->
+        AlertDialog(
+            onDismissRequest = { missingAlarmPermission = null },
+            title = { Text(stringResource(R.string.error_dialog_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        when (missing) {
+                            AlarmPermissionUtil.Missing.FULL_SCREEN -> R.string.alarm_full_screen_required
+                            AlarmPermissionUtil.Missing.LOCK_SCREEN -> R.string.alarm_lock_screen_required
+                            else -> R.string.alarm_access_denied
+                        },
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    missingAlarmPermission = null
+                    when (missing) {
+                        AlarmPermissionUtil.Missing.NOTIFICATIONS ->
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                alarmNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                AlarmPermissionUtil.openNotificationSettings(context)
+                            }
+                        AlarmPermissionUtil.Missing.EXACT_ALARMS -> ExactAlarmPermissionUtil.request(context)
+                        AlarmPermissionUtil.Missing.FULL_SCREEN -> AlarmPermissionUtil.openFullScreenSettings(context)
+                        AlarmPermissionUtil.Missing.LOCK_SCREEN -> XiaomiLockScreenUtil.request(context)
+                    }
+                }) { Text(stringResource(R.string.nfc_open_settings)) }
+            },
+            dismissButton = { TextButton(onClick = { missingAlarmPermission = null }) { Text(stringResource(R.string.common_cancel)) } },
+        )
+    }
     var editingProfileId by remember { mutableStateOf<String?>(null) }
     var insightsProfileId by remember { mutableStateOf<String?>(null) }
     var showAllInsights by remember { mutableStateOf(false) }
@@ -462,7 +562,7 @@ private fun CtrusNavHost(
                 themeColor = themeManager.selectedColorOption.color,
                 nfcScanController = nfcScanController,
                 onDismiss = { showCreateProfile = false },
-                onCreate = { draft ->
+                onCreate = { draft -> checkAlarmSetup(draft) {
                     requestScheduleNotificationPermissionIfNeeded(draft)
                     coroutineScope.launch {
                         app.profileRepository.create(
@@ -482,12 +582,14 @@ private fun CtrusNavHost(
                             enableBlockAppInstallation = draft.enableBlockAppInstallation,
                             schedule = draft.schedule,
                             allowSkip = draft.allowSkip,
+                            enableSnooze = draft.enableSnooze,
+                            isOneTimeAlarm = draft.useOneTimeAlarm,
                             childTag = draft.childTag,
                             childTagCanStop = draft.childTagCanStop,
                         )
                         showCreateProfile = false
                     }
-                },
+                } },
             )
         }
     }
@@ -583,7 +685,7 @@ private fun CtrusNavHost(
                     isBlockingGlobally = activeSession != null,
                     nfcScanController = nfcScanController,
                     onDismiss = { editingProfileId = null },
-                    onSave = { draft ->
+                    onSave = { draft -> checkAlarmSetup(draft) {
                         requestScheduleNotificationPermissionIfNeeded(draft)
                         val save = {
                             coroutineScope.launch {
@@ -596,7 +698,7 @@ private fun CtrusNavHost(
                         // so in Child Mode the parents confirm (spec Part B, 6.2).
                         if (ChildModeStore.isChildMode) parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_edit, save)
                         else save()
-                    },
+                    } },
                     onDelete = {
                         val delete = {
                             coroutineScope.launch {

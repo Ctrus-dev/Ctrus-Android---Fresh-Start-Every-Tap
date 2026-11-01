@@ -43,6 +43,12 @@ object SessionTimeCalculator {
             }
             return Date(breakStart + (remaining * 1000).toLong())
         }
+        // Alarm mode counts down to its alarm.
+        if (profile.blockingStrategyId == StrategyIds.ALARM) {
+            val schedule = profile.schedule ?: return null
+            val start = java.time.Instant.ofEpochMilli(session.startTimeEpochMilli).atZone(java.time.ZoneId.systemDefault())
+            return Date.from(schedule.alarmDateAfter(start).toInstant())
+        }
         if (profile.blockingStrategyId == StrategyIds.SCHEDULE) {
             val duration = profile.schedule?.automaticEndDurationMillis ?: return null
             return Date(session.startTimeEpochMilli + duration)

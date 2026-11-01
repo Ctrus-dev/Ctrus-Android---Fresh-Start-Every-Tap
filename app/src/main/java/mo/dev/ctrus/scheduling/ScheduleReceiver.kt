@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import mo.dev.ctrus.CtrusApp
 import mo.dev.ctrus.MainActivity
 import mo.dev.ctrus.R
+import mo.dev.ctrus.alarm.WakeAlarmManager
 import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.childmode.ChildSessionLimit
 import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
@@ -53,6 +54,8 @@ class ScheduleReceiver : BroadcastReceiver() {
                         val active = app.sessionRepository.mostRecentActive()
                         val activeProfile = active?.let { app.profileRepository.find(it.profileId) }
                         if (active != null && activeProfile != null) app.scheduleAlarmScheduler.syncSessionEnd(active, activeProfile)
+                        // Alarm mode's alarms are lost on a reboot too, and follow the wall clock.
+                        WakeAlarmManager.refreshAll(app, rearm = true)
                     }
                 }
             } finally {
@@ -63,7 +66,7 @@ class ScheduleReceiver : BroadcastReceiver() {
 
     private suspend fun onScheduledStart(context: Context, app: CtrusApp, profileId: String) = startLock.withLock {
         val profile = app.profileRepository.find(profileId) ?: return@withLock
-        if (profile.blockingStrategyId != StrategyIds.SCHEDULE || profile.schedule?.isActive != true) {
+        if (profile.blockingStrategyId !in StrategyIds.SCHEDULED_IDS || profile.schedule?.isActive != true) {
             app.scheduleAlarmScheduler.cancel(profileId)
             return@withLock
         }
@@ -106,7 +109,7 @@ class ScheduleReceiver : BroadcastReceiver() {
 
         val activeSession = app.sessionRepository.mostRecentActive()
         when {
-            activeSession == null -> app.sessionRepository.create(profile.id, tag = StrategyIds.SCHEDULE)
+            activeSession == null -> app.sessionRepository.create(profile.id, tag = profile.blockingStrategyId)
             // Already running (e.g. started from the app a bit early) — keep that session.
             activeSession.profileId == profile.id -> Unit
             // A different profile is active. Never end it or swap its restrictions — skip this
@@ -138,7 +141,7 @@ class ScheduleReceiver : BroadcastReceiver() {
 
     private suspend fun onReminder(context: Context, app: CtrusApp, profileId: String) {
         val profile = app.profileRepository.find(profileId) ?: return
-        if (profile.blockingStrategyId != StrategyIds.SCHEDULE || profile.schedule?.isActive != true) {
+        if (profile.blockingStrategyId !in StrategyIds.SCHEDULED_IDS || profile.schedule?.isActive != true) {
             app.scheduleAlarmScheduler.cancel(profileId)
             return
         }
@@ -197,6 +200,6 @@ class ScheduleReceiver : BroadcastReceiver() {
         }
 
         /** Two schedules firing in the same minute must not both see "no active session". */
-        private val startLock = Mutex()
+        internal val startLock = Mutex()
     }
 }

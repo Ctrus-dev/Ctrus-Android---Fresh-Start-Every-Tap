@@ -31,7 +31,7 @@ data class BlockedProfileEntity(
     val customReminderMessage: String? = null,
 
     val enableBreaks: Boolean = false,
-    val breakTimeInMinutes: Int = 10,
+    val breakTimeInMinutes: Int = 5,
     val allowMultipleBreaks: Boolean = false,
 
     val enableStrictMode: Boolean = false,
@@ -48,7 +48,7 @@ data class BlockedProfileEntity(
     val disableBackgroundStops: Boolean = false,
     val enableEmergencyUnblock: Boolean = true,
 
-    /** Only set for "Schedule + Ctrus NFC" profiles — see [ProfileSchedule]. */
+    /** Only set for "Schedule + Ctrus NFC" and "Alarm + Ctrus NFC" profiles — see [ProfileSchedule]. */
     val schedule: ProfileSchedule? = null,
 
     /** Lets the profile's ⋯ menu skip schedule sessions — see [ScheduleSkip]. */
@@ -57,6 +57,11 @@ data class BlockedProfileEntity(
     val skipNextOccurrence: Long? = null,
     /** Epoch millis of the start of the last skipped day. */
     val skipUntil: Long? = null,
+
+    /** Alarm mode: shows the Snooze button on the alarm screen and the card. */
+    val enableSnooze: Boolean = true,
+    /** Alarm mode's "Ring only once": the profile is deleted once its session ends. */
+    val isOneTimeAlarm: Boolean = false,
 
     /** Child Mode only: the optional child's Ctrus. */
     val childTag: ChildTag? = null,
@@ -75,7 +80,7 @@ data class BlockedProfileEntity(
      * offers it. In Child Mode the parents authorize it instead, so no tag is needed there.
      */
     val canSkipSessions: Boolean
-        get() = allowSkip && blockingStrategyId == StrategyIds.SCHEDULE && schedule?.isActive == true &&
+        get() = allowSkip && blockingStrategyId in StrategyIds.SCHEDULED_IDS && schedule?.isActive == true &&
             (ChildModeStore.isChildMode || physicalUnblockItems.any { it.type == PhysicalUnblockType.NFC })
 
     /**

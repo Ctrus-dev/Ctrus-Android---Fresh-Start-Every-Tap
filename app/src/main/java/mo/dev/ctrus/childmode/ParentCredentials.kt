@@ -54,6 +54,7 @@ object ParentCredentials {
     private lateinit var secrets: SharedPreferences
     private lateinit var counters: SharedPreferences
     private lateinit var clockStore: TrustedClock.Store
+    private lateinit var bootCount: () -> Long?
 
     fun init(context: Context) {
         val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
@@ -66,9 +67,10 @@ object ParentCredentials {
         )
         counters = context.getSharedPreferences("mo.dev.ctrus.parent_credentials_attempts", Context.MODE_PRIVATE)
         clockStore = TrustedClock.SharedPreferencesStore(context)
+        bootCount = TrustedClock.bootCount(context.applicationContext)
     }
 
-    private fun lockClock(secret: Secret) = TrustedClock(secret.lockClockKey, clockStore)
+    private fun lockClock(secret: Secret) = TrustedClock(secret.lockClockKey, clockStore, bootSession = bootCount)
 
     // region Setting
 
@@ -149,7 +151,7 @@ object ParentCredentials {
             .putFloat(secret.lockRemainingKey, duration)
             .commit()
 
-        if (secret == Secret.PARENT_CODE) ChildModeStore.logTamper(TamperLogEntry.Kind.PIN_LOCKOUT)
+        if (secret == Secret.PARENT_CODE) ChildModeStore.logTamper(TamperLogEntry.Kind.PIN_LOCKOUT, lockDurationSeconds = duration.toLong())
         return VerifyResult.Locked(duration)
     }
 

@@ -26,6 +26,12 @@ data class ProfileSchedule(
     val startHour: Int = 9,
     val startMinute: Int = 0,
     val durationInHours: Int? = null,
+    // Alarm mode only (spec D2). Nullable so schedules saved before it still decode; read through
+    // [alarmTime], [alarmSoundId] and [alarmSnoozeMinutes], which fill in the defaults.
+    val alarmHour: Int? = null,
+    val alarmMinute: Int? = null,
+    val alarmSound: String? = null,
+    val snoozeMinutes: Int? = null,
 ) {
     val isActive: Boolean get() = days.isNotEmpty()
 
@@ -73,7 +79,87 @@ data class ProfileSchedule(
             .toList()
     }
 
+    /** The end time, which is when Alarm mode's alarm rings: 07:00 unless chosen. */
+    val alarmTime: LocalTime get() = LocalTime.of(alarmHour ?: 7, alarmMinute ?: 0)
+
+    /** Falls back to the default for a sound that's no longer offered. */
+    val alarmSoundId: String
+        get() = alarmSound?.takeIf { it == VIBRATE_ALARM_SOUND || it in ALARM_TONE_IDS } ?: DEFAULT_ALARM_SOUND
+
+    val alarmSnoozeMinutes: Int get() = (snoozeMinutes ?: DEFAULT_SNOOZE_MINUTES).coerceIn(1, 15)
+
+    val hasValidAlarmTime: Boolean get() = alarmTime != LocalTime.of(startHour, startMinute)
+
+    /**
+     * When the alarm rings for a session that started at [start]: the first end time after it,
+     * so an end at or before the start is the next day. Matched on the wall clock, so a daylight
+     * saving change that night doesn't move it (a 07:00 that doesn't exist that day moves on to
+     * the next valid time, like iOS's `.nextTime`).
+     */
+    fun alarmDateAfter(start: ZonedDateTime): ZonedDateTime {
+        val sameDay = ZonedDateTime.of(start.toLocalDate(), alarmTime, start.zone)
+        return if (sameDay.isAfter(start)) sameDay else ZonedDateTime.of(start.toLocalDate().plusDays(1), alarmTime, start.zone)
+    }
+
+    /**
+     * The occurrence under way (started today or yesterday, not skipped) whose alarm hasn't
+     * finished ringing, give or take [graceMillis]. Port of iOS's `currentAlarmOccurrenceStart`.
+     */
+    fun currentAlarmOccurrenceStart(
+        now: ZonedDateTime = ZonedDateTime.now(ZoneId.systemDefault()),
+        graceMillis: Long,
+        skip: ScheduleSkip = ScheduleSkip(),
+    ): ZonedDateTime? {
+        if (!isActive) return null
+        val startTime = LocalTime.of(startHour, startMinute)
+        for (daysBack in 0L..1L) {
+            val day = now.toLocalDate().minusDays(daysBack)
+            if (day.dayOfWeek !in daysOfWeek) continue
+            val start = ZonedDateTime.of(day, startTime, now.zone)
+            if (start.isAfter(now)) continue
+            if (skip.skips(start.toInstant(), now.zone)) continue
+            if (!now.isBefore(alarmDateAfter(start).plusNanos(graceMillis * 1_000_000))) continue
+            return start
+        }
+        return null
+    }
+
+    /** The days the alarm rings on, which move to the next day when the end time is at or before the start. */
+    val alarmDays: Set<DayOfWeek>
+        get() = if (alarmTime <= LocalTime.of(startHour, startMinute)) daysOfWeek.map { it.plus(1) }.toSet() else daysOfWeek
+
+    /**
+     * The ring days in [locale]'s short names, from [firstDayOfWeek]: runs of 3 or more as a
+     * range ("Mon–Fri"), the rest separated by commas ("Mon, Wed, Sat"). Port of iOS's `alarmDaysText`.
+     */
+    fun alarmDaysText(locale: java.util.Locale, firstDayOfWeek: DayOfWeek): String {
+        val ringDays = alarmDays
+        val week = (0L..6L).map { firstDayOfWeek.plus(it) }
+        val runs = mutableListOf<MutableList<DayOfWeek>>()
+        week.forEachIndexed { index, day ->
+            if (day !in ringDays) return@forEachIndexed
+            val last = runs.lastOrNull()?.last()
+            if (last != null && week.indexOf(last) + 1 == index) runs.last() += day else runs += mutableListOf(day)
+        }
+        fun name(day: DayOfWeek) = day.getDisplayName(java.time.format.TextStyle.SHORT, locale).removeSuffix(".")
+        return runs.joinToString(", ") { run ->
+            if (run.size >= 3) "${name(run.first())}–${name(run.last())}" else run.joinToString(", ") { name(it) }
+        }
+    }
+
     companion object {
+        /** Spec D3.2, in menu order. Each is a file in res/raw. */
+        val ALARM_TONE_IDS = listOf(
+            "ctrus_urgent", "ctrus_morning", "ctrus_lumen", "ctrus_pulsar", "ctrus_orbit", "ctrus_lagoon",
+            "ctrus_spark", "ctrus_waves", "ctrus_daybreak", "ctrus_musicbox", "ctrus_rally",
+        )
+        const val DEFAULT_ALARM_SOUND = "ctrus_morning"
+        const val VIBRATE_ALARM_SOUND = "vibrate"
+        val AVAILABLE_SOUNDS = ALARM_TONE_IDS + VIBRATE_ALARM_SOUND
+
+        val AVAILABLE_SNOOZE_MINUTES = (1..15).toList()
+        const val DEFAULT_SNOOZE_MINUTES = 9
+
         /** Mirrors `BlockedProfileSchedule.availableDurationsInHours`. `null` (Indefinite) is offered separately. */
         val AVAILABLE_DURATIONS_IN_HOURS = listOf(1, 2, 3, 4)
 

@@ -7,6 +7,8 @@ import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.data.ProfileSchedule
 import mo.dev.ctrus.strategy.StrategyIds
 import java.time.DayOfWeek
+import java.time.LocalTime
+import java.time.ZonedDateTime
 
 /** All the editable fields, mirroring BlockedProfileDraft.swift. Shared by [ProfileFormScreen] (edit, all sections at once) and [GuidedProfileCreationScreen] (create, one section per step). */
 data class ProfileDraft(
@@ -20,7 +22,7 @@ data class ProfileDraft(
     val enableAdultContentBlocking: Boolean = false,
     val physicalUnblockItems: List<PhysicalUnblockItem> = emptyList(),
     val enableBreaks: Boolean = false,
-    val breakTimeInMinutes: Int = 10,
+    val breakTimeInMinutes: Int = 5,
     val allowMultipleBreaks: Boolean = false,
     val enableStrictMode: Boolean = true,
     val enableBlockAppInstallation: Boolean = false,
@@ -30,6 +32,13 @@ data class ProfileDraft(
     /** `null` = Indefinite (NFC-only stop). */
     val scheduleDurationHours: Int? = null,
     val allowSkip: Boolean = false,
+    /** Alarm mode only (spec D2): the end time, which is when the alarm rings. */
+    val alarmHour: Int = 7,
+    val alarmMinute: Int = 0,
+    val alarmSound: String = ProfileSchedule.DEFAULT_ALARM_SOUND,
+    val snoozeMinutes: Int = ProfileSchedule.DEFAULT_SNOOZE_MINUTES,
+    val enableSnooze: Boolean = true,
+    val isOneTimeAlarm: Boolean = false,
     /** Child Mode only (spec Part B, 6.1). */
     val childTag: ChildTag? = null,
     val childTagCanStop: Boolean = false,
@@ -37,22 +46,67 @@ data class ProfileDraft(
     /** Child Mode's master key is the parents' Ctrus, so a profile doesn't need tags of its own there. */
     val hasRequiredUnlocks: Boolean get() = ChildModeStore.isChildMode || physicalUnblockItems.isNotEmpty()
 
-    /** Mirrors BlockedProfileDraft.useSchedule. */
-    val useSchedule: Boolean get() = strategyId == StrategyIds.SCHEDULE
+    /** Mirrors BlockedProfileDraft.useSchedule: Schedule and Alarm both start on their own and share the schedule step. */
+    val useSchedule: Boolean get() = strategyId in StrategyIds.SCHEDULED_IDS
+
+    val useAlarm: Boolean get() = strategyId == StrategyIds.ALARM
+
+    val useOneTimeAlarm: Boolean get() = useAlarm && isOneTimeAlarm
+
+    /** Mirrors BlockedProfileDraft.hasValidSchedule: the schedule step can be left / the profile saved. */
+    val hasValidSchedule: Boolean
+        get() = (useOneTimeAlarm || scheduleDays.isNotEmpty()) && (!useAlarm || hasValidAlarmTime)
+
+    val hasValidAlarmTime: Boolean get() = alarmHour != scheduleStartHour || alarmMinute != scheduleStartMinute
 
     /**
-     * Mirrors BlockedProfileDraft.selectedStrategy's didSet: leaving Schedule for another mode
-     * drops the chosen days, so no "ghost" schedule stays armed in the background.
+     * Mirrors BlockedProfileDraft.selectedStrategy's didSet: leaving Schedule/Alarm for another
+     * mode drops the chosen days, so no "ghost" schedule stays armed in the background; and Alarm
+     * mode never ends on a timer — the alarm does that.
      */
-    fun withStrategy(id: String): ProfileDraft =
-        if (id == StrategyIds.SCHEDULE) copy(strategyId = id) else copy(strategyId = id, scheduleDays = emptySet())
+    fun withStrategy(id: String): ProfileDraft = when (id) {
+        StrategyIds.ALARM -> copy(strategyId = id, scheduleDurationHours = null)
+        StrategyIds.SCHEDULE -> copy(strategyId = id)
+        else -> copy(strategyId = id, scheduleDays = emptySet())
+    }
+
+    /**
+     * What's actually saved. A one-time alarm runs on whichever day its start time comes round
+     * next, counted from a minute from now, and has no later sessions to skip (spec D3.4).
+     */
+    fun forSaving(now: ZonedDateTime = ZonedDateTime.now()): ProfileDraft {
+        if (!useOneTimeAlarm) return this
+        val from = now.plusSeconds(60)
+        val sameDay = from.with(LocalTime.of(scheduleStartHour, scheduleStartMinute))
+        val start = if (sameDay.isAfter(from)) sameDay else sameDay.plusDays(1)
+        return copy(scheduleDays = setOf(start.dayOfWeek), allowSkip = false)
+    }
 
     val schedule: ProfileSchedule?
         get() = if (useSchedule && scheduleDays.isNotEmpty()) {
-            ProfileSchedule(scheduleDays.map { it.value }.sorted(), scheduleStartHour, scheduleStartMinute, scheduleDurationHours)
+            ProfileSchedule(
+                days = scheduleDays.map { it.value }.sorted(),
+                startHour = scheduleStartHour,
+                startMinute = scheduleStartMinute,
+                durationInHours = if (useAlarm) null else scheduleDurationHours,
+                alarmHour = alarmHour.takeIf { useAlarm },
+                alarmMinute = alarmMinute.takeIf { useAlarm },
+                alarmSound = alarmSound.takeIf { useAlarm },
+                snoozeMinutes = snoozeMinutes.takeIf { useAlarm },
+            )
         } else {
             null
         }
+
+    /** The schedule as it stands in the form, days or not — for the alarm line and the summary. */
+    val draftSchedule: ProfileSchedule
+        get() = ProfileSchedule(
+            days = scheduleDays.map { it.value }.sorted(),
+            startHour = scheduleStartHour,
+            startMinute = scheduleStartMinute,
+            alarmHour = alarmHour,
+            alarmMinute = alarmMinute,
+        )
 }
 
 fun BlockedProfileEntity.toDraft() = ProfileDraft(
@@ -75,6 +129,12 @@ fun BlockedProfileEntity.toDraft() = ProfileDraft(
     scheduleStartMinute = schedule?.startMinute ?: 0,
     scheduleDurationHours = schedule?.durationInHours,
     allowSkip = allowSkip,
+    alarmHour = schedule?.alarmTime?.hour ?: 7,
+    alarmMinute = schedule?.alarmTime?.minute ?: 0,
+    alarmSound = schedule?.alarmSoundId ?: ProfileSchedule.DEFAULT_ALARM_SOUND,
+    snoozeMinutes = schedule?.alarmSnoozeMinutes ?: ProfileSchedule.DEFAULT_SNOOZE_MINUTES,
+    enableSnooze = enableSnooze,
+    isOneTimeAlarm = isOneTimeAlarm,
     childTag = childTag,
     childTagCanStop = childTagCanStop,
 )
@@ -100,6 +160,8 @@ fun ProfileDraft.applyTo(profile: BlockedProfileEntity): BlockedProfileEntity = 
     // Turning skipping off drops any skip already set, like iOS's BlockedProfiles.updateProfile.
     skipNextOccurrence = profile.skipNextOccurrence.takeIf { allowSkip },
     skipUntil = profile.skipUntil.takeIf { allowSkip },
+    enableSnooze = enableSnooze,
+    isOneTimeAlarm = useOneTimeAlarm,
     childTag = childTag,
     childTagCanStop = childTag != null && childTagCanStop,
 )

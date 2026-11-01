@@ -28,7 +28,7 @@ class ScheduleAlarmScheduler(private val context: Context) {
 
     fun sync(profile: BlockedProfileEntity) {
         val schedule = profile.schedule
-        if (profile.blockingStrategyId != StrategyIds.SCHEDULE || schedule == null || !schedule.isActive) {
+        if (profile.blockingStrategyId !in StrategyIds.SCHEDULED_IDS || schedule == null || !schedule.isActive) {
             cancel(profile.id)
             return
         }

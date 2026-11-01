@@ -23,11 +23,20 @@ object StrategyIds {
     const val SCHEDULE = "schedule"
 
     /**
+     * "Alarm + Ctrus NFC" — starts like [SCHEDULE], but at the end time an alarm rings that only
+     * the Ctrus (or an emergency unblock) stops, ending the session. Also its sessions' tag.
+     */
+    const val ALARM = "alarm"
+
+    /** Strategies that only ever start on their own, at the schedule's time. */
+    val SCHEDULED_IDS = setOf(SCHEDULE, ALARM)
+
+    /**
      * Reserved session tag (not a selectable strategy) for sessions [NFC_MANUAL] starts —
      * mirrors iOS reusing `ManualBlockingStrategy.id` purely as a tag value for the same case,
      * even though that strategy itself is never user-facing.
      */
     const val MANUAL_START_TAG = "manual"
 
-    val PICKER_IDS = listOf(NFC, NFC_MANUAL, SCHEDULE)
+    val PICKER_IDS = listOf(NFC, NFC_MANUAL, SCHEDULE, ALARM)
 }

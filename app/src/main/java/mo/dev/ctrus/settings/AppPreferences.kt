@@ -54,8 +54,8 @@ class AppPreferences(private val context: Context) {
     private val weekMillis = 7L * 24 * 60 * 60 * 1000
 
     private val trustedClockStore = TrustedClock.SharedPreferencesStore(context)
-    private val emergencyCycleClock = TrustedClock("emergencyCycle", trustedClockStore)
-    private val recoveryCycleClock = TrustedClock("recoveryCycle", trustedClockStore)
+    private val emergencyCycleClock = TrustedClock("emergencyCycle", trustedClockStore, bootSession = TrustedClock.bootCount(context))
+    private val recoveryCycleClock = TrustedClock("recoveryCycle", trustedClockStore, bootSession = TrustedClock.bootCount(context))
 
     suspend fun deviceId(): String {
         val prefs = context.dataStore.data.first()

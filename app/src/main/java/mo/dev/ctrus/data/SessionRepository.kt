@@ -19,8 +19,16 @@ class SessionRepository(private val dao: BlockedProfileSessionDao, private val s
 
     suspend fun recentInactive(limit: Int = 50): List<BlockedProfileSessionEntity> = dao.getRecentInactive(limit)
 
-    suspend fun create(profileId: String, tag: String, forceStarted: Boolean = false): BlockedProfileSessionEntity {
-        val session = BlockedProfileSessionEntity(profileId = profileId, tag = tag, forceStarted = forceStarted)
+    suspend fun forProfile(profileId: String): List<BlockedProfileSessionEntity> = dao.getForProfile(profileId)
+
+    /** [startTimeEpochMilli] is now, unless a session that should already have started is being caught up on. */
+    suspend fun create(
+        profileId: String,
+        tag: String,
+        forceStarted: Boolean = false,
+        startTimeEpochMilli: Long = Instant.now().toEpochMilli(),
+    ): BlockedProfileSessionEntity {
+        val session = BlockedProfileSessionEntity(profileId = profileId, tag = tag, forceStarted = forceStarted, startTimeEpochMilli = startTimeEpochMilli)
         dao.upsert(session)
         return session
     }

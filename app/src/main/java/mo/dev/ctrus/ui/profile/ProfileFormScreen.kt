@@ -83,6 +83,7 @@ fun ProfileFormScreen(
     var showDeleteAlert by remember { mutableStateOf(false) }
     var showMissingUnlockAlert by remember { mutableStateOf(false) }
     var showMissingScheduleDaysAlert by remember { mutableStateOf(false) }
+    var showInvalidAlarmTimeAlert by remember { mutableStateOf(false) }
     var showDuplicatePrompt by remember { mutableStateOf(false) }
     var duplicateName by remember { mutableStateOf("") }
 
@@ -96,11 +97,16 @@ fun ProfileFormScreen(
             return
         }
         // Mirrors BlockedProfileView's `.missingScheduleDays` guard.
-        if (draft.useSchedule && draft.scheduleDays.isEmpty()) {
+        if (draft.useSchedule && !draft.useOneTimeAlarm && draft.scheduleDays.isEmpty()) {
             showMissingScheduleDaysAlert = true
             return
         }
-        onSave(draft)
+        // Mirrors BlockedProfileView's `.invalidAlarmTime` guard.
+        if (draft.useAlarm && !draft.hasValidAlarmTime) {
+            showInvalidAlarmTimeAlert = true
+            return
+        }
+        onSave(draft.forSaving())
     }
 
     val duplicateSuffix = stringResource(R.string.profile_form_duplicate_name_suffix, draft.name)
@@ -281,6 +287,15 @@ fun ProfileFormScreen(
             title = { Text(stringResource(R.string.profile_form_missing_unlock_title)) },
             text = { Text(stringResource(R.string.profile_form_missing_schedule_days_body)) },
             confirmButton = { TextButton(onClick = { showMissingScheduleDaysAlert = false }) { Text(stringResource(R.string.common_ok)) } },
+        )
+    }
+
+    if (showInvalidAlarmTimeAlert) {
+        AlertDialog(
+            onDismissRequest = { showInvalidAlarmTimeAlert = false },
+            title = { Text(stringResource(R.string.profile_form_missing_unlock_title)) },
+            text = { Text(stringResource(R.string.alarm_end_time_invalid)) },
+            confirmButton = { TextButton(onClick = { showInvalidAlarmTimeAlert = false }) { Text(stringResource(R.string.common_ok)) } },
         )
     }
 

@@ -43,6 +43,9 @@ import mo.dev.ctrus.permissions.BackgroundLaunchHelpUtil
 import mo.dev.ctrus.permissions.OemBackgroundGuide
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
 import mo.dev.ctrus.permissions.XiaomiBackgroundPopupUtil
+import mo.dev.ctrus.permissions.XiaomiLockScreenUtil
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import mo.dev.ctrus.ui.common.GlassIconButton
 
 private val GrantedGreen = Color(0xFF34C759)
@@ -73,6 +76,18 @@ fun PermissionsSheet(
     val oemGuide = remember { OemBackgroundGuide.forDevice() }
     var showOemGuide by remember { mutableStateOf(false) }
     var showBackgroundLaunchHelp by remember { mutableStateOf(false) }
+    // Only Alarm mode needs it, so it's recommended here and required when saving an Alarm profile.
+    // Re-read while the sheet is open, as it's changed on MIUI's own permission page.
+    val showsLockScreen = remember { XiaomiLockScreenUtil.isApplicable(context) }
+    var isLockScreenGranted by remember { mutableStateOf(XiaomiLockScreenUtil.isGranted(context)) }
+    if (showsLockScreen) {
+        LaunchedEffect(Unit) {
+            while (true) {
+                isLockScreenGranted = XiaomiLockScreenUtil.isGranted(context)
+                delay(1_000)
+            }
+        }
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
@@ -152,6 +167,14 @@ fun PermissionsSheet(
                             modifier = Modifier.padding(start = 16.dp, end = 48.dp, bottom = 16.dp),
                         )
                     }
+                }
+                if (showsLockScreen) {
+                    SettingsDivider()
+                    PermissionStatusRow(
+                        title = stringResource(R.string.settings_lock_screen),
+                        granted = isLockScreenGranted,
+                        onClick = { XiaomiLockScreenUtil.request(context) },
+                    )
                 }
                 if (oemGuide != null) {
                     SettingsDivider()

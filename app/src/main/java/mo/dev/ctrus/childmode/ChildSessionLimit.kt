@@ -49,7 +49,7 @@ object ChildSessionLimit {
     private val lock = Mutex()
 
     private fun prefs(context: Context) = context.getSharedPreferences("mo.dev.ctrus.child_session", Context.MODE_PRIVATE)
-    private fun clock(context: Context) = TrustedClock("childSession", TrustedClock.SharedPreferencesStore(context))
+    private fun clock(context: Context) = TrustedClock("childSession", TrustedClock.SharedPreferencesStore(context), bootSession = TrustedClock.bootCount(context))
 
     /**
      * Brings the automatic end in line with the active session: starts counting for a new one,
@@ -102,7 +102,7 @@ object ChildSessionLimit {
 
     fun plan(profile: BlockedProfileEntity, startedAt: Instant, zone: ZoneId = ZoneId.systemDefault()): Plan {
         var limit = MAX_SESSION_MILLIS
-        val schedule = profile.schedule?.takeIf { it.isActive && profile.blockingStrategyId == StrategyIds.SCHEDULE }
+        val schedule = profile.schedule?.takeIf { it.isActive && profile.blockingStrategyId in StrategyIds.SCHEDULED_IDS }
             ?: return Plan(limit, makesWayForNextSession = false)
 
         schedule.automaticEndDurationMillis?.let { limit = minOf(limit, it) }

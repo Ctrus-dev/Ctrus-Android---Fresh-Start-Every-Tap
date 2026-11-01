@@ -16,10 +16,11 @@ class TrustedClockTest {
     }
     private var wallClock = 1_000_000_000L
     private var uptime = 10_000_000L
+    private var bootSession: Long? = 1L
 
     private val day = 24L * 60 * 60 * 1000
 
-    private fun makeClock(key: String = "test") = TrustedClock(key, store, { wallClock }, { uptime })
+    private fun makeClock(key: String = "test") = TrustedClock(key, store, { wallClock }, { uptime }, { bootSession })
 
     @Test
     fun firstReadingCountsNothing() {
@@ -110,5 +111,50 @@ class TrustedClockTest {
         wallClock -= day
         uptime = 300_000
         assertTrue(clock.read().clockJumped)
+    }
+
+    // D12.3: a reboot is told by the boot count too, and a long gap across one isn't a date change.
+
+    @Test
+    fun rebootDaysAfterLastReadingIsNotAClockJump() {
+        val clock = makeClock()
+        clock.read()
+        wallClock += 3 * day
+        uptime = 600_000
+        bootSession = 2
+        assertFalse(clock.read().clockJumped)
+    }
+
+    @Test
+    fun rebootWithLongerUptimeIsTreatedAsAReboot() {
+        val clock = makeClock()
+        clock.read()
+        wallClock += 3 * day
+        uptime = 20_000_000
+        bootSession = 2
+        val reading = clock.read()
+        assertFalse(reading.clockJumped)
+        assertEquals(20_000_000 + day, reading.elapsedMillis)
+    }
+
+    @Test
+    fun noRebootDateMovedForwardADayIsAClockJump() {
+        val clock = makeClock()
+        clock.read()
+        wallClock += day
+        uptime += 60_000
+        val reading = clock.read()
+        assertTrue(reading.clockJumped)
+        assertEquals(day - 60_000, reading.dateShiftMillis)
+    }
+
+    @Test
+    fun rebootWithDateMovedBackReportsANegativeShift() {
+        val clock = makeClock()
+        clock.read()
+        wallClock -= day
+        uptime = 300_000
+        bootSession = 2
+        assertTrue(clock.read().dateShiftMillis < 0)
     }
 }

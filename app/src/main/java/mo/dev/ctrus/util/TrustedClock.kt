@@ -18,6 +18,8 @@ class TrustedClock(
     private val store: Store,
     private val wallClockMillis: () -> Long = System::currentTimeMillis,
     private val uptimeMillis: () -> Long = SystemClock::elapsedRealtime,
+    /** Changes on every boot; null when unknown. The uptime alone can't tell a reboot apart once the phone has been on longer than at the previous reading. */
+    private val bootSession: () -> Long? = { null },
 ) {
     interface Store {
         fun getLong(key: String): Long?
@@ -26,14 +28,16 @@ class TrustedClock(
 
     private val lastWallClockKey = "trustedClock.$key.lastWallClock"
     private val lastUptimeKey = "trustedClock.$key.lastUptime"
+    private val lastBootSessionKey = "trustedClock.$key.lastBootSession"
 
     /**
      * @property elapsedMillis real time since the previous reading.
      * @property clockJumped the phone's date moved away from real time by more than
-     * [CLOCK_JUMP_TOLERANCE_MILLIS] since the previous reading (across a reboot: the date went
-     * back, or claims the phone was off for more than [MAX_POWERED_OFF_MILLIS]).
+     * [CLOCK_JUMP_TOLERANCE_MILLIS] since the previous reading (across a reboot: only the date
+     * going back — readings can be days apart, so a long gap proves nothing).
+     * @property dateShiftMillis how far the date moved beyond real time; negative when moved back.
      */
-    data class Reading(val elapsedMillis: Long, val clockJumped: Boolean)
+    data class Reading(val elapsedMillis: Long, val clockJumped: Boolean, val dateShiftMillis: Long = 0)
 
     /** Real time since the previous call, in millis. Whenever it can't be sure, it counts less, never more. */
     fun trustedElapsedMillis(): Long = read().elapsedMillis
@@ -43,25 +47,40 @@ class TrustedClock(
         val currentUptime = uptimeMillis()
         val lastUptime = store.getLong(lastUptimeKey)
         val lastWallClock = store.getLong(lastWallClockKey)
-        store.putLongs(mapOf(lastWallClockKey to now, lastUptimeKey to currentUptime))
+        val currentBootSession = bootSession()
+        val lastBootSession = store.getLong(lastBootSessionKey)
+        store.putLongs(
+            buildMap {
+                put(lastWallClockKey, now)
+                put(lastUptimeKey, currentUptime)
+                currentBootSession?.let { put(lastBootSessionKey, it) }
+            },
+        )
 
         if (lastUptime == null || lastWallClock == null) return Reading(0, clockJumped = false)
         val wallClockDelta = now - lastWallClock
 
+        val rebooted = currentUptime < lastUptime ||
+            (lastBootSession != null && currentBootSession != null && lastBootSession != currentBootSession)
+
         // Same boot: the uptime difference is the real time. Any extra the date moved on top of
         // it is a manual date change and is left out.
-        if (currentUptime >= lastUptime) {
+        if (!rebooted) {
             val elapsed = currentUptime - lastUptime
-            return Reading(elapsed, clockJumped = abs(wallClockDelta - elapsed) > CLOCK_JUMP_TOLERANCE_MILLIS)
+            val shift = wallClockDelta - elapsed
+            return Reading(elapsed, clockJumped = abs(shift) > CLOCK_JUMP_TOLERANCE_MILLIS, dateShiftMillis = shift)
         }
 
         // Rebooted: the uptime only covers time since boot. The date is the only hint at how long
-        // the phone was off, so it's trusted up to a cap.
+        // the phone was off, so it's trusted up to a cap. A long gap isn't flagged: readings can
+        // be days apart (the clock watch only reads in Child Mode). Only a date earlier than the
+        // uptime allows is a sure change.
         val reportedPoweredOff = wallClockDelta - currentUptime
         val poweredOff = reportedPoweredOff.coerceIn(0, MAX_POWERED_OFF_MILLIS)
         return Reading(
             elapsedMillis = (currentUptime + poweredOff).coerceAtLeast(0),
-            clockJumped = reportedPoweredOff < -CLOCK_JUMP_TOLERANCE_MILLIS || reportedPoweredOff > MAX_POWERED_OFF_MILLIS,
+            clockJumped = reportedPoweredOff < -CLOCK_JUMP_TOLERANCE_MILLIS,
+            dateShiftMillis = minOf(0, reportedPoweredOff),
         )
     }
 
@@ -77,6 +96,13 @@ class TrustedClock(
     }
 
     companion object {
+        /** `Settings.Global.BOOT_COUNT`, which goes up by one on every boot. */
+        fun bootCount(context: Context): () -> Long? = {
+            runCatching {
+                android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.BOOT_COUNT).toLong()
+            }.getOrNull()
+        }
+
         const val MAX_POWERED_OFF_MILLIS = 24L * 60 * 60 * 1000
         const val CLOCK_JUMP_TOLERANCE_MILLIS = 5L * 60 * 1000
 

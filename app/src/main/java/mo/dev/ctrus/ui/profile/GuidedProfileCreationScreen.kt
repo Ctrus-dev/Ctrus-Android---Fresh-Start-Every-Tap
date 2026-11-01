@@ -104,11 +104,11 @@ fun GuidedProfileCreationScreen(
     val canContinue = when (currentStep) {
         GuidedStep.NAME -> draft.name.isNotBlank()
         GuidedStep.STRICT_UNLOCKS -> draft.hasRequiredUnlocks
-        GuidedStep.SCHEDULE -> draft.scheduleDays.isNotEmpty()
+        GuidedStep.SCHEDULE -> draft.hasValidSchedule
         else -> true
     }
 
-    fun createProfile() = onCreate(draft)
+    fun createProfile() = onCreate(draft.forSaving())
 
     Scaffold(
         topBar = {
@@ -254,6 +254,7 @@ private fun ReviewContent(draft: ProfileDraft, availableStrategies: List<Blockin
         ReviewRow(stringResource(R.string.guided_review_apps), appsSummary)
         ReviewRow(stringResource(R.string.guided_review_domains), domainsSummary)
         scheduleSummary?.let { ReviewRow(stringResource(R.string.guided_review_schedule), it) }
+        if (draft.useAlarm) ReviewRow(stringResource(R.string.alarm_snooze), snoozeSummary(draft))
         ReviewRow(stringResource(R.string.guided_review_breaks), breaksSummary)
         ReviewRow(stringResource(R.string.guided_review_safeguards), safeguardsSummary, showDivider = !ChildModeStore.isChildMode)
         if (ChildModeStore.isChildMode) ChildModeSessionLimitNote()

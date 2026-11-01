@@ -1,6 +1,14 @@
 package mo.dev.ctrus.ui.childmode
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.RemoveModerator
+import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material.icons.filled.HistoryToggleOff
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.res.pluralStringResource
+import mo.dev.ctrus.childmode.TamperLogEntry
+import mo.dev.ctrus.ui.settings.SettingsSection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -390,12 +398,20 @@ private fun NewRecoveryKeyPage(themeColor: Color, onDone: () -> Unit) {
     }
 }
 
-/** The attempt log (spec Part B, section 10). Opening it marks everything as seen. */
+/** The attempt log (spec Part B, section 10). Opening it marks everything as seen; an entry opens its details (D12.4). */
 @Composable
 fun TamperLogPage(themeColor: Color, navigationIcon: ImageVector, onBack: () -> Unit) {
     val entries by ChildModeStore.tamperLogFlow.collectAsState()
     var showClearAlert by remember { mutableStateOf(false) }
+    var selectedId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { ChildModeStore.tamperLogUnseen = false }
+    val format = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
+
+    entries.firstOrNull { it.id == selectedId }?.let { entry ->
+        BackHandler { selectedId = null }
+        TamperLogEntryPage(entry, format, onBack = { selectedId = null })
+        return
+    }
 
     ChildModePage(
         title = stringResource(R.string.settings_child_log),
@@ -416,12 +432,22 @@ fun TamperLogPage(themeColor: Color, navigationIcon: ImageVector, onBack: () -> 
             if (entries.isEmpty()) {
                 SettingsRow(title = stringResource(R.string.tamper_empty), titleColor = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                val format = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
                 entries.asReversed().forEachIndexed { index, entry ->
                     if (index > 0) SettingsDivider()
-                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(stringResource(entry.type.titleRes), style = MaterialTheme.typography.bodyLarge)
-                        Text(format.format(Date(entry.at)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { selectedId = entry.id }.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(tamperIcon(entry.type), contentDescription = null, tint = themeColor, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(stringResource(entry.type.titleRes), style = MaterialTheme.typography.bodyLarge)
+                            tamperSummary(entry)?.let {
+                                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(format.format(Date(entry.at)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -442,6 +468,73 @@ fun TamperLogPage(themeColor: Color, navigationIcon: ImageVector, onBack: () -> 
             },
             dismissButton = { TextButton(onClick = { showClearAlert = false }) { Text(stringResource(R.string.common_cancel)) } },
         )
+    }
+}
+
+/** What happened, when (with the session that was running) and what the parents can do about it. */
+@Composable
+private fun TamperLogEntryPage(entry: TamperLogEntry, format: DateFormat, onBack: () -> Unit) {
+    ChildModePage(
+        title = stringResource(entry.type.titleRes),
+        navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
+        onNavigation = onBack,
+    ) {
+        SettingsSection(title = stringResource(R.string.tamper_section_what)) {
+            TamperText(stringResource(entry.type.explanationRes))
+            tamperSummary(entry)?.let {
+                SettingsDivider()
+                TamperText(it)
+            }
+        }
+        SettingsSection(title = stringResource(R.string.tamper_section_when)) {
+            SettingsRow(
+                title = stringResource(R.string.tamper_date),
+                trailing = { Text(format.format(Date(entry.at)), color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            )
+            entry.activeProfileName?.let { name ->
+                SettingsDivider()
+                SettingsRow(
+                    title = stringResource(R.string.tamper_active_session),
+                    trailing = { Text(name, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                )
+            }
+        }
+        SettingsSection(title = stringResource(R.string.tamper_section_advice)) {
+            TamperText(stringResource(entry.type.adviceRes))
+        }
+    }
+}
+
+@Composable
+private fun TamperText(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().padding(16.dp))
+}
+
+private fun tamperIcon(kind: TamperLogEntry.Kind): ImageVector = when (kind) {
+    TamperLogEntry.Kind.PERMISSION_REVOKED -> Icons.Filled.RemoveModerator
+    TamperLogEntry.Kind.APP_STOPPED -> Icons.Filled.StopCircle
+    TamperLogEntry.Kind.CLOCK_CHANGED -> Icons.Filled.HistoryToggleOff
+    TamperLogEntry.Kind.PIN_LOCKOUT -> Icons.Filled.Lock
+}
+
+/** The entry's specifics in a line (D12.4): how far the date moved, or how long the code was locked. */
+@Composable
+private fun tamperSummary(entry: TamperLogEntry): String? = when (entry.type) {
+    TamperLogEntry.Kind.CLOCK_CHANGED -> entry.dateShift?.let { shift ->
+        stringResource(if (shift > 0) R.string.tamper_forward else R.string.tamper_back, tamperDuration(kotlin.math.abs(shift)))
+    }
+    TamperLogEntry.Kind.PIN_LOCKOUT -> entry.lockDuration?.let { stringResource(R.string.tamper_locked, tamperDuration(it)) }
+    else -> null
+}
+
+/** One unit only — days, hours or minutes, at least 1 minute — spelled out ("3 days", "2 hours"). */
+@Composable
+private fun tamperDuration(seconds: Long): String {
+    val clamped = maxOf(60, seconds)
+    return when {
+        clamped >= 86_400 -> (clamped / 86_400).toInt().let { pluralStringResource(R.plurals.tamper_duration_days, it, it) }
+        clamped >= 3_600 -> (clamped / 3_600).toInt().let { pluralStringResource(R.plurals.tamper_duration_hours, it, it) }
+        else -> (clamped / 60).toInt().let { pluralStringResource(R.plurals.tamper_duration_minutes, it, it) }
     }
 }
 

@@ -467,6 +467,48 @@ Section 14 normal-mode changes made here too: welcome/First Steps are `IntroCard
 schedule-aware home hint, "Ctrus N" tag names, theme-coloured start time, and in Normal Mode with
 no profiles a back arrow/left-edge swipe to the mode choice. Unit tests: `ChildModeTest`.
 
+**Alarm mode — "Alarm + Ctrus NFC" (spec `especificacao-despertador.md` v2, iOS branch `alarm-mode`).**
+A fourth start mode (`strategy/AlarmBlockingStrategy`, id `alarm`, in `StrategyIds.SCHEDULED_IDS` with
+`schedule`): starts on its own like Schedule (same `ScheduleAlarmScheduler`/`ScheduleReceiver`,
+reminder and skips), but at the end time (`ProfileSchedule.alarmHour/alarmMinute`, default 07:00,
+the next day when ≤ the start) an alarm rings that only the Ctrus or an emergency unblock stops,
+ending the session. Never ends on a timer (`durationInHours` always null); breaks allowed.
+- `alarm/WakeAlarmManager`: per profile, the main alarm + 30 spares a minute apart via
+  `AlarmManager.setAlarmClock` → `AlarmReceiver` (records in SharedPreferences `wake_alarm`).
+  `refresh`/`refreshAll` (Mutex) work out the date (running session's → an occurrence under way
+  without a session → the next one) and re-arm on mismatch; called on app resume, every profile
+  change, session start/end (`CtrusApp` observers) and with `rearm = true` on boot/update/clock
+  change/exact-alarm grant. No 60 s "settle window" like iOS: Android's start alarm fires for any
+  occurrence after now, so the alarm follows it. `onSessionEnded` (however it ended, Child Mode's
+  limit too) silences it, sets the next one and deletes a `isOneTimeAlarm` profile.
+- `alarm/AlarmService` (foreground, `mediaPlayback`): plays `res/raw/<tone>.m4a` on `USAGE_ALARM`
+  in a loop + vibration every 1.5 s, checks every second and stops when nothing is due; keeps the
+  spares 60 s ahead while ringing, so a killed service comes back within a minute. Its notification
+  (channel `alarm`, silent) has a Snooze action and a full-screen intent to `alarm/AlarmActivity`
+  (the only new screen: time, name, Snooze, slide → unlock → `MainActivity` with
+  `EXTRA_ALARM_PROFILE_ID`, where the card expands and the Ctrus read starts after 0.6 s).
+- Snooze (`enableSnooze`, `snoozeMinutes` 1–15): one global `snoozedUntil`, spares moved there.
+- D8: `startMissedAlarmSession` on resume starts a session (from the occurrence's start) that the
+  start alarm missed, within 30 min of the alarm, when no session runs and Accessibility is on.
+- Saving needs notifications, "Alarms & reminders", (14+) full-screen intents and, on Xiaomi, MIUI's
+  "Show on Lock screen" (`XiaomiLockScreenUtil`, app-op 10020; also a Recommended row in Permissions)
+  (`permissions/AlarmPermissionUtil`, checked in `MainActivity` before the parent confirmation).
+  Without 10020 MIUI silently keeps the alarm screen off the lock screen (seen on the POCO).
+- The alarm screen copies the Pixel Clock's (7.5, checked on the emulator): always dark, a large
+  "hh:mm"/"HH:mm" time with no AM/PM, the profile name, and one track with a theme-coloured pill
+  dragged left to Snooze (only shown with snooze on) or right to "Open Ctrus" (the spec's iOS 26.0
+  stop-button text). Vibration is an 800 ms pulse asked for every 1.5 s from `AlarmService`: one
+  repeating waveform was cancelled by the system when the alarm screen closed (POCO), leaving only
+  the sound. While it rings, `AlarmService` brings it back 3 s after it's left
+  (Home, Back, power button) unless Ctrus itself is on screen or the slide is still unlocking
+  (`AlarmActivity.openingAppUntil`). The direct start relies on the bound Accessibility service's
+  background-launch exemption; when the phone is locked a short-lived second full-screen notification
+  is posted too, which works even without it. The user's call (2026-11-01), not in the spec.
+Verified on the emulator (API 37): automatic start, ringing over the lock screen, Snooze from the
+alarm screen, notification and card, ringing again after it, re-armed after an app update, slide →
+auto Ctrus read, emergency → silenced and a one-time profile deleted, spares cancelled.
+Not verified: a real NFC stop, DST night, reboot overnight, OEM battery savers (POCO/Samsung).
+
 **Unlock cycles count real time (`util/TrustedClock`, spec Part A1).** The emergency (3 per 4
 weeks — the 2-week choice and its gear menu were dropped in both modes, the user's call) and recovery (2 per 4 weeks, cycle starts on the first one used) cycles add up
 `TrustedClock.trustedElapsedMillis()` into `emergencyCycleElapsed`/`recoveryCycleElapsed` instead

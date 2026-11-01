@@ -28,7 +28,7 @@
     <string name="common_yesterday">Yesterday</string>
     <string name="common_disabled">Disabled</string>
     <string name="common_default">Default</string>
-    <string name="common_min_short">%1$d min</string>
+    <string name="field_break_duration">Break Duration</string>
     <string name="home_manage_content_description">Manage</string>
     <string name="home_settings_content_description">Settings</string>
     <string name="home_getting_started_title">First Steps</string>
@@ -501,4 +501,72 @@
     <string name="home_hint_schedule_only">Your profile starts on its own at its scheduled time. Tap it while it\'s active to access the stop, emergency and break options.</string>
     <string name="home_hint_schedule_mixed">Press and hold your profile to start the session, or wait for its scheduled time. Tap it while it\'s active to access the stop, emergency and break options.</string>
     <string name="tag_default_name">Ctrus %1$d</string>
+
+    <!-- Alarm mode (spec D) and the attempt log's details (D12.4) -->
+    <string name="strategy_alarm_name">Alarm + Ctrus NFC</string>
+    <string name="strategy_alarm_description">Blocks your apps on a schedule. When it ends, an alarm rings that only stops with your Ctrus.</string>
+    <string name="alarm_ring_once_title">Ring only once</string>
+    <string name="alarm_ring_once_desc">Rings the next time the end time comes around. Once you stop it, this profile is deleted.</string>
+    <string name="alarm_rings_days_at">The alarm rings %1$s at %2$s</string>
+    <string name="field_schedule_end_time">End Time</string>
+    <string name="alarm_end_time_invalid">The end time must be different from the start time.</string>
+    <string name="alarm_sound_title">Alarm sound</string>
+    <string name="alarm_snooze">Snooze</string>
+    <string name="alarm_snooze_desc">Snooze silences the alarm for a while. Then it rings again.</string>
+    <string name="alarm_snooze_duration">Snooze Duration</string>
+    <string name="alarm_snooze_disabled">Disabled</string>
+    <string name="alarm_once_summary">Once · %1$s</string>
+    <string name="field_allow_timed_breaks_desc_alarm">Get your apps back for a while during the session. The break ends on its own, and the alarm still rings at the end time.</string>
+    <string name="alarm_ringing">Ringing</string>
+    <string name="alarm_open_ctrus">Open Ctrus</string>
+    <string name="alarm_full_screen_required">To show the alarm on the lock screen, turn on “Full-screen notifications”.</string>
+    <string name="alarm_lock_screen_required">To show the alarm on the lock screen, turn on “Show on Lock screen” for Ctrus.</string>
+    <string name="settings_lock_screen">Show on Lock screen</string>
+    <string name="alarm_access_denied">Without alarm access, Alarm mode can\'t work. You can turn it on in Settings.</string>
+    <string name="alarm_channel_name">Alarm mode</string>
+    <string name="alarm_channel_description">The alarm that rings at the end of an Alarm mode session.</string>
+    <string name="alarm_sound_urgent">Urgent</string>
+    <string name="alarm_sound_morning">Morning</string>
+    <string name="alarm_sound_lumen">Lumen</string>
+    <string name="alarm_sound_pulsar">Pulsar</string>
+    <string name="alarm_sound_orbit">Orbit</string>
+    <string name="alarm_sound_lagoon">Lagoon</string>
+    <string name="alarm_sound_spark">Spark</string>
+    <string name="alarm_sound_waves">Waves</string>
+    <string name="alarm_sound_daybreak">Daybreak</string>
+    <string name="alarm_sound_musicbox">Music Box</string>
+    <string name="alarm_sound_rally">Rally</string>
+    <string name="alarm_sound_vibrate">Vibrate only</string>
+    <string name="tamper_section_what">What happened</string>
+    <string name="tamper_section_when">When</string>
+    <string name="tamper_date">Date</string>
+    <string name="tamper_active_session">Session running</string>
+    <string name="tamper_section_advice">What you can do</string>
+    <string name="tamper_forward">Moved forward by about %1$s</string>
+    <string name="tamper_back">Moved back by about %1$s</string>
+    <string name="tamper_locked">Code entry locked for %1$s</string>
+    <string name="tamper_permission_revoked_explanation">Ctrus\'s Accessibility service was turned off. While it\'s off, Ctrus can\'t block any apps.</string>
+    <string name="tamper_permission_revoked_advice">It can be turned off in Settings › Accessibility, and some phones turn it off on their own after an update or to save battery. Open Ctrus and turn it on again so apps are blocked.</string>
+    <string name="tamper_app_stopped_explanation">Ctrus was force-stopped, or the phone was started in safe mode, while a session may have been running. Until Ctrus runs again, apps aren\'t blocked.</string>
+    <string name="tamper_app_stopped_advice">This is done from Settings › Apps › Ctrus › Force stop. If it wasn\'t you, talk to your child about it. Opening Ctrus starts it again.</string>
+    <string name="tamper_clock_changed_explanation">The phone\'s date or time was changed by hand, away from the real time.</string>
+    <string name="tamper_clock_changed_advice">Ctrus times sessions by the real time that has passed, so this doesn\'t end them sooner. Check that the time is set automatically in Settings › System › Date &amp; time.</string>
+    <string name="tamper_pin_lockout_explanation">Someone entered the wrong parent code 5 times in a row, so entering it was locked for a while.</string>
+    <string name="tamper_pin_lockout_advice">If it wasn\'t you, your child may be trying to guess the code. If you think they know it, change it in Child Mode settings.</string>
+    <plurals name="alarm_snooze_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <plurals name="tamper_duration_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="tamper_duration_hours">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+    <plurals name="tamper_duration_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
 </resources>

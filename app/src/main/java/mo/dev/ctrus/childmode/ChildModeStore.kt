@@ -33,13 +33,31 @@ data class TamperLogEntry(
     val type: Kind,
     /** Epoch millis. */
     val at: Long,
+    /** `clockChanged`: how far the date moved away from real time, in seconds; negative when moved back. */
+    val dateShift: Long? = null,
+    /** `pinLockout`: how long entering the parent code was locked for, in seconds. */
+    val lockDuration: Long? = null,
+    /** The profile whose session was running at the time. */
+    val activeProfileName: String? = null,
 ) {
     @Serializable
-    enum class Kind(@StringRes val titleRes: Int) {
-        @SerialName("permissionRevoked") PERMISSION_REVOKED(R.string.tamper_permission_revoked),
-        @SerialName("appStopped") APP_STOPPED(R.string.tamper_app_stopped),
-        @SerialName("clockChanged") CLOCK_CHANGED(R.string.tamper_clock_changed),
-        @SerialName("pinLockout") PIN_LOCKOUT(R.string.tamper_pin_lockout),
+    enum class Kind(
+        @StringRes val titleRes: Int,
+        @StringRes val explanationRes: Int,
+        @StringRes val adviceRes: Int,
+    ) {
+        @SerialName("permissionRevoked") PERMISSION_REVOKED(
+            R.string.tamper_permission_revoked, R.string.tamper_permission_revoked_explanation, R.string.tamper_permission_revoked_advice,
+        ),
+        @SerialName("appStopped") APP_STOPPED(
+            R.string.tamper_app_stopped, R.string.tamper_app_stopped_explanation, R.string.tamper_app_stopped_advice,
+        ),
+        @SerialName("clockChanged") CLOCK_CHANGED(
+            R.string.tamper_clock_changed, R.string.tamper_clock_changed_explanation, R.string.tamper_clock_changed_advice,
+        ),
+        @SerialName("pinLockout") PIN_LOCKOUT(
+            R.string.tamper_pin_lockout, R.string.tamper_pin_lockout_explanation, R.string.tamper_pin_lockout_advice,
+        ),
     }
 }
 
@@ -77,7 +95,7 @@ object ChildModeStore {
         prefs = context.getSharedPreferences("mo.dev.ctrus.child_mode", Context.MODE_PRIVATE)
         // A single watcher reads the clock only to spot date changes, so one change is logged
         // once rather than by every feature that later notices it.
-        clockWatch = TrustedClock("clockWatch", TrustedClock.SharedPreferencesStore(context))
+        clockWatch = TrustedClock("clockWatch", TrustedClock.SharedPreferencesStore(context), bootSession = TrustedClock.bootCount(context))
         _appMode.value = if (prefs.getString(KEY_APP_MODE, null) == "child") AppMode.CHILD else AppMode.NORMAL
         _parentTags.value = decode(KEY_PARENT_TAGS, ListSerializer(ParentTag.serializer()))
         _tamperLog.value = decode(KEY_TAMPER_LOG, ListSerializer(TamperLogEntry.serializer()))
@@ -130,14 +148,29 @@ object ChildModeStore {
     }
 
     @Synchronized
-    fun logTamper(kind: TamperLogEntry.Kind, at: Long = System.currentTimeMillis()) {
+    fun logTamper(
+        kind: TamperLogEntry.Kind,
+        at: Long = System.currentTimeMillis(),
+        dateShiftSeconds: Long? = null,
+        lockDurationSeconds: Long? = null,
+    ) {
         if (!isChildMode) return
-        tamperLog = (tamperLog + TamperLogEntry(type = kind, at = at)).takeLast(MAX_TAMPER_LOG_ENTRIES)
+        val activeProfileName = mo.dev.ctrus.blocking.BlockingStateHolder.state.value
+            .takeIf { it.isBlocking }?.profileName?.takeIf { it.isNotEmpty() }
+        val entry = TamperLogEntry(
+            type = kind,
+            at = at,
+            dateShift = dateShiftSeconds,
+            lockDuration = lockDurationSeconds,
+            activeProfileName = activeProfileName,
+        )
+        tamperLog = (tamperLog + entry).takeLast(MAX_TAMPER_LOG_ENTRIES)
         tamperLogUnseen = true
     }
 
     fun checkForClockChange() {
-        if (clockWatch.read().clockJumped) logTamper(TamperLogEntry.Kind.CLOCK_CHANGED)
+        val reading = clockWatch.read()
+        if (reading.clockJumped) logTamper(TamperLogEntry.Kind.CLOCK_CHANGED, dateShiftSeconds = reading.dateShiftMillis / 1000)
     }
 
     fun clearChildModeData() {
