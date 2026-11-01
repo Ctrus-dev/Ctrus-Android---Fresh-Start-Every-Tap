@@ -233,7 +233,7 @@
     <string name="emergency_unblocks_remaining_label">Desbloqueos restantes</string>
     <string name="emergency_limited_notice">Tienes un número limitado de desbloqueos de emergencia.</string>
     <string name="emergency_unblock_button">Desbloqueo de Emergencia</string>
-    <string name="emergency_hold_button">Mantén Pulsado para Desbloquear</string>
+    <string name="emergency_hold_button">Mantén pulsado para desbloquear</string>
     <string name="emergency_reduce_notice">Te quedará uno menos.</string>
     <string name="emergency_none_remaining">No quedan desbloqueos de emergencia. Mala suerte.</string>
     <string name="emergency_resets_in_hours">Se renuevan en %1$d h</string>
@@ -435,8 +435,8 @@
     <string name="skip_save_failed">No se pudieron guardar los cambios: %1$s</string>
     <plurals name="skip_sheet_summary">
         <item quantity="one">Se salta %1$d sesión, hasta el %2$s.</item>
-        <item quantity="many">Se salta %1$d sesiones, hasta el %2$s.</item>
-        <item quantity="other">Se salta %1$d sesiones, hasta el %2$s.</item>
+        <item quantity="many">Se saltan %1$d sesiones, hasta el %2$s.</item>
+        <item quantity="other">Se saltan %1$d sesiones, hasta el %2$s.</item>
     </plurals>
 
     <!-- Child Mode (spec Part B, section 12) and its normal-mode changes (section 14) -->

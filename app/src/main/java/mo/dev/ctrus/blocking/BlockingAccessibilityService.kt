@@ -112,7 +112,7 @@ class BlockingAccessibilityService : AccessibilityService() {
         val profileId = state.profileId ?: return
         if (!state.isBreakActive) return
         breakEndJob = serviceScope.launch {
-            delay((endsAt - System.currentTimeMillis()).coerceAtLeast(0))
+            delay((endsAt - mo.dev.ctrus.util.SessionClock.now()).coerceAtLeast(0))
             recheckForegroundApp()
             val app = CtrusApp.from(this@BlockingAccessibilityService)
             app.applicationScope.launch {
@@ -417,6 +417,7 @@ class BlockingAccessibilityService : AccessibilityService() {
                 return
             }
             val packageName = event?.packageName?.toString() ?: return
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) ForegroundApp.packageName = packageName
             // Before the per-package dedupe below: Settings stays one package across its pages.
             checkParentGuard(event, packageName)
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
@@ -468,13 +469,15 @@ class BlockingAccessibilityService : AccessibilityService() {
     /**
      * Child Mode, during a session: Ctrus's own Accessibility page or App info page in Settings
      * gets the parent confirmation over it ([ParentGuardActivity]). Once confirmed, it's left
-     * alone until Settings is left (spec Part B, section 10).
+     * alone until Settings is left (spec Part B, section 10). Normal mode, during any session:
+     * Ctrus's App info page (the one with Force stop) and its Accessibility page go to the home
+     * screen (the user's call, 2026-11-01).
      *
      * These pages fill in after they open, so each event (re)schedules one check for once they
      * settle; a check skipped while they're still loading would never come round again.
      */
     private fun checkParentGuard(event: AccessibilityEvent, eventPackage: String) {
-        if (!ChildModeStore.isChildMode || BlockingStateHolder.state.value.sessionId == null) {
+        if (BlockingStateHolder.state.value.sessionId == null) {
             ParentGuard.isPassed = false
             return
         }
@@ -493,18 +496,31 @@ class BlockingAccessibilityService : AccessibilityService() {
             if (ParentGuard.isPassed || ParentGuard.isShowing) return@launch
             val root = rootInActiveWindow ?: return@launch
             if (root.packageName?.toString() != eventPackage) return@launch
-            if (isCtrusSettingsPage(root, eventPackage, lastGuardWindowClass[eventPackage].orEmpty())) {
+            val className = lastGuardWindowClass[eventPackage].orEmpty()
+            if (!ChildModeStore.isChildMode) {
+                // Normal mode, any session: Ctrus's App info page (Force stop ends the alarm and
+                // every scheduled start) just goes to the home screen, like the uninstall prompt.
+                if (isCtrusForceStopPage(root, eventPackage) || isCtrusAccessibilityPage(root)) goHome()
+                return@launch
+            }
+            if (isCtrusSettingsPage(root, eventPackage, className)) {
                 ParentGuard.isShowing = true
                 startActivity(Intent(this@BlockingAccessibilityService, ParentGuardActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         }
     }
 
-    private fun isCtrusSettingsPage(root: AccessibilityNodeInfo, settingsPackage: String, className: String): Boolean {
-        // Ctrus's Accessibility page shows the service's own description.
+    private fun isCtrusSettingsPage(root: AccessibilityNodeInfo, settingsPackage: String, className: String): Boolean =
+        isCtrusAccessibilityPage(root) || isCtrusAppInfoPage(root, settingsPackage, className)
+
+    /** Ctrus's Accessibility page shows the service's own description (by text search, or by walking the tree where that finds nothing). */
+    private fun isCtrusAccessibilityPage(root: AccessibilityNodeInfo): Boolean {
         val description = getString(R.string.accessibility_service_description).take(40)
         if (root.findAccessibilityNodeInfosByText(description).isNotEmpty()) return true
+        return visibleTexts(root).any { it.startsWith(description) }
+    }
 
+    private fun isCtrusAppInfoPage(root: AccessibilityNodeInfo, settingsPackage: String, className: String): Boolean {
         // App info: AOSP (and One UI) head it with the app's name; MIUI's own App info is its
         // own activity, with the name shown in it.
         val appName = getString(R.string.app_name)
@@ -512,8 +528,53 @@ class BlockingAccessibilityService : AccessibilityService() {
         val header = root.findAccessibilityNodeInfosByViewId("$settingsPackage:id/entity_header_title") +
             root.findAccessibilityNodeInfosByViewId("$settingsPackage:id/app_manager_details_applabel")
         if (header.any { it.text?.toString() == appName }) return true
+        val hasAppName = root.findAccessibilityNodeInfosByText(appName).any { it.text?.toString() == appName }
         val looksLikeAppInfo = className.contains("Detail", ignoreCase = true) || className.contains("AppInfo", ignoreCase = true)
-        return looksLikeAppInfo && root.findAccessibilityNodeInfosByText(appName).any { it.text?.toString() == appName }
+        if (hasAppName && looksLikeAppInfo) return true
+        // Newer AOSP Settings (the "SPA" pages, seen on API 37) draw App info in Compose, with no
+        // view ids, a generic activity, and no answer to findAccessibilityNodeInfosByText: there
+        // it's the app's name plus Settings' own "Force stop" button (in the phone's language),
+        // found by walking the tree.
+        return isCtrusForceStopPage(root, settingsPackage)
+    }
+
+    /**
+     * Ctrus's own page with the Force stop button on it: the app's name plus Settings' own
+     * "Force stop" text (in the phone's language), found by walking the tree. Normal mode only
+     * guards this page, not every page headed "Ctrus" (its notification or battery settings).
+     */
+    private fun isCtrusForceStopPage(root: AccessibilityNodeInfo, settingsPackage: String): Boolean {
+        val labels = listOf(settingsPackage, "com.android.settings").distinct().mapNotNull(::forceStopLabel)
+        if (labels.isEmpty()) return false
+        val texts = visibleTexts(root)
+        return getString(R.string.app_name) in texts && texts.any { text -> labels.any { text.equals(it, ignoreCase = true) } }
+    }
+
+    /** Every text in the tree, breadth-first, up to [MAX_GUARD_NODES] nodes. */
+    private fun visibleTexts(root: AccessibilityNodeInfo): Set<String> {
+        val texts = HashSet<String>()
+        val queue = ArrayDeque<AccessibilityNodeInfo>().apply { add(root) }
+        var visited = 0
+        while (queue.isNotEmpty() && visited < MAX_GUARD_NODES) {
+            val node = queue.removeFirst()
+            visited++
+            node.text?.toString()?.trim()?.let(texts::add)
+            for (i in 0 until node.childCount) node.getChild(i)?.let(queue::add)
+        }
+        return texts
+    }
+
+    private val forceStopLabels = HashMap<String, String?>()
+
+    private fun forceStopLabel(settingsPackage: String): String? {
+        val key = "$settingsPackage|${resources.configuration.locales[0]}"
+        return forceStopLabels.getOrPut(key) {
+            runCatching {
+                val res = packageManager.getResourcesForApplication(settingsPackage)
+                val id = res.getIdentifier("force_stop", "string", settingsPackage)
+                if (id == 0) null else res.getString(id).trim().takeIf { it.isNotEmpty() }
+            }.getOrNull()
+        }
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
@@ -664,6 +725,7 @@ class BlockingAccessibilityService : AccessibilityService() {
         const val RETRY_COOLDOWN_MILLIS = 2_500L
         const val BROWSER_CHECK_INTERVAL_MILLIS = 300L
         const val GUARD_CHECK_SETTLE_MILLIS = 250L
+        const val MAX_GUARD_NODES = 400
         const val MULTI_WINDOW_CHECK_DEBOUNCE_MILLIS = 100L
         const val MULTI_WINDOW_VERIFY_PAUSE_MILLIS = 2_000L
         const val SYSTEM_UI_PACKAGE = "com.android.systemui"
@@ -692,4 +754,9 @@ class BlockingAccessibilityService : AccessibilityService() {
         const val HOME_RECHECK_DELAY_MILLIS = 350L
         const val MULTI_WINDOW_BLOCK_COOLDOWN_MILLIS = 1_000L
     }
+}
+
+/** The app whose window last came to the front, as the service saw it (null when it isn't running). */
+object ForegroundApp {
+    @Volatile var packageName: String? = null
 }

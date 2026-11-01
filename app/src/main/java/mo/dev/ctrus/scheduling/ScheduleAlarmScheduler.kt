@@ -51,7 +51,9 @@ class ScheduleAlarmScheduler(private val context: Context) {
     fun syncSessionEnd(session: BlockedProfileSessionEntity, profile: BlockedProfileEntity) {
         if (profile.blockingStrategyId != StrategyIds.SCHEDULE) return
         val duration = profile.schedule?.automaticEndDurationMillis ?: return
-        arm(ScheduleReceiver.ACTION_END, session.id, session.startTimeEpochMilli + duration) {
+        // Measured on SessionClock: moving the date forward doesn't end it early.
+        val end = mo.dev.ctrus.util.SessionClock.toWallClock(session.startTimeEpochMilli + duration)
+        arm(ScheduleReceiver.ACTION_END, session.id, end) {
             putExtra(ScheduleReceiver.EXTRA_SESSION_ID, session.id)
         }
     }

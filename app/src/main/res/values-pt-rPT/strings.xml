@@ -233,7 +233,7 @@
     <string name="emergency_unblocks_remaining_label">Desbloqueios restantes</string>
     <string name="emergency_limited_notice">Tens um número limitado de desbloqueios de emergência.</string>
     <string name="emergency_unblock_button">Desbloqueio de Emergência</string>
-    <string name="emergency_hold_button">Pressiona para Desbloquear</string>
+    <string name="emergency_hold_button">Mantém premido para desbloquear</string>
     <string name="emergency_reduce_notice">Vais ficar com menos um.</string>
     <string name="emergency_none_remaining">Não restam desbloqueios de emergência. Azar.</string>
     <string name="emergency_resets_in_hours">Renovam-se daqui a %1$d h</string>
@@ -411,7 +411,7 @@
     <string name="permissions_action_needed">Ação necessária</string>
     <string name="oem_keep_alive_title">Manter o Ctrus Ativo</string>
     <string name="oem_keep_alive_intro">O teu telemóvel pode fechar o Ctrus em segundo plano para poupar bateria, o que para o bloqueio. Configura isto uma vez:</string>
-    <string name="oem_steps_xiaomi">1. Em Poupança de bateria, escolhe Sem restrições.\n2. Abre as apps recentes, mantém o Ctrus pressionado e toca no cadeado.\n3. Se o bloqueio continuar a parar, desliga e volta a ligar a Acessibilidade do Ctrus.</string>
+    <string name="oem_steps_xiaomi">1. Em Poupança de bateria, escolhe Sem restrições.\n2. Abre as apps recentes, mantém o Ctrus premido e toca no cadeado.\n3. Se o bloqueio continuar a parar, desliga e volta a ligar a Acessibilidade do Ctrus.</string>
     <string name="oem_steps_huawei">1. Em Início de apps, procura o Ctrus e desliga Gerir automaticamente.\n2. Liga Início automático, Início secundário e Executar em segundo plano.\n3. Abre as apps recentes e tranca o Ctrus.</string>
     <string name="oem_steps_oppo">1. Liga o Início automático do Ctrus.\n2. Em Informações da app › Utilização da bateria, permite a atividade em segundo plano (ou escolhe Sem restrições).\n3. Abre as apps recentes e tranca o Ctrus.</string>
     <string name="oem_steps_vivo">1. Liga o Início automático e o Início associado do Ctrus.\n2. Em Bateria, permite o consumo elevado em segundo plano.\n3. Abre as apps recentes e tranca o Ctrus.\n4. Se o i Manager disser que a Acessibilidade foi desligada, escolhe voltar a ligá-la.</string>

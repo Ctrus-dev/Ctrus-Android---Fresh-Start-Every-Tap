@@ -1,5 +1,7 @@
 package mo.dev.ctrus.data
 
+import mo.dev.ctrus.util.SessionClock
+
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -64,7 +66,7 @@ fun BlockedProfileSessionEntity.breakScheduledEndMillis(profile: BlockedProfileE
     return start + (allowanceSeconds * 1000).toLong()
 }
 
-fun BlockedProfileSessionEntity.isBreakAvailable(profile: BlockedProfileEntity, allowsTimedBreaks: Boolean, now: Long = System.currentTimeMillis()): Boolean {
+fun BlockedProfileSessionEntity.isBreakAvailable(profile: BlockedProfileEntity, allowsTimedBreaks: Boolean, now: Long = SessionClock.now()): Boolean {
     if (!profile.enableBreaks || !allowsTimedBreaks) return false
     return if (profile.allowMultipleBreaks) {
         remainingBreakAllowance(profile, now) > 0
@@ -76,13 +78,13 @@ fun BlockedProfileSessionEntity.isBreakAvailable(profile: BlockedProfileEntity, 
 fun BlockedProfileSessionEntity.totalBreakAllowanceSeconds(profile: BlockedProfileEntity): Double =
     (profile.breakTimeInMinutes * 60).toDouble()
 
-fun BlockedProfileSessionEntity.activeBreakElapsedSeconds(now: Long = System.currentTimeMillis()): Double {
+fun BlockedProfileSessionEntity.activeBreakElapsedSeconds(now: Long = SessionClock.now()): Double {
     val start = breakStartTimeEpochMilli ?: return 0.0
     if (breakEndTimeEpochMilli != null) return 0.0
     return ((now - start).coerceAtLeast(0)).toDouble() / 1000.0
 }
 
-fun BlockedProfileSessionEntity.usedBreakDurationIncludingActive(profile: BlockedProfileEntity, now: Long = System.currentTimeMillis()): Double {
+fun BlockedProfileSessionEntity.usedBreakDurationIncludingActive(profile: BlockedProfileEntity, now: Long = SessionClock.now()): Double {
     if (profile.allowMultipleBreaks) {
         return minOf(totalBreakAllowanceSeconds(profile), usedBreakDurationInSeconds + activeBreakElapsedSeconds(now))
     }
@@ -95,5 +97,5 @@ fun BlockedProfileSessionEntity.usedBreakDurationIncludingActive(profile: Blocke
     }
 }
 
-fun BlockedProfileSessionEntity.remainingBreakAllowance(profile: BlockedProfileEntity, now: Long = System.currentTimeMillis()): Double =
+fun BlockedProfileSessionEntity.remainingBreakAllowance(profile: BlockedProfileEntity, now: Long = SessionClock.now()): Double =
     (totalBreakAllowanceSeconds(profile) - usedBreakDurationIncludingActive(profile, now)).coerceAtLeast(0.0)

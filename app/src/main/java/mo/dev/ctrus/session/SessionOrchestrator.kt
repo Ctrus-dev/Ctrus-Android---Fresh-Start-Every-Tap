@@ -203,6 +203,7 @@ class SessionOrchestrator(
                 session.isBreakAvailable(profile, allowsBreaks) -> {
                     val updated = sessions.startBreak(session, profile.allowMultipleBreaks)
                     val remaining = updated.remainingBreakAllowance(profile)
+                    // Alarms go by the phone's date; the break itself is measured on SessionClock.
                     val now = System.currentTimeMillis()
                     scheduling.scheduleBreakExpiry(session.id, profile.id, now + (remaining * 1000).toLong())
                     // Mirrors StrategyManager.scheduleBreakReminder: warn 60s before the break ends,

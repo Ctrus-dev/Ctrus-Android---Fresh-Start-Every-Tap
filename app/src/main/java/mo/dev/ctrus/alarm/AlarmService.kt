@@ -24,6 +24,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import mo.dev.ctrus.CtrusApp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.blocking.BlockSafetyPolicy
+import mo.dev.ctrus.blocking.ForegroundApp
 import mo.dev.ctrus.data.ProfileSchedule
 import mo.dev.ctrus.util.DateFormatters
 import java.time.Instant
@@ -87,7 +89,12 @@ class AlarmService : Service() {
                 NotificationManagerCompat.from(this).runCatching { notify(NOTIFICATION_ID, buildNotification(profileId, record)) }
             }
             val now = System.currentTimeMillis()
-            bringAlarmScreenBack(profileId, now)
+            // During a call (phone or VoIP, ringing included) it goes silent until the call ends;
+            // with the dialer, emergency dialer or SOS in front the alarm screen isn't brought back
+            // over it, so it never gets in the way of calling for help. Only a real call silences
+            // it: the dialer just left open would otherwise be a way to quiet the alarm.
+            setPaused(isInCall())
+            if (isPhoneAppInFront()) hiddenSince = 0L else bringAlarmScreenBack(profileId, now)
             if (now - lastSparesPush >= 30_000) {
                 lastSparesPush = now
                 WakeAlarmManager.keepSparesAhead(app, profileId)
@@ -97,6 +104,54 @@ class AlarmService : Service() {
     }
 
     private var hiddenSince = 0L
+    private var paused = false
+    private fun isInCall(): Boolean {
+        val mode = getSystemService(AudioManager::class.java).mode
+        return mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION || mode == AudioManager.MODE_RINGTONE
+    }
+
+    private fun isPhoneAppInFront(): Boolean {
+        if (isInCall()) return true
+        val front = ForegroundApp.packageName ?: return false
+        return BlockSafetyPolicy.isPhoneOrEmergency(this, front)
+    }
+
+    private fun setPaused(pause: Boolean) {
+        if (pause == paused) return
+        paused = pause
+        if (pause) {
+            player?.runCatching { if (isPlaying) pause() }
+            vibrationJob?.cancel()
+            vibrationJob = null
+            AlarmSounds.vibrator(this).cancel()
+            focusRequest?.let { getSystemService(AudioManager::class.java).abandonAudioFocusRequest(it) }
+            focusRequest = null
+        } else {
+            requestFocus()
+            player?.runCatching { start() }
+            startVibration()
+        }
+    }
+
+    private fun requestFocus() {
+        focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+            .setAudioAttributes(AlarmSounds.alarmAttributes)
+            .build()
+            .also { getSystemService(AudioManager::class.java).requestAudioFocus(it) }
+    }
+
+    // The system alarm vibrates alongside its sound, so this does too: a pulse every 1.5 s,
+    // each one asked for anew. One repeating waveform got cancelled by the system once the
+    // alarm screen was closed (seen on the POCO), leaving only the sound.
+    private fun startVibration() {
+        vibrationJob?.cancel()
+        vibrationJob = scope.launch {
+            while (true) {
+                AlarmSounds.vibratePulse(this@AlarmService)
+                delay(VIBRATION_PERIOD_MILLIS)
+            }
+        }
+    }
 
     /**
      * While it rings, the alarm screen comes back a few seconds after it's left (Home, Back, the
@@ -106,7 +161,7 @@ class AlarmService : Service() {
      * block screen. Not in the spec; the user asked for it (2026-11-01).
      */
     private fun bringAlarmScreenBack(profileId: String, now: Long) {
-        if (AlarmActivity.isVisible || mo.dev.ctrus.MainActivity.isVisible || now < AlarmActivity.openingAppUntil) {
+        if (AlarmActivity.isVisible || mo.dev.ctrus.MainActivity.isVisible || now < AlarmActivity.openingAppUntil || now < heldBackUntil) {
             hiddenSince = 0L
             return
         }
@@ -142,21 +197,9 @@ class AlarmService : Service() {
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Ctrus:Alarm")
             .apply { acquire(60 * 60 * 1000L) }
 
-        val audioManager = getSystemService(AudioManager::class.java)
-        focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-            .setAudioAttributes(AlarmSounds.alarmAttributes)
-            .build()
-            .also { audioManager.requestAudioFocus(it) }
-
-        // The system alarm vibrates alongside its sound, so this does too: a pulse every 1.5 s,
-        // each one asked for anew. One repeating waveform got cancelled by the system once the
-        // alarm screen was closed (seen on the POCO), leaving only the sound.
-        vibrationJob = scope.launch {
-            while (true) {
-                AlarmSounds.vibratePulse(this@AlarmService)
-                delay(VIBRATION_PERIOD_MILLIS)
-            }
-        }
+        paused = false
+        requestFocus()
+        startVibration()
         if (soundId == ProfileSchedule.VIBRATE_ALARM_SOUND) return
         player = AlarmSounds.makePlayer(this, soundId, looping = true)?.also { it.start() }
     }
@@ -229,6 +272,14 @@ class AlarmService : Service() {
         @Volatile
         var isRunning = false
             private set
+
+        /** Until when Ctrus itself sent the user elsewhere (NFC settings), so it isn't brought back. */
+        @Volatile
+        private var heldBackUntil = 0L
+
+        fun holdAlarmScreenBack(millis: Long) {
+            heldBackUntil = System.currentTimeMillis() + millis
+        }
 
         fun start(context: Context) {
             runCatching { ContextCompat.startForegroundService(context, Intent(context, AlarmService::class.java)) }

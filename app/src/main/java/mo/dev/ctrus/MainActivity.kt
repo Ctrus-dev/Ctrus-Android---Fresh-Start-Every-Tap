@@ -414,7 +414,7 @@ private fun CtrusNavHost(
         PendingRequirementDialog(
             pending = pending,
             nfcAvailability = nfcScanController.availability,
-            onOpenNfcSettings = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) },
+            onOpenNfcSettings = { mo.dev.ctrus.nfc.openNfcSettings(context) },
             onCancel = orchestrator::cancelPendingRequirement,
         )
     }
@@ -907,7 +907,7 @@ private fun CtrusNavHost(
         NfcScanDialog(
             availability = nfcScanController.availability,
             onDismiss = { pendingSkip = null },
-            onOpenNfcSettings = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) },
+            onOpenNfcSettings = { mo.dev.ctrus.nfc.openNfcSettings(context) },
         )
     }
 

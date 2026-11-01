@@ -18,7 +18,7 @@ data class BlockingState(
     val enableBrowserBlocking: Boolean = true,
     val enableAdultContentBlocking: Boolean = false,
     val isBreakActive: Boolean = false,
-    /** When the running break is due to end; it stops counting from then on, even before Room catches up. */
+    /** When the running break is due to end, on [mo.dev.ctrus.util.SessionClock]; it stops counting from then on, even before Room catches up. */
     val breakEndsAtEpochMilli: Long? = null,
     val enableStrictMode: Boolean = false,
     val enableBlockAppInstallation: Boolean = false,
@@ -26,7 +26,7 @@ data class BlockingState(
     val isBlocking: Boolean get() = profileId != null
 
     /** Time-based, not just the stored flag: a break whose time is up no longer pauses blocking. */
-    fun isBreakActiveAt(now: Long = System.currentTimeMillis()): Boolean =
+    fun isBreakActiveAt(now: Long = mo.dev.ctrus.util.SessionClock.now()): Boolean =
         isBreakActive && (breakEndsAtEpochMilli == null || now < breakEndsAtEpochMilli)
 
     // Mirrors AppBlockerUtil.deactivateRestrictionsForBreak: app/domain shielding and the

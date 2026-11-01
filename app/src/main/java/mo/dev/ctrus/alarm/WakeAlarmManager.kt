@@ -268,13 +268,16 @@ object WakeAlarmManager {
 
     /**
      * Slid away on the alarm screen: the app opens on this profile (D6.1), and the sound carries
-     * on. A session the system never started is started now (D8); if there still isn't one,
+     * on. A session the system never started is started now (D8), even with Accessibility off or
+     * long after the alarm, as long as it's still ringing: the alarm only ever stops with the
+     * Ctrus (the user's call, 2026-11-01; turning Accessibility off before the start used to let
+     * the slide silence it). If there still isn't one (another profile's session is running),
      * there's nothing to stop, so this occurrence's alarm is let go.
      */
     suspend fun alarmOpenedApp(app: CtrusApp, profileId: String) {
         expandRequestProfileId.value = profileId
         stopRequestProfileId.value = profileId
-        startMissedAlarmSession(app)
+        startMissedAlarmSession(app, ringingProfileId = profileId.takeIf { ringingProfileId(app) == it })
         if (app.sessionRepository.mostRecentActive()?.profileId != profileId) {
             mutex.withLock {
                 setSessionEnd(profileId, System.currentTimeMillis())
@@ -290,13 +293,20 @@ object WakeAlarmManager {
      * as the app was opened, Ctrus or not. Started from the occurrence's own start, so the alarm
      * stays where it was. One profile at a time.
      */
-    suspend fun startMissedAlarmSession(app: CtrusApp) = ScheduleReceiver.startLock.withLock {
+    suspend fun startMissedAlarmSession(app: CtrusApp, ringingProfileId: String? = null) = ScheduleReceiver.startLock.withLock {
         if (app.sessionRepository.mostRecentActive() != null) return@withLock
-        if (!AccessibilityPermissionUtil.isEnabled(app)) return@withLock
+        val accessibilityOn = AccessibilityPermissionUtil.isEnabled(app)
+        if (!accessibilityOn && ringingProfileId == null) return@withLock
         val now = ZonedDateTime.now(ZoneId.systemDefault())
         for (profile in app.profileRepository.getAll().filter(::isAlarmProfile)) {
+            val ringing = profile.id == ringingProfileId
+            if (!accessibilityOn && !ringing) continue
             val schedule = profile.schedule ?: continue
-            val start = schedule.currentAlarmOccurrenceStart(now, MISSED_SESSION_GRACE_MILLIS, profile.scheduleSkip) ?: continue
+            // A ringing alarm counts however long it's been ringing.
+            val grace = _records.value[profile.id]?.alarmDate?.takeIf { ringing }
+                ?.let { maxOf(MISSED_SESSION_GRACE_MILLIS, now.toInstant().toEpochMilli() - it + 60_000L) }
+                ?: MISSED_SESSION_GRACE_MILLIS
+            val start = schedule.currentAlarmOccurrenceStart(now, grace, profile.scheduleSkip) ?: continue
             if (hasSessionSince(app, profile.id, start)) continue
             app.sessionRepository.create(
                 profile.id,
