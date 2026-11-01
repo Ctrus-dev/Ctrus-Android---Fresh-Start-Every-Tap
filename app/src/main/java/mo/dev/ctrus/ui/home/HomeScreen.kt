@@ -317,8 +317,7 @@ fun HomeScreen(
                     }
                 }
                 // The running profile is shown first, only while it runs: the stored order isn't
-                // touched, so it's back in its own place once the session ends. Android-only for
-                // now (the user's call, 2026-11-01).
+                // touched, so it's back in its own place once the session ends (iOS 24c96a3).
                 val shownProfiles = profiles.sortedByDescending { it.id == activeProfile?.id }
                 items(shownProfiles, key = { it.id }) { profile ->
                     val isActive = profile.id == activeProfile?.id

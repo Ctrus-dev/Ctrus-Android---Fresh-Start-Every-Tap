@@ -247,7 +247,8 @@ private fun AlarmScreen(
 /**
  * The Pixel Clock's alarm control: a pill with the alarm icon in the middle of a track, dragged
  * left to snooze or right to open Ctrus (where reading the Ctrus stops it). Let go early and it
- * springs back. Without snooze, only the right side does anything.
+ * springs back. Without snooze (the Pixel always has it), the snooze half goes: a shorter track,
+ * centred, with the pill at its start and "Open Ctrus" after it, dragged right.
  */
 @Composable
 private fun AlarmSlider(themeColor: Color, showsSnooze: Boolean, onSnooze: () -> Unit, onOpen: () -> Unit) {
@@ -260,28 +261,42 @@ private fun AlarmSlider(themeColor: Color, showsSnooze: Boolean, onSnooze: () ->
 
     BoxWithConstraints(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(if (showsSnooze) 1f else 0.62f)
             .height(trackHeight)
             .clip(CircleShape)
             .background(AlarmTrack),
-        contentAlignment = Alignment.Center,
+        contentAlignment = if (showsSnooze) Alignment.Center else Alignment.CenterStart,
     ) {
-        val maxOffset = with(density) { ((maxWidth - pillWidth) / 2 - inset).toPx() }.coerceAtLeast(0f)
+        // With snooze the pill rests in the middle and moves both ways; without, it rests at the start.
+        val maxOffset = with(density) {
+            (if (showsSnooze) (maxWidth - pillWidth) / 2 - inset else maxWidth - pillWidth - inset * 2).toPx()
+        }.coerceAtLeast(0f)
         val minOffset = if (showsSnooze) -maxOffset else 0f
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (showsSnooze) SliderLabel(stringResource(R.string.alarm_snooze))
+        if (showsSnooze) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    SliderLabel(stringResource(R.string.alarm_snooze), textAlign = TextAlign.Center)
+                }
+                Spacer(Modifier.width(pillWidth))
+                // Its lines centred on each other, as without snooze ("Abrir o" / "Ctrus").
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    SliderLabel(stringResource(R.string.alarm_open_ctrus), textAlign = TextAlign.Center)
+                }
             }
-            Spacer(Modifier.width(pillWidth))
-            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                SliderLabel(stringResource(R.string.alarm_open_ctrus), textAlign = TextAlign.End)
+        } else {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(start = pillWidth + inset * 2, end = 20.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                SliderLabel(stringResource(R.string.alarm_open_ctrus), textAlign = TextAlign.Center)
             }
         }
         Box(
             modifier = Modifier
+                .padding(horizontal = if (showsSnooze) 0.dp else inset)
                 .offset { IntOffset(offset.value.roundToInt(), 0) }
                 .size(width = pillWidth, height = trackHeight - inset * 2)
                 .clip(CircleShape)
