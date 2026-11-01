@@ -1,6 +1,12 @@
 package mo.dev.ctrus.ui.home
 
 import mo.dev.ctrus.strategy.StrategyIds
+import mo.dev.ctrus.alarm.WakeAlarmManager
+import mo.dev.ctrus.CtrusApp
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Snooze
+import androidx.compose.animation.core.animateFloat
 import mo.dev.ctrus.data.ProfileSchedule
 import mo.dev.ctrus.data.ScheduleSkip
 import java.time.ZonedDateTime
@@ -44,7 +50,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.GppMaybe
+import mo.dev.ctrus.childmode.TamperLogEntry
+import mo.dev.ctrus.ui.common.IntroCard
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.HorizontalDivider
@@ -98,7 +109,6 @@ import mo.dev.ctrus.theme.FixedLightSecondaryText
 import mo.dev.ctrus.theme.ThemeManager
 import mo.dev.ctrus.theme.pastelBackground
 import mo.dev.ctrus.ui.common.AutoSizeText
-import mo.dev.ctrus.ui.common.CenteredActionBlock
 import mo.dev.ctrus.ui.dashboard.DefaultModel3DSize
 import mo.dev.ctrus.ui.dashboard.RotatingModel3DView
 import mo.dev.ctrus.ui.insights.ProfileUsageMiniBarChart
@@ -217,7 +227,14 @@ fun HomeScreen(
     isAccessibilityEnabled: Boolean = true,
     isExactAlarmGranted: Boolean = true,
     isAutostartGranted: Boolean = true,
+    isBackgroundPopupsGranted: Boolean = true,
     onPermissionsAlertTapped: () -> Unit = {},
+    /** Child Mode's newest unseen attempt-log entry, shown as one more red pill. */
+    tamperEntry: TamperLogEntry? = null,
+    onTamperTapped: () -> Unit = {},
+    /** Normal Mode with no profiles yet: a mistaken pick of the mode can still be undone. */
+    canGoBackToModeChoice: Boolean = false,
+    onBackToModeChoice: () -> Unit = {},
 ) {
     val themeColor = themeManager.selectedColorOption.color
 
@@ -247,10 +264,27 @@ fun HomeScreen(
             // Accessibility and "Alarms & reminders": the permissions a session can't start
             // without. Battery-optimization exemption is a separate, non-blocking recommendation —
             // see its own one-time dialog (MainActivity's showBatteryOptimizationPrompt) and Settings row.
-            if (profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted || !isAutostartGranted)) {
+            val showsPermissionsPill = profiles.isNotEmpty() && (!isAccessibilityEnabled || !isExactAlarmGranted || !isAutostartGranted || !isBackgroundPopupsGranted)
+            // Missing permissions come first; what else was logged shows once they're back.
+            val visibleTamperEntry = tamperEntry.takeIf { !showsPermissionsPill }
+            if (showsPermissionsPill || visibleTamperEntry != null || canGoBackToModeChoice) {
                 item {
-                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                        AccessibilityAlertPill(onClick = onPermissionsAlertTapped)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (canGoBackToModeChoice) {
+                            HomeGlassIconButton(
+                                onClick = onBackToModeChoice,
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.guided_back_content_description),
+                            )
+                        }
+                        if (showsPermissionsPill) AccessibilityAlertPill(onClick = onPermissionsAlertTapped)
+                        visibleTamperEntry?.let {
+                            HomeAlertPill(icon = Icons.Filled.GppMaybe, title = stringResource(it.type.titleRes), onClick = onTamperTapped)
+                        }
                     }
                 }
             }
@@ -307,8 +341,17 @@ fun HomeScreen(
                 }
                 if (!hasCompletedFirstSession) {
                     item {
+                        // Schedule profiles can't be held to start — they start on their own — so
+                        // the hint says so when there are any (iOS d439d32).
+                        val scheduleCount = profiles.count { it.blockingStrategyId in StrategyIds.SCHEDULED_IDS }
                         Text(
-                            stringResource(R.string.home_first_session_hint),
+                            stringResource(
+                                when (scheduleCount) {
+                                    profiles.size -> R.string.home_hint_schedule_only
+                                    0 -> R.string.home_first_session_hint
+                                    else -> R.string.home_hint_schedule_mixed
+                                },
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = HomeOnPastelVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -318,12 +361,35 @@ fun HomeScreen(
                 }
             }
         }
+
+        // A thin strip on the left edge, above the list: dragging from it to the right goes back
+        // to the mode choice too (iOS's swipe from First Steps).
+        if (canGoBackToModeChoice) {
+            var dragged by remember { mutableStateOf(0f) }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxHeight()
+                    .width(24.dp)
+                    .pointerInput(Unit) {
+                        detectHorizontalDragGestures(
+                            onDragStart = { dragged = 0f },
+                            onDragEnd = { if (dragged > 60.dp.toPx()) onBackToModeChoice() },
+                        ) { _, amount -> dragged += amount }
+                    },
+            )
+        }
     }
 }
 
 /** Android equivalent of HomeAlertsView's HomeAlertCard: a red capsule pill, tapped to open the detail sheet. */
 @Composable
-private fun AccessibilityAlertPill(onClick: () -> Unit) {
+private fun AccessibilityAlertPill(onClick: () -> Unit) =
+    HomeAlertPill(icon = Icons.Filled.Warning, title = stringResource(R.string.home_permissions_alert_pill), onClick = onClick)
+
+/** HomeAlertsView's HomeAlertPill: a red capsule with a white icon and one line of white text. */
+@Composable
+private fun HomeAlertPill(icon: ImageVector, title: String, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -332,12 +398,13 @@ private fun AccessibilityAlertPill(onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 9.dp),
     ) {
-        Icon(Icons.Filled.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(
-            stringResource(R.string.home_permissions_alert_pill),
+            title,
             style = MaterialTheme.typography.labelLarge,
             color = Color.White,
+            maxLines = 1,
         )
     }
 }
@@ -360,13 +427,14 @@ private fun HomeGlassIconButton(onClick: () -> Unit, icon: ImageVector, contentD
 
 @Composable
 private fun WelcomeSection(themeColor: Color, onAddProfile: () -> Unit) {
-    CenteredActionBlock(
+    // Spec Part B, 5.1 / 14: a card like the mode choice's, title and subtitle inside it.
+    IntroCard(
         title = stringResource(R.string.home_getting_started_title),
         subtitle = stringResource(R.string.home_getting_started_body),
-        buttonText = stringResource(R.string.home_create_profile_button),
-        buttonIcon = Icons.Filled.AccountCircle,
+        icon = Icons.Filled.AccountCircle,
         themeColor = themeColor,
-        onButtonClick = onAddProfile,
+        onClick = onAddProfile,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 22.dp),
     )
 }
 
@@ -397,12 +465,38 @@ private fun ProfileBalloonCard(
 ) {
     var isExpanded by remember(profile.id) { mutableStateOf(false) }
     // Schedule profiles only ever start on their own, at the scheduled time — never by hand.
-    val canStart = !isBlocking && profile.blockingStrategyId != StrategyIds.SCHEDULE
+    val canStart = !isBlocking && profile.blockingStrategyId !in StrategyIds.SCHEDULED_IDS
     val hold = rememberHoldFeedback(enabled = !isActive && canStart, key = profile, onConfirm = onStart)
 
     LaunchedEffect(isActive) {
         if (!isActive) isExpanded = false
     }
+
+    // Alarm mode (spec D6): opened by sliding the alarm, the card opens with its buttons and, a
+    // moment later, reading the Ctrus starts as if Stop had been pressed. Cancelling the reading
+    // leaves the buttons open.
+    val isAlarmProfile = profile.blockingStrategyId == StrategyIds.ALARM
+    val expandRequest by WakeAlarmManager.expandRequestProfileId.collectAsState()
+    val stopRequest by WakeAlarmManager.stopRequestProfileId.collectAsState()
+    LaunchedEffect(isActive, expandRequest) {
+        if (isActive && expandRequest == profile.id) {
+            isExpanded = true
+            WakeAlarmManager.expandRequestProfileId.value = null
+        }
+    }
+    // Cleared only after the wait: clearing it first would restart this effect and cancel the wait.
+    val stopRequested = stopRequest == profile.id
+    LaunchedEffect(isActive, stopRequested) {
+        if (isActive && stopRequested) {
+            isExpanded = true
+            delay(600)
+            WakeAlarmManager.stopRequestProfileId.value = null
+            onStop()
+        }
+    }
+    val alarm = rememberAlarmCardState(profile.id, isActive && isAlarmProfile)
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     val scale by animateFloatAsState(
         targetValue = if (hold.isPressed) 0.97f else 1f,
@@ -428,6 +522,7 @@ private fun ProfileBalloonCard(
             themeColor = themeColor,
             displaySeconds = displaySeconds,
             isBreakActive = isBreakActive,
+            alarm = alarm,
             onHeaderTapped = { if (isActive) isExpanded = !isExpanded },
             onEdit = onEdit,
             onStart = onStart,
@@ -444,6 +539,10 @@ private fun ProfileBalloonCard(
             exit = fadeOut(pressSpring()) + shrinkVertically(pressSpring(), shrinkTowards = Alignment.Top),
         ) {
             ExpandedActions(
+                // Only while it rings: a snooze counts down in the clock instead, and the button
+                // comes back once it's over.
+                showsSnooze = alarm?.isRinging == true && profile.enableSnooze,
+                onSnooze = { scope.launch { WakeAlarmManager.snooze(CtrusApp.from(context), profile.id) } },
                 isBreakAvailable = isBreakAvailable,
                 isBreakActive = isBreakActive,
                 hasEmergencyUnblock = profile.enableEmergencyUnblock,
@@ -465,6 +564,7 @@ private fun BalloonHeader(
     themeColor: Color,
     displaySeconds: Double,
     isBreakActive: Boolean,
+    alarm: AlarmCardState?,
     onHeaderTapped: () -> Unit,
     onEdit: () -> Unit,
     onStart: () -> Unit,
@@ -491,7 +591,7 @@ private fun BalloonHeader(
             Text("$appsLabel | $domainsLabel", style = MaterialTheme.typography.bodySmall, color = HomeOnPastelVariant)
             // Hidden while the session runs (iOS 44ccf0b): next to the live timer, "Tomorrow at
             // 22:00" is noise. It only matters once the session has ended.
-            profile.schedule?.takeIf { !isActive && it.isActive && profile.blockingStrategyId == StrategyIds.SCHEDULE }?.let {
+            profile.schedule?.takeIf { !isActive && it.isActive && profile.blockingStrategyId in StrategyIds.SCHEDULED_IDS }?.let {
                 Spacer(Modifier.height(2.dp))
                 NextScheduleLine(it, profile.scheduleSkip)
             }
@@ -500,12 +600,21 @@ private fun BalloonHeader(
         Box(
             modifier = Modifier
                 .width(118.dp)
-                .height(62.dp)
+                // A little taller during an Alarm mode break, to fit the break's clock under the alarm's.
+                .height(if (alarm != null && isBreakActive) 84.dp else 62.dp)
                 .then(if (isActive) Modifier.clickable(onClick = onHeaderTapped) else Modifier.clickable(onClick = onInsights))
                 .padding(horizontal = 4.dp),
             contentAlignment = Alignment.Center,
         ) {
-            if (isActive) {
+            if (isActive && alarm != null) {
+                AlarmSessionTimeAccessory(
+                    alarm = alarm,
+                    breakSeconds = displaySeconds.takeIf { isBreakActive },
+                    fallbackSeconds = displaySeconds,
+                    themeColor = themeColor,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else if (isActive) {
                 SessionTimeAccessory(
                     displaySeconds = displaySeconds,
                     isBreakActive = isBreakActive,
@@ -522,7 +631,7 @@ private fun BalloonHeader(
             profileName = profile.name,
             isActive = isActive,
             canStart = !isBlocking,
-            startsOnSchedule = profile.blockingStrategyId == StrategyIds.SCHEDULE,
+            startsOnSchedule = profile.blockingStrategyId in StrategyIds.SCHEDULED_IDS,
             onInsights = onInsights,
             onEdit = onEdit,
             onStart = onStart,
@@ -560,6 +669,91 @@ private fun SessionTimeAccessory(displaySeconds: Double, isBreakActive: Boolean,
             color = themeColor,
             style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
             minFontSize = 11.sp,
+            textAlign = TextAlign.Start,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+    }
+}
+
+/** Alarm mode's state for an active card: when it rings, whether it's ringing, and a snooze. */
+private data class AlarmCardState(val alarmDateMillis: Long?, val snoozedUntilMillis: Long?, val nowMillis: Long) {
+    val isSnoozed: Boolean get() = (snoozedUntilMillis ?: 0) > nowMillis
+    val isRinging: Boolean get() = alarmDateMillis != null && alarmDateMillis <= nowMillis && !isSnoozed
+}
+
+/** Null unless [enabled] (an active Alarm mode card); ticks every second while it is. */
+@Composable
+private fun rememberAlarmCardState(profileId: String, enabled: Boolean): AlarmCardState? {
+    if (!enabled) return null
+    val records by WakeAlarmManager.records.collectAsState()
+    val snoozedUntil by WakeAlarmManager.snoozedUntil.collectAsState()
+    val now by produceState(System.currentTimeMillis()) {
+        while (true) {
+            delay(1_000L - System.currentTimeMillis() % 1_000L)
+            value = System.currentTimeMillis()
+        }
+    }
+    return AlarmCardState(records[profileId]?.alarmDate, snoozedUntil, now)
+}
+
+/**
+ * Alarm mode's take on [SessionTimeAccessory] (spec D6.2): counts down to the alarm, says it's
+ * ringing once it's due, and counts a snooze down in its place. During a break, the break's own
+ * countdown sits underneath, a little smaller and fainter.
+ */
+@Composable
+private fun AlarmSessionTimeAccessory(
+    alarm: AlarmCardState,
+    breakSeconds: Double?,
+    fallbackSeconds: Double,
+    themeColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val topFontSize = if (breakSeconds == null) 20.sp else 16.sp
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        when {
+            alarm.isSnoozed -> AccessoryClockRow(Icons.Filled.Snooze, (alarm.snoozedUntilMillis!! - alarm.nowMillis) / 1000.0, topFontSize, themeColor)
+            alarm.isRinging -> {
+                val pulse by androidx.compose.animation.core.rememberInfiniteTransition(label = "ringing").animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.35f,
+                    animationSpec = androidx.compose.animation.core.infiniteRepeatable(tween(700), androidx.compose.animation.core.RepeatMode.Reverse),
+                    label = "ringingPulse",
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Filled.Alarm, contentDescription = null, tint = themeColor.copy(alpha = pulse), modifier = Modifier.size(16.dp))
+                    AutoSizeText(
+                        text = stringResource(R.string.alarm_ringing),
+                        color = themeColor,
+                        style = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
+                        minFontSize = 11.sp,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                }
+            }
+            else -> AccessoryClockRow(
+                Icons.Filled.Alarm,
+                alarm.alarmDateMillis?.let { (it - alarm.nowMillis) / 1000.0 } ?: fallbackSeconds,
+                topFontSize,
+                themeColor,
+            )
+        }
+        if (breakSeconds != null) {
+            AccessoryClockRow(Icons.Filled.Coffee, breakSeconds, 14.sp, themeColor.copy(alpha = 0.75f))
+        }
+    }
+}
+
+@Composable
+private fun AccessoryClockRow(icon: ImageVector, seconds: Double, fontSize: androidx.compose.ui.unit.TextUnit, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        AutoSizeText(
+            text = DateFormatters.formatDurationClock(maxOf(0.0, seconds)),
+            color = color,
+            style = TextStyle(fontSize = fontSize, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
+            minFontSize = 10.sp,
             textAlign = TextAlign.Start,
             modifier = Modifier.weight(1f, fill = false),
         )
@@ -659,6 +853,8 @@ private fun BalloonMenu(
 
 @Composable
 private fun ExpandedActions(
+    showsSnooze: Boolean,
+    onSnooze: () -> Unit,
     isBreakAvailable: Boolean,
     isBreakActive: Boolean,
     hasEmergencyUnblock: Boolean,
@@ -671,6 +867,16 @@ private fun ExpandedActions(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 4.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (showsSnooze) {
+            SessionPillButton(
+                title = stringResource(R.string.alarm_snooze),
+                borderColor = themeColor,
+                contentColor = Color.Black,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onSnooze,
+                icon = { Icon(Icons.Filled.Snooze, contentDescription = null, tint = Color.Black, modifier = Modifier.size(SessionActionIconSize)) },
+            )
+        }
         if (isBreakAvailable) {
             BreakHoldButton(
                 title = stringResource(if (isBreakActive) R.string.session_hold_stop_break else R.string.session_hold_start_break),

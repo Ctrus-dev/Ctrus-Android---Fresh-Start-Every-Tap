@@ -2,6 +2,7 @@ package mo.dev.ctrus.ui.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -47,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.data.BlockedProfileEntity
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
@@ -81,6 +83,7 @@ fun ProfileFormScreen(
     var showDeleteAlert by remember { mutableStateOf(false) }
     var showMissingUnlockAlert by remember { mutableStateOf(false) }
     var showMissingScheduleDaysAlert by remember { mutableStateOf(false) }
+    var showInvalidAlarmTimeAlert by remember { mutableStateOf(false) }
     var showDuplicatePrompt by remember { mutableStateOf(false) }
     var duplicateName by remember { mutableStateOf("") }
 
@@ -89,16 +92,21 @@ fun ProfileFormScreen(
     }
 
     fun attemptSave() {
-        if (draft.physicalUnblockItems.isEmpty()) {
+        if (!draft.hasRequiredUnlocks) {
             showMissingUnlockAlert = true
             return
         }
         // Mirrors BlockedProfileView's `.missingScheduleDays` guard.
-        if (draft.useSchedule && draft.scheduleDays.isEmpty()) {
+        if (draft.useSchedule && !draft.useOneTimeAlarm && draft.scheduleDays.isEmpty()) {
             showMissingScheduleDaysAlert = true
             return
         }
-        onSave(draft)
+        // Mirrors BlockedProfileView's `.invalidAlarmTime` guard.
+        if (draft.useAlarm && !draft.hasValidAlarmTime) {
+            showInvalidAlarmTimeAlert = true
+            return
+        }
+        onSave(draft.forSaving())
     }
 
     val duplicateSuffix = stringResource(R.string.profile_form_duplicate_name_suffix, draft.name)
@@ -229,6 +237,18 @@ fun ProfileFormScreen(
                     SafeguardsFields(draft, { draft = it }, disabled)
                 }
             }
+            // A schedule already shows this under its duration.
+            if (ChildModeStore.isChildMode && !draft.useSchedule) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 20.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp)),
+                    ) { ChildModeSessionLimitNote() }
+                }
+            }
         }
     }
 
@@ -267,6 +287,15 @@ fun ProfileFormScreen(
             title = { Text(stringResource(R.string.profile_form_missing_unlock_title)) },
             text = { Text(stringResource(R.string.profile_form_missing_schedule_days_body)) },
             confirmButton = { TextButton(onClick = { showMissingScheduleDaysAlert = false }) { Text(stringResource(R.string.common_ok)) } },
+        )
+    }
+
+    if (showInvalidAlarmTimeAlert) {
+        AlertDialog(
+            onDismissRequest = { showInvalidAlarmTimeAlert = false },
+            title = { Text(stringResource(R.string.profile_form_missing_unlock_title)) },
+            text = { Text(stringResource(R.string.alarm_end_time_invalid)) },
+            confirmButton = { TextButton(onClick = { showInvalidAlarmTimeAlert = false }) { Text(stringResource(R.string.common_ok)) } },
         )
     }
 

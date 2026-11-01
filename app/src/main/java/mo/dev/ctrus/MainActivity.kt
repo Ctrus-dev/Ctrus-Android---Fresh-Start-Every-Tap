@@ -62,6 +62,8 @@ import mo.dev.ctrus.permissions.AccessibilityPermissionUtil
 import mo.dev.ctrus.permissions.BatteryOptimizationUtil
 import mo.dev.ctrus.permissions.ExactAlarmPermissionUtil
 import mo.dev.ctrus.permissions.XiaomiAutostartUtil
+import mo.dev.ctrus.permissions.XiaomiBackgroundPopupUtil
+import mo.dev.ctrus.permissions.XiaomiLockScreenUtil
 import mo.dev.ctrus.session.SessionOrchestrator
 import mo.dev.ctrus.strategy.StrategyCapabilities
 import mo.dev.ctrus.strategy.StrategyInput
@@ -84,6 +86,23 @@ import mo.dev.ctrus.ui.session.EmergencyView
 import mo.dev.ctrus.ui.settings.SettingsScreen
 import mo.dev.ctrus.ui.strategy.PendingRequirementDialog
 import mo.dev.ctrus.util.resolve
+import mo.dev.ctrus.childmode.AppMode
+import mo.dev.ctrus.childmode.ChildModeStore
+import mo.dev.ctrus.childmode.ChildSessionLimit
+import mo.dev.ctrus.childmode.ParentCredentials
+import mo.dev.ctrus.childmode.TamperLogEntry
+import mo.dev.ctrus.ui.childmode.ChildModeSetupScreen
+import mo.dev.ctrus.ui.childmode.ChildModeSettingsScreen
+import mo.dev.ctrus.ui.childmode.ParentConfirmationHost
+import mo.dev.ctrus.ui.childmode.ParentConfirmationRequest
+import mo.dev.ctrus.ui.common.TagReadDialog
+import mo.dev.ctrus.childmode.ChildModeSwitcher
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.ModalBottomSheetProperties
+import mo.dev.ctrus.ui.intro.ModeChoiceScreen
+import mo.dev.ctrus.alarm.WakeAlarmManager
+import mo.dev.ctrus.permissions.AlarmPermissionUtil
+import androidx.lifecycle.repeatOnLifecycle
 import mo.dev.ctrus.data.ScheduleSkip
 import mo.dev.ctrus.data.canUnblockWithNfcCode
 import mo.dev.ctrus.ui.common.NfcScanDialog
@@ -99,6 +118,15 @@ private val LightNavigationBarScrim = android.graphics.Color.argb(0xe6, 0xFF, 0x
 private val DarkNavigationBarScrim = android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_ALARM_PROFILE_ID = "alarm_profile_id"
+
+        /** Ctrus is on screen; AlarmService doesn't bring the alarm screen back over it. */
+        @Volatile
+        var isVisible = false
+            private set
+    }
+
     private lateinit var nfcScanController: NfcScanController
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,6 +145,8 @@ class MainActivity : ComponentActivity() {
         val themeManager = ThemeManager.getInstance(applicationContext)
         nfcScanController = NfcScanController(this, lifecycleScope)
 
+        handleAlarmIntent(intent)
+
         setContent {
             CtrusTheme(themeManager) {
                 val navController = rememberNavController()
@@ -125,8 +155,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleAlarmIntent(intent)
+    }
+
+    /** Opened by sliding the alarm screen (spec D6.1): the profile's card opens and reads the Ctrus. */
+    private fun handleAlarmIntent(intent: Intent?) {
+        val profileId = intent?.getStringExtra(EXTRA_ALARM_PROFILE_ID) ?: return
+        intent.removeExtra(EXTRA_ALARM_PROFILE_ID)
+        val app = CtrusApp.from(this)
+        lifecycleScope.launch { WakeAlarmManager.alarmOpenedApp(app, profileId) }
+    }
+
     // Claims NFC reads for the entire time Ctrus is in the foreground, not just while a scan
     // dialog is open — see NfcScanController's kdoc.
+    override fun onStart() {
+        super.onStart()
+        isVisible = true
+    }
+
+    override fun onStop() {
+        isVisible = false
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         nfcScanController.attach()
@@ -167,7 +220,31 @@ private fun CtrusNavHost(
     // revocation shows a HomeAlertsView-style banner instead (isAccessibilityEnabled below), not
     // this screen again.
     var showIntroScreen by remember { mutableStateOf<Boolean?>(null) }
-    LaunchedEffect(Unit) { showIntroScreen = app.preferences.showIntroScreen() }
+    // Spec Part B, 5.1: permissions, then the mode choice, then — for Child Mode — its setup.
+    var pendingChildModeSetup by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        pendingChildModeSetup = app.preferences.pendingChildModeSetup()
+        showIntroScreen = app.preferences.showIntroScreen()
+    }
+    val isChildMode = ChildModeStore.appModeFlow.collectAsState().value == AppMode.CHILD
+    fun finishIntro() {
+        showIntroScreen = false
+        pendingChildModeSetup = false
+        coroutineScope.launch {
+            app.preferences.setPendingChildModeSetup(false)
+            app.preferences.setShowIntroScreen(false)
+        }
+    }
+    // Picked the wrong mode: back to the choice, dropping anything a half-done setup saved.
+    fun backToModeChoice() {
+        if (!ChildModeStore.isChildMode) ParentCredentials.clearAll()
+        pendingChildModeSetup = false
+        showIntroScreen = true
+        coroutineScope.launch {
+            app.preferences.setPendingChildModeSetup(false)
+            app.preferences.setShowIntroScreen(true)
+        }
+    }
 
     // Mirrors HomeProfilesListView's `@AppStorage("useLeftHandedLayout")` and HomeView's
     // `@AppStorage("hasCompletedFirstSession")`.
@@ -190,16 +267,18 @@ private fun CtrusNavHost(
     // foreground — Android has no push notification for "the user flipped this off in Settings",
     // so re-checking on resume is the only way Home's alert banner (and Settings' own status row)
     // ever finds out a previously-granted service was revoked.
-    var isAccessibilityEnabled by remember { mutableStateOf(true) }
+    var isAccessibilityEnabled by remember { mutableStateOf(AccessibilityPermissionUtil.isEnabled(context)) }
     // Re-checked on every resume too — mainly so returning from the system's own "exempt this
     // app" dialog (or from having toggled it manually in system Settings) updates Settings' own
     // status row without needing to reopen it.
     var isBatteryOptimizationExempt by remember { mutableStateOf(true) }
     // "Alarms & reminders" — re-checked on resume for the same reason, e.g. after coming back from
     // the system toggle that ExactAlarmPermissionUtil.request opens.
-    var isExactAlarmGranted by remember { mutableStateOf(true) }
+    var isExactAlarmGranted by remember { mutableStateOf(ExactAlarmPermissionUtil.isGranted(context)) }
     // Xiaomi's Autostart (always true elsewhere) — see XiaomiAutostartUtil.
-    var isAutostartGranted by remember { mutableStateOf(true) }
+    var isAutostartGranted by remember { mutableStateOf(XiaomiAutostartUtil.isGranted(context)) }
+    // Xiaomi's background pop-ups (always true elsewhere) — see XiaomiBackgroundPopupUtil.
+    var isBackgroundPopupsGranted by remember { mutableStateOf(XiaomiBackgroundPopupUtil.isGranted(context)) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -209,21 +288,40 @@ private fun CtrusNavHost(
                 isBatteryOptimizationExempt = BatteryOptimizationUtil.isIgnoringBatteryOptimizations(context)
                 isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
                 isAutostartGranted = XiaomiAutostartUtil.isGranted(context)
+                isBackgroundPopupsGranted = XiaomiBackgroundPopupUtil.isGranted(context)
                 // Mirrors HomeView's loadApp/onAppearApp: bring the unlock cycles up to date and
                 // drop schedule skips whose days are over.
                 coroutineScope.launch {
                     app.preferences.checkUnlockCycles()
                     app.profileRepository.clearExpiredScheduleSkips()
-                }
-                // The intro asks for every permission that gates a start, not just Accessibility.
-                if (showIntroScreen == true && enabled && isExactAlarmGranted && isAutostartGranted) {
-                    showIntroScreen = false
-                    coroutineScope.launch { app.preferences.setShowIntroScreen(false) }
+                    // Child Mode catches up on anything missed while the app was closed: the
+                    // Accessibility service turned off, a moved date, an automatic end that's due.
+                    if (app.preferences.swapLastKnownAccessibilityEnabled(enabled) && !enabled) {
+                        ChildModeStore.logTamper(TamperLogEntry.Kind.PERMISSION_REVOKED)
+                    }
+                    if (ChildModeStore.isChildMode) ChildModeStore.checkForClockChange()
+                    ChildSessionLimit.sync(app)
+                    // Alarm mode (spec D4, D6.4, D8): catch up on a session the system didn't
+                    // start, bring every alarm in line, and ring again if it's due.
+                    WakeAlarmManager.startMissedAlarmSession(app)
+                    WakeAlarmManager.refreshAll(app)
+                    WakeAlarmManager.ensureRinging(app)
                 }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // While the app is open, a due alarm (its time, or the end of a snooze) starts ringing here
+    // straight away, without waiting for the system alarm.
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                WakeAlarmManager.ensureRinging(app)
+                kotlinx.coroutines.delay(1_000)
+            }
+        }
     }
 
     when (showIntroScreen) {
@@ -233,6 +331,27 @@ private fun CtrusNavHost(
             return
         }
         true -> {
+            // The intro asks for every permission that gates a start, not just Accessibility.
+            if (isAccessibilityEnabled && isExactAlarmGranted && isAutostartGranted && isBackgroundPopupsGranted) {
+                if (pendingChildModeSetup) {
+                    ChildModeSetupScreen(
+                        themeColor = themeManager.selectedColorOption.color,
+                        nfcScanController = nfcScanController,
+                        onCancel = ::backToModeChoice,
+                        onFinished = ::finishIntro,
+                    )
+                } else {
+                    ModeChoiceScreen(themeColor = themeManager.selectedColorOption.color) { mode ->
+                        if (mode == AppMode.CHILD) {
+                            pendingChildModeSetup = true
+                            coroutineScope.launch { app.preferences.setPendingChildModeSetup(true) }
+                        } else {
+                            finishIntro()
+                        }
+                    }
+                }
+                return
+            }
             PermissionsIntroScreen(
                 themeColor = themeManager.selectedColorOption.color,
                 isAccessibilityEnabled = isAccessibilityEnabled,
@@ -241,6 +360,8 @@ private fun CtrusNavHost(
                 onRequestAccessibility = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
                 onRequestExactAlarm = { ExactAlarmPermissionUtil.request(context) },
                 onRequestAutostart = { XiaomiAutostartUtil.request(context) },
+                isBackgroundPopupsGranted = isBackgroundPopupsGranted,
+                onRequestBackgroundPopups = { XiaomiBackgroundPopupUtil.request(context) },
             )
             return
         }
@@ -277,10 +398,11 @@ private fun CtrusNavHost(
     // is actually pending here — see NfcScanController's kdoc.
     DisposableEffect(pendingRequirement?.requirement) {
         if (pendingRequirement?.requirement == StrategyRequirement.ScanNfcTag) {
-            nfcScanController.startScan { code ->
+            nfcScanController.startScan { read ->
+                val input = StrategyInput.NfcTag(read.code, read.uid)
                 when (val pending = pendingRequirement) {
-                    is mo.dev.ctrus.session.PendingRequirement.Start -> orchestrator.provideStartInput(StrategyInput.NfcTag(code))
-                    is mo.dev.ctrus.session.PendingRequirement.Stop -> orchestrator.provideStopInput(StrategyInput.NfcTag(code))
+                    is mo.dev.ctrus.session.PendingRequirement.Start -> orchestrator.provideStartInput(input)
+                    is mo.dev.ctrus.session.PendingRequirement.Stop -> orchestrator.provideStopInput(input)
                     null -> Unit
                 }
             }
@@ -316,6 +438,21 @@ private fun CtrusNavHost(
     // animation is smooth and self-contained regardless of the NavHost's own enter/exit transition
     // (kept at None elsewhere in this file to avoid the 3D mascot lingering during navigation).
     var showSettings by remember { mutableStateOf(false) }
+    // Child Mode (spec Part B): one parent confirmation at a time, for one action.
+    var parentConfirmationRequest by remember { mutableStateOf<ParentConfirmationRequest?>(null) }
+    var showTamperLog by remember { mutableStateOf(false) }
+    var showChildModeSettings by remember { mutableStateOf(false) }
+    var showChildModeSetup by remember { mutableStateOf(false) }
+    var isReadingParentTagToEnd by remember { mutableStateOf(false) }
+    var childModeMessage by remember { mutableStateOf<String?>(null) }
+    val tamperLog by ChildModeStore.tamperLogFlow.collectAsState()
+    val tamperLogUnseen by ChildModeStore.tamperLogUnseenFlow.collectAsState()
+    fun endSessionConfirmedByParents() {
+        coroutineScope.launch {
+            orchestrator.endSessionConfirmedByParents()
+            markFirstSessionCompleted()
+        }
+    }
     var showManageProfiles by remember { mutableStateOf(false) }
     var showCreateProfile by remember { mutableStateOf(false) }
 
@@ -333,6 +470,52 @@ private fun CtrusNavHost(
         ) {
             scheduleNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+    // Alarm mode (spec D3.6): a profile isn't saved until notifications, "Alarms & reminders" and
+    // (Android 14+) full-screen notifications are allowed. Each tap of Save checks again.
+    var missingAlarmPermission by remember { mutableStateOf<AlarmPermissionUtil.Missing?>(null) }
+    val alarmNotificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (!granted || !AlarmPermissionUtil.notificationsAllowed(context)) AlarmPermissionUtil.openNotificationSettings(context) }
+    fun checkAlarmSetup(draft: ProfileDraft, proceed: () -> Unit) {
+        val missing = if (draft.useAlarm) AlarmPermissionUtil.firstMissing(context) else null
+        if (missing == null) proceed() else missingAlarmPermission = missing
+    }
+    missingAlarmPermission?.let { missing ->
+        AlertDialog(
+            onDismissRequest = { missingAlarmPermission = null },
+            title = { Text(stringResource(R.string.error_dialog_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        when (missing) {
+                            AlarmPermissionUtil.Missing.FULL_SCREEN -> R.string.alarm_full_screen_required
+                            AlarmPermissionUtil.Missing.LOCK_SCREEN -> R.string.alarm_lock_screen_required
+                            else -> R.string.alarm_access_denied
+                        },
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    missingAlarmPermission = null
+                    when (missing) {
+                        AlarmPermissionUtil.Missing.NOTIFICATIONS ->
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                alarmNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                AlarmPermissionUtil.openNotificationSettings(context)
+                            }
+                        AlarmPermissionUtil.Missing.EXACT_ALARMS -> ExactAlarmPermissionUtil.request(context)
+                        AlarmPermissionUtil.Missing.FULL_SCREEN -> AlarmPermissionUtil.openFullScreenSettings(context)
+                        AlarmPermissionUtil.Missing.LOCK_SCREEN -> XiaomiLockScreenUtil.request(context)
+                    }
+                }) { Text(stringResource(R.string.nfc_open_settings)) }
+            },
+            dismissButton = { TextButton(onClick = { missingAlarmPermission = null }) { Text(stringResource(R.string.common_cancel)) } },
+        )
     }
     var editingProfileId by remember { mutableStateOf<String?>(null) }
     var insightsProfileId by remember { mutableStateOf<String?>(null) }
@@ -361,7 +544,12 @@ private fun CtrusNavHost(
                 onDismiss = { showManageProfiles = false },
                 onEditProfile = { profile -> showManageProfiles = false; editingProfileId = profile.id },
                 onAddProfile = { showManageProfiles = false; showCreateProfile = true },
-                onDeleteProfile = { profile -> coroutineScope.launch { app.profileRepository.delete(profile) } },
+                onDeleteProfile = { profile ->
+                    val delete = { coroutineScope.launch { app.profileRepository.delete(profile) }; Unit }
+                    // Child Mode: deleting a profile needs the parents (spec Part B, 6.2).
+                    if (ChildModeStore.isChildMode) parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_delete, delete)
+                    else delete()
+                },
                 onAllInsights = { showAllInsights = true },
             )
         }
@@ -374,7 +562,7 @@ private fun CtrusNavHost(
                 themeColor = themeManager.selectedColorOption.color,
                 nfcScanController = nfcScanController,
                 onDismiss = { showCreateProfile = false },
-                onCreate = { draft ->
+                onCreate = { draft -> checkAlarmSetup(draft) {
                     requestScheduleNotificationPermissionIfNeeded(draft)
                     coroutineScope.launch {
                         app.profileRepository.create(
@@ -394,10 +582,14 @@ private fun CtrusNavHost(
                             enableBlockAppInstallation = draft.enableBlockAppInstallation,
                             schedule = draft.schedule,
                             allowSkip = draft.allowSkip,
+                            enableSnooze = draft.enableSnooze,
+                            isOneTimeAlarm = draft.useOneTimeAlarm,
+                            childTag = draft.childTag,
+                            childTagCanStop = draft.childTagCanStop,
                         )
                         showCreateProfile = false
                     }
-                },
+                } },
             )
         }
     }
@@ -425,6 +617,8 @@ private fun CtrusNavHost(
                 onRequestExactAlarm = { ExactAlarmPermissionUtil.request(context) },
                 isAutostartGranted = isAutostartGranted,
                 onRequestAutostart = { XiaomiAutostartUtil.request(context) },
+                isBackgroundPopupsGranted = isBackgroundPopupsGranted,
+                onRequestBackgroundPopups = { XiaomiBackgroundPopupUtil.request(context) },
                 onRequestAccessibility = { showAccessibilityDisclosure = true },
                 onRequestBatteryOptimizationExemption = { BatteryOptimizationUtil.requestIgnoreBatteryOptimizations(context) },
                 appVersion = "1.0",
@@ -444,8 +638,19 @@ private fun CtrusNavHost(
                     useLeftHandedLayout = enabled
                     coroutineScope.launch { app.preferences.setUseLeftHandedLayout(enabled) }
                 },
+                isChildMode = isChildMode,
+                isBlocking = activeSession != null,
+                onUnlockWithParentCode = {
+                    parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_end_session, ::endSessionConfirmedByParents)
+                },
+                onUseParentTag = { isReadingParentTagToEnd = true },
+                onOpenChildModeSettings = {
+                    parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_settings) { showChildModeSettings = true }
+                },
+                onEnableChildMode = { showChildModeSetup = true },
                 onValidateUnlockCode = { code ->
-                    if (remainingUnlocks <= 0) {
+                    // Child Mode never contacts recover.ctrus.pt — only the parents end sessions there.
+                    if (remainingUnlocks <= 0 || ChildModeStore.isChildMode) {
                         false
                     } else {
                         val id = app.preferences.deviceId()
@@ -480,18 +685,30 @@ private fun CtrusNavHost(
                     isBlockingGlobally = activeSession != null,
                     nfcScanController = nfcScanController,
                     onDismiss = { editingProfileId = null },
-                    onSave = { draft ->
+                    onSave = { draft -> checkAlarmSetup(draft) {
                         requestScheduleNotificationPermissionIfNeeded(draft)
-                        coroutineScope.launch {
-                            app.profileRepository.update(draft.applyTo(profile))
-                            editingProfileId = null
+                        val save = {
+                            coroutineScope.launch {
+                                app.profileRepository.update(draft.applyTo(profile))
+                                editingProfileId = null
+                            }
+                            Unit
                         }
-                    },
+                        // Creating a profile only ever adds blocking; changing one can loosen it,
+                        // so in Child Mode the parents confirm (spec Part B, 6.2).
+                        if (ChildModeStore.isChildMode) parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_edit, save)
+                        else save()
+                    } },
                     onDelete = {
-                        coroutineScope.launch {
-                            app.profileRepository.delete(profile)
-                            editingProfileId = null
+                        val delete = {
+                            coroutineScope.launch {
+                                app.profileRepository.delete(profile)
+                                editingProfileId = null
+                            }
+                            Unit
                         }
+                        if (ChildModeStore.isChildMode) parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_delete, delete)
+                        else delete()
                     },
                     onDuplicate = { newName ->
                         coroutineScope.launch {
@@ -545,7 +762,8 @@ private fun CtrusNavHost(
         isAccessibilityEnabled = AccessibilityPermissionUtil.isEnabled(context)
         isExactAlarmGranted = ExactAlarmPermissionUtil.isGranted(context)
         isAutostartGranted = XiaomiAutostartUtil.isGranted(context)
-        if (isAccessibilityEnabled && isExactAlarmGranted && isAutostartGranted) action() else showPermissionsAlertSheet = true
+        isBackgroundPopupsGranted = XiaomiBackgroundPopupUtil.isGranted(context)
+        if (isAccessibilityEnabled && isExactAlarmGranted && isAutostartGranted && isBackgroundPopupsGranted) action() else showPermissionsAlertSheet = true
     }
 
     if (showPermissionsAlertSheet) {
@@ -565,6 +783,11 @@ private fun CtrusNavHost(
             onFixAutostart = {
                 showPermissionsAlertSheet = false
                 XiaomiAutostartUtil.request(context)
+            },
+            isBackgroundPopupsGranted = isBackgroundPopupsGranted,
+            onFixBackgroundPopups = {
+                showPermissionsAlertSheet = false
+                XiaomiBackgroundPopupUtil.request(context)
             },
         )
     }
@@ -607,11 +830,9 @@ private fun CtrusNavHost(
     // the limited-use count iOS enforces via EmergencyView.
     var showEmergencySheet by remember { mutableStateOf(false) }
     var emergencyRemaining by remember { mutableStateOf(AppPreferences.DEFAULT_EMERGENCY_UNBLOCKS) }
-    var emergencyResetWeeks by remember { mutableStateOf(AppPreferences.DEFAULT_RESET_PERIOD_WEEKS) }
     var emergencyResetDateMillis by remember { mutableStateOf<Long?>(null) }
     suspend fun refreshEmergencyState() {
         emergencyRemaining = app.preferences.remainingEmergencyUnblocks()
-        emergencyResetWeeks = app.preferences.resetPeriodWeeksEmergency()
         emergencyResetDateMillis = app.preferences.nextEmergencyResetDate().toEpochMilli()
     }
     // Mirrors EmergencyView's `.onAppear { strategyManager.checkAndResetEmergencyUnblocks() }`.
@@ -620,14 +841,7 @@ private fun CtrusNavHost(
     if (showEmergencySheet) {
         EmergencyView(
             remaining = emergencyRemaining,
-            resetPeriodWeeks = emergencyResetWeeks,
             resetDateMillis = emergencyResetDateMillis,
-            onResetPeriodSelected = { weeks ->
-                coroutineScope.launch {
-                    app.preferences.setResetPeriodWeeksEmergency(weeks)
-                    refreshEmergencyState()
-                }
-            },
             onConfirmUnblock = {
                 orchestrator.emergencyUnblock()
                 markFirstSessionCompleted()
@@ -651,9 +865,10 @@ private fun CtrusNavHost(
         if (request is PendingSkip.Until) skipUntilErrorMessage = message else skipNextErrorMessage = message
     }
 
-    fun applySkip(request: PendingSkip, code: String) {
+    /** [code] is the tag that was read, or null once the parents confirmed it (Child Mode). */
+    fun applySkip(request: PendingSkip, code: String?) {
         val profile = profiles.firstOrNull { it.id == request.profileId } ?: return
-        if (!profile.canUnblockWithNfcCode(code)) {
+        if (code != null && !profile.canUnblockWithNfcCode(code)) {
             skipFailed(request, context.getString(R.string.skip_wrong_tag))
             return
         }
@@ -677,9 +892,9 @@ private fun CtrusNavHost(
     DisposableEffect(pendingSkip) {
         val request = pendingSkip
         if (request != null) {
-            nfcScanController.startScan { code ->
+            nfcScanController.startScan { read ->
                 pendingSkip = null
-                applySkip(request, code)
+                applySkip(request, read.code)
             }
         }
         onDispose { if (request != null) nfcScanController.stopScan() }
@@ -704,7 +919,16 @@ private fun CtrusNavHost(
                     errorMessage = skipUntilErrorMessage,
                     onDismissError = { skipUntilErrorMessage = null },
                     onClose = { skipUntilProfileId = null },
-                    onSkip = { day -> pendingSkip = PendingSkip.Until(profileId, day) },
+                    buttonText = stringResource(if (isChildMode) R.string.skip_sheet_button_child else R.string.skip_sheet_button),
+                    onSkip = { day ->
+                        val request = PendingSkip.Until(profileId, day)
+                        // Child Mode: the parents confirm, over this sheet, instead of a tag.
+                        if (isChildMode) {
+                            parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_skip) { applySkip(request, code = null) }
+                        } else {
+                            pendingSkip = request
+                        }
+                    },
                 )
             }
         }
@@ -757,7 +981,14 @@ private fun CtrusNavHost(
                 onSkipNextTapped = { profile ->
                     // The next occurrence that hasn't started yet, even if another skip already
                     // covers it, matching iOS's nextStartDate(bufferSeconds: 0).
-                    profile.schedule?.nextTrigger()?.let { pendingSkip = PendingSkip.Next(profile.id, it) }
+                    profile.schedule?.nextTrigger()?.let { start ->
+                        val request = PendingSkip.Next(profile.id, start)
+                        if (isChildMode) {
+                            parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_skip) { applySkip(request, code = null) }
+                        } else {
+                            pendingSkip = request
+                        }
+                    }
                 },
                 onSkipUntilTapped = { profile ->
                     skipUntilErrorMessage = null
@@ -769,10 +1000,90 @@ private fun CtrusNavHost(
                 isAccessibilityEnabled = isAccessibilityEnabled,
                 isExactAlarmGranted = isExactAlarmGranted,
                 isAutostartGranted = isAutostartGranted,
+                isBackgroundPopupsGranted = isBackgroundPopupsGranted,
                 onPermissionsAlertTapped = { showPermissionsAlertSheet = true },
+                tamperEntry = tamperLog.lastOrNull()?.takeIf { isChildMode && tamperLogUnseen },
+                onTamperTapped = {
+                    parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_log) { showTamperLog = true }
+                },
+                canGoBackToModeChoice = !isChildMode && profiles.isEmpty() && isAccessibilityEnabled,
+                onBackToModeChoice = ::backToModeChoice,
             )
         }
     }
+
+    // Child Mode's sheets. Each is its own window, so whichever opens last sits on top — the
+    // parent confirmation always opens last, over whatever asked for it.
+    if (showChildModeSetup) {
+        val setupSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden })
+        ModalBottomSheet(
+            onDismissRequest = {},
+            sheetState = setupSheetState,
+            // Doesn't close by swiping or Back; its own "Back" leaves it from the first step.
+            properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
+        ) {
+            ChildModeSetupScreen(
+                themeColor = themeManager.selectedColorOption.color,
+                nfcScanController = nfcScanController,
+                onCancel = {
+                    // Nothing half-made is kept if setup is left before the end.
+                    if (!ChildModeStore.isChildMode) ParentCredentials.clearAll()
+                    showChildModeSetup = false
+                },
+                onFinished = {
+                    showChildModeSetup = false
+                    coroutineScope.launch { ChildSessionLimit.sync(app) }
+                },
+            )
+        }
+    }
+
+    if (showChildModeSettings || showTamperLog) {
+        ModalBottomSheet(
+            onDismissRequest = { showChildModeSettings = false; showTamperLog = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            ChildModeSettingsScreen(
+                themeColor = themeManager.selectedColorOption.color,
+                nfcScanController = nfcScanController,
+                startsOnLog = showTamperLog,
+                onDismiss = { showChildModeSettings = false; showTamperLog = false },
+                onSwitchToNormal = {
+                    showChildModeSettings = false
+                    coroutineScope.launch { ChildModeSwitcher.switchToNormal(app) { context.getString(R.string.tag_default_name, it) } }
+                },
+            )
+        }
+    }
+
+    if (isReadingParentTagToEnd) {
+        TagReadDialog(
+            nfcScanController = nfcScanController,
+            message = stringResource(R.string.child_parent_tag_scan),
+            onRead = { read ->
+                isReadingParentTagToEnd = false
+                if (ChildModeStore.isParentTag(read.uid)) endSessionConfirmedByParents()
+                else childModeMessage = context.getString(R.string.parent_confirm_not_parent_tag)
+            },
+            onDismiss = { isReadingParentTagToEnd = false },
+        )
+    }
+
+    childModeMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { childModeMessage = null },
+            title = { Text(stringResource(R.string.error_dialog_title)) },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = { childModeMessage = null }) { Text(stringResource(R.string.common_ok)) } },
+        )
+    }
+
+    ParentConfirmationHost(
+        request = parentConfirmationRequest,
+        onDismiss = { parentConfirmationRequest = null },
+        nfcScanController = nfcScanController,
+        themeColor = themeManager.selectedColorOption.color,
+    )
 
     ToastBanner(message = toastMessage, onDismiss = { toastMessage = null })
 }

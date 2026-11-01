@@ -36,7 +36,7 @@ enum class NfcAvailability { AVAILABLE, NO_HARDWARE, DISABLED }
  */
 class NfcScanController(private val activity: Activity, private val lifecycleScope: LifecycleCoroutineScope) {
     private val adapter: NfcAdapter? = NfcAdapter.getDefaultAdapter(activity)
-    private var currentHandler: ((String) -> Unit)? = null
+    private var currentHandler: ((NfcTagRead) -> Unit)? = null
     private var attached = false
 
     private val adapterStateReceiver = object : BroadcastReceiver() {
@@ -81,9 +81,9 @@ class NfcScanController(private val activity: Activity, private val lifecycleSco
             // which on some phones dropped and re-discovered the tag; that second discovery could
             // reach the system's "tag read" screen even though Ctrus had already used the tag.
             { tag ->
-                val code = NfcTagDecoder.decodeBlocking(tag)
+                val read = NfcTagDecoder.decodeBlocking(tag)
                 Log.d(TAG, "Tag read in reader mode (handler set: ${currentHandler != null})")
-                lifecycleScope.launch(Dispatchers.Main) { currentHandler?.invoke(code) }
+                lifecycleScope.launch(Dispatchers.Main) { currentHandler?.invoke(read) }
             },
             NfcAdapter.FLAG_READER_NFC_A or
                 NfcAdapter.FLAG_READER_NFC_B or
@@ -108,7 +108,7 @@ class NfcScanController(private val activity: Activity, private val lifecycleSco
         Log.d(TAG, "Reader mode disabled")
     }
 
-    fun startScan(onTag: (String) -> Unit) {
+    fun startScan(onTag: (NfcTagRead) -> Unit) {
         currentHandler = onTag
     }
 

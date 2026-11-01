@@ -430,8 +430,87 @@ fix (changing 2↔4 weeks no longer restarts the cycle), the `enableEmergencyUnb
 the `updatedAt`/settle-window and tag-based scheduled-session bugs, the reminder background
 task, the "Schedule needs repair" alert, and the shield blur tweaks.
 
-**Unlock cycles count real time (`util/TrustedClock`, spec Part A1).** The emergency (3 per 2/4
-weeks) and recovery (2 per 4 weeks, cycle starts on the first one used) cycles add up
+**Child Mode (spec Part B v3, iOS branch `child-mode`; Android branch `child-mode`).** A whole-phone
+mode chosen on first launch (permissions → `ui/intro/ModeChoiceScreen` → `ui/childmode/ChildModeSetupScreen`)
+or later from Settings. Pieces, all in `childmode/` and `ui/childmode/`:
+- `ChildModeStore` (SharedPreferences + flows): `appMode`, `parentTags` (1+, recognised by UID only,
+  lowercase hex from `NfcTagRead.uid`), `tamperLog` (max 50) and `tamperLogUnseen`.
+- `ParentCredentials`: the 6-digit parent code and 12-char recovery key as PBKDF2-SHA256 hashes
+  (100k iterations) in EncryptedSharedPreferences; 5 wrong → waits of 1/5/15/60 min counted with
+  `TrustedClock`; the parents' Ctrus resets them. Hashing is slow: call it off the main thread.
+- `ParentConfirmationSheet` (`ParentConfirmationHost`/`Request`): the single confirmation (their
+  Ctrus, the code, or the recovery key and a new code), and the action runs after it closes. It's needed for
+  editing/deleting profiles, skipping sessions, ending a session from Settings, Child Mode
+  settings and the attempt log. Creating, duplicating and reordering profiles don't need it.
+- Ending a session: only a parents' Ctrus or the profile's child's Ctrus (if `childTagCanStop`)
+  in every strategy's `stopBlocking`, plus Settings (parents) and emergency (cycle fixed at 4 weeks).
+  No recover.ctrus.pt in Child Mode. Android has no shortcuts/widget/deep-link stop to disable.
+- `ChildSessionLimit`: every session ends after 24 h of *real* time (or the schedule's
+  duration, or 5 min before the same schedule's next unskipped session, posting its reminder).
+  Driven by an exact alarm to `ScheduleReceiver.ACTION_CHILD_SESSION_LIMIT`, re-checked on app
+  resume, boot and date changes; the schedule's own `ACTION_END` does nothing in Child Mode.
+- Attempt log: `permissionRevoked` (service `onUnbind` / app resume, once per change),
+  `appStopped` ("A session may have been stopped from the phone's settings": `ServiceStopWatch`, a new process in the
+  same boot whose last exit was a user force stop (API 30+ `ApplicationExitInfo`), or a skipped
+  boot such as safe mode, but not an ordinary reboot or the system killing it; iOS dropped this
+  entry as unused there, Android keeps it on purpose), `clockChanged` (`clockWatch` TrustedClock,
+  >5 min), `pinLockout`. `permissionRevoked` reads "Some permissions may have been turned off"
+  (iOS 481aefa). A red pill on Home, hidden while the permissions pill shows. Parents' Ctrus are
+  deleted with a red trash button, hidden for the last one (iOS 9b780d3).
+- `ParentGuardActivity`: during a Child Mode session the service puts the parent confirmation
+  over Ctrus's own Accessibility page (matched by the service description) or App info
+  (`entity_header_title` / MIUI's details activity). Confirming frees it until Settings is left,
+  and ✕/Back goes Home.
+- Leaving Child Mode (`ChildModeSwitcher`): each profile gets the parents' Ctrus and its own
+  child's Ctrus as physical unlocks ("Ctrus N", URL else uppercase UID, no duplicates).
+Section 14 normal-mode changes made here too: welcome/First Steps are `IntroCard`s with full stops,
+schedule-aware home hint, "Ctrus N" tag names, theme-coloured start time, and in Normal Mode with
+no profiles a back arrow/left-edge swipe to the mode choice. Unit tests: `ChildModeTest`.
+
+**Alarm mode — "Alarm + Ctrus NFC" (spec `especificacao-despertador.md` v2, iOS branch `alarm-mode`).**
+A fourth start mode (`strategy/AlarmBlockingStrategy`, id `alarm`, in `StrategyIds.SCHEDULED_IDS` with
+`schedule`): starts on its own like Schedule (same `ScheduleAlarmScheduler`/`ScheduleReceiver`,
+reminder and skips), but at the end time (`ProfileSchedule.alarmHour/alarmMinute`, default 07:00,
+the next day when ≤ the start) an alarm rings that only the Ctrus or an emergency unblock stops,
+ending the session. Never ends on a timer (`durationInHours` always null); breaks allowed.
+- `alarm/WakeAlarmManager`: per profile, the main alarm + 30 spares a minute apart via
+  `AlarmManager.setAlarmClock` → `AlarmReceiver` (records in SharedPreferences `wake_alarm`).
+  `refresh`/`refreshAll` (Mutex) work out the date (running session's → an occurrence under way
+  without a session → the next one) and re-arm on mismatch; called on app resume, every profile
+  change, session start/end (`CtrusApp` observers) and with `rearm = true` on boot/update/clock
+  change/exact-alarm grant. No 60 s "settle window" like iOS: Android's start alarm fires for any
+  occurrence after now, so the alarm follows it. `onSessionEnded` (however it ended, Child Mode's
+  limit too) silences it, sets the next one and deletes a `isOneTimeAlarm` profile.
+- `alarm/AlarmService` (foreground, `mediaPlayback`): plays `res/raw/<tone>.m4a` on `USAGE_ALARM`
+  in a loop + vibration every 1.5 s, checks every second and stops when nothing is due; keeps the
+  spares 60 s ahead while ringing, so a killed service comes back within a minute. Its notification
+  (channel `alarm`, silent) has a Snooze action and a full-screen intent to `alarm/AlarmActivity`
+  (the only new screen: time, name, Snooze, slide → unlock → `MainActivity` with
+  `EXTRA_ALARM_PROFILE_ID`, where the card expands and the Ctrus read starts after 0.6 s).
+- Snooze (`enableSnooze`, `snoozeMinutes` 1–15): one global `snoozedUntil`, spares moved there.
+- D8: `startMissedAlarmSession` on resume starts a session (from the occurrence's start) that the
+  start alarm missed, within 30 min of the alarm, when no session runs and Accessibility is on.
+- Saving needs notifications, "Alarms & reminders", (14+) full-screen intents and, on Xiaomi, MIUI's
+  "Show on Lock screen" (`XiaomiLockScreenUtil`, app-op 10020; also a Recommended row in Permissions)
+  (`permissions/AlarmPermissionUtil`, checked in `MainActivity` before the parent confirmation).
+  Without 10020 MIUI silently keeps the alarm screen off the lock screen (seen on the POCO).
+- The alarm screen copies the Pixel Clock's (7.5, checked on the emulator): always dark, a large
+  "hh:mm"/"HH:mm" time with no AM/PM, the profile name, and one track with a theme-coloured pill
+  dragged left to Snooze (only shown with snooze on) or right to "Open Ctrus" (the spec's iOS 26.0
+  stop-button text). Vibration is an 800 ms pulse asked for every 1.5 s from `AlarmService`: one
+  repeating waveform was cancelled by the system when the alarm screen closed (POCO), leaving only
+  the sound. While it rings, `AlarmService` brings it back 3 s after it's left
+  (Home, Back, power button) unless Ctrus itself is on screen or the slide is still unlocking
+  (`AlarmActivity.openingAppUntil`). The direct start relies on the bound Accessibility service's
+  background-launch exemption; when the phone is locked a short-lived second full-screen notification
+  is posted too, which works even without it. The user's call (2026-11-01), not in the spec.
+Verified on the emulator (API 37): automatic start, ringing over the lock screen, Snooze from the
+alarm screen, notification and card, ringing again after it, re-armed after an app update, slide →
+auto Ctrus read, emergency → silenced and a one-time profile deleted, spares cancelled.
+Not verified: a real NFC stop, DST night, reboot overnight, OEM battery savers (POCO/Samsung).
+
+**Unlock cycles count real time (`util/TrustedClock`, spec Part A1).** The emergency (3 per 4
+weeks — the 2-week choice and its gear menu were dropped in both modes, the user's call) and recovery (2 per 4 weeks, cycle starts on the first one used) cycles add up
 `TrustedClock.trustedElapsedMillis()` into `emergencyCycleElapsed`/`recoveryCycleElapsed` instead
 of comparing the phone's date, which came back early once the date was moved forward. The clock
 uses `SystemClock.elapsedRealtime()` (keeps counting asleep) and, across a reboot, trusts the
@@ -469,7 +548,10 @@ Switchly (reviewed for this) can't detect it either; it only shows per-brand ins
 Other brands get `OemBackgroundGuide` (Xiaomi, Huawei/Honor, Oppo/Realme/OnePlus, Vivo/iQOO,
 Samsung): per-brand steps plus a best-effort deep link, never gating. `BlockingHealthMonitor`
 checks every ~15 min during a session (inexact `setAndAllowWhileIdle`) and posts one dismissible
-"Blocking stopped" notification per session if Accessibility isn't running. Settings shows a
+"Blocking stopped" notification per session if Accessibility isn't running. **Xiaomi background pop-ups** (`XiaomiBackgroundPopupUtil`, app-op 10021, read the same way): without
+it MIUI refuses every activity the service opens (`Permission Denied Activity`), so nothing looks
+blocked. It gates exactly like Autostart (welcome checklist, Home sheet, Settings row, scheduled
+starts). On the POCO it's turned off again by every USB install. Settings shows a
 single "Manage Permissions" row; `ui/settings/PermissionsSheet` groups Required (Accessibility,
 Alarms & reminders, Xiaomi Autostart) and Recommended (battery, brand guide, pop-up help).
 

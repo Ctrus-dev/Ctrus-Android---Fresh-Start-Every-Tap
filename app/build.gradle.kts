@@ -63,6 +63,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.9.8")
     implementation("androidx.datastore:datastore-preferences:1.2.1")
+    // Child Mode's parent code and recovery key hashes (spec Part B, section 3)
+    implementation("androidx.security:security-crypto:1.1.0")
 
     // Persistence (Room = SwiftData equivalent)
     implementation("androidx.room:room-runtime:2.8.4")

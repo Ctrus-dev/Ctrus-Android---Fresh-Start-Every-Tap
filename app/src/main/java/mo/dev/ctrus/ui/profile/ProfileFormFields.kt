@@ -56,7 +56,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.blocking.BlockSafetyPolicy
+import mo.dev.ctrus.alarm.AlarmSounds
+import androidx.compose.foundation.layout.heightIn
 import mo.dev.ctrus.data.PhysicalUnblockItem
 import mo.dev.ctrus.data.PhysicalUnblockType
 import mo.dev.ctrus.nfc.NfcScanController
@@ -271,6 +274,10 @@ fun DomainsFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, di
 
 @Composable
 fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, nfcScanController: NfcScanController, disabled: Boolean) {
+    if (ChildModeStore.isChildMode) {
+        ChildModeProfileTagFields(draft, onDraftChange, nfcScanController, disabled)
+        return
+    }
     val context = LocalContext.current
     var isScanningTag by remember { mutableStateOf(false) }
     var scanError by remember { mutableStateOf<String?>(null) }
@@ -279,7 +286,8 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
 
     DisposableEffect(isScanningTag) {
         if (isScanningTag) {
-            nfcScanController.startScan { code ->
+            nfcScanController.startScan { read ->
+                val code = read.code
                 val normalized = PhysicalUnblockItem.normalizedCodeValue(code, PhysicalUnblockType.NFC)
                 val alreadyPresent = draft.physicalUnblockItems.any {
                     PhysicalUnblockItem.normalizedCodeValue(it.codeValue, it.type) == normalized
@@ -290,7 +298,7 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
                     else -> {
                         val nextIndex = draft.physicalUnblockItems.size + 1
                         onDraftChange(
-                            draft.copy(physicalUnblockItems = draft.physicalUnblockItems + PhysicalUnblockItem(name = "NFC $nextIndex", codeValue = normalized)),
+                            draft.copy(physicalUnblockItems = draft.physicalUnblockItems + PhysicalUnblockItem(name = context.getString(R.string.tag_default_name, nextIndex), codeValue = normalized)),
                         )
                     }
                 }
@@ -360,36 +368,61 @@ private val WeekdayBubbleSize = 42.dp
 fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
     val context = LocalContext.current
     var showTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
 
-    Row(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        ProfileSchedule.DISPLAY_ORDER.forEach { day ->
-            val selected = day in draft.scheduleDays
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Box(
-                    modifier = Modifier
-                        .size(WeekdayBubbleSize)
-                        .clip(CircleShape)
-                        .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.14f))
-                        .let {
-                            if (disabled) it else it.clickable {
-                                val days = if (selected) draft.scheduleDays - day else draft.scheduleDays + day
-                                onDraftChange(draft.copy(scheduleDays = days))
-                            }
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        stringResource(day.shortLabelRes()),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                    )
+    // Alarm mode (spec D3.1): "Ring only once" comes first, and hides the days.
+    if (draft.useAlarm) {
+        CustomToggleRow(
+            title = stringResource(R.string.alarm_ring_once_title),
+            description = stringResource(R.string.alarm_ring_once_desc),
+            checked = draft.isOneTimeAlarm,
+            enabled = !disabled,
+            onCheckedChange = { onDraftChange(draft.copy(isOneTimeAlarm = it)) },
+        )
+        SettingsDivider()
+    }
+
+    if (!draft.useOneTimeAlarm) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            ProfileSchedule.DISPLAY_ORDER.forEach { day ->
+                val selected = day in draft.scheduleDays
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(WeekdayBubbleSize)
+                            .clip(CircleShape)
+                            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.14f))
+                            .let {
+                                if (disabled) it else it.clickable {
+                                    val days = if (selected) draft.scheduleDays - day else draft.scheduleDays + day
+                                    onDraftChange(draft.copy(scheduleDays = days))
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            stringResource(day.shortLabelRes()),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
+        // The days are when the session starts; the alarm rings the next day when the end time is
+        // at or before the start, so this says which days it actually rings on.
+        if (draft.useAlarm && draft.scheduleDays.isNotEmpty()) {
+            Text(
+                stringResource(R.string.alarm_rings_days_at, alarmDaysText(draft), alarmTimeText(draft)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 16.dp),
+            )
+        }
+        SettingsDivider()
     }
-    SettingsDivider()
     SettingsRow(
         title = stringResource(R.string.field_schedule_start_time),
         onClick = if (disabled) null else ({ showTimePicker = true }),
@@ -397,22 +430,32 @@ fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, d
             Text(
                 DateFormatters.formatTimeOfDay(context, draft.scheduleStartHour, draft.scheduleStartMinute),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Theme colour, like iOS 76d8163.
+                color = MaterialTheme.colorScheme.primary,
             )
         },
     )
 
     SettingsDivider()
-    ScheduleDurationRow(draft, onDraftChange, disabled)
+    if (draft.useAlarm) {
+        AlarmFields(draft, onDraftChange, disabled, onPickEndTime = { showEndTimePicker = true })
+    } else {
+        ScheduleDurationRow(draft, onDraftChange, disabled)
+        // Child Mode caps every session at 24 hours, so it says so right here.
+        if (ChildModeStore.isChildMode) ChildModeSessionLimitNote()
+    }
 
-    SettingsDivider()
-    CustomToggleRow(
-        title = stringResource(R.string.skip_toggle),
-        description = stringResource(R.string.skip_note),
-        checked = draft.allowSkip,
-        enabled = !disabled,
-        onCheckedChange = { onDraftChange(draft.copy(allowSkip = it)) },
-    )
+    // A one-time alarm has no later sessions to skip.
+    if (!draft.useOneTimeAlarm) {
+        SettingsDivider()
+        CustomToggleRow(
+            title = stringResource(R.string.skip_toggle),
+            description = stringResource(R.string.skip_note),
+            checked = draft.allowSkip,
+            enabled = !disabled,
+            onCheckedChange = { onDraftChange(draft.copy(allowSkip = it)) },
+        )
+    }
 
     if (showTimePicker) {
         CtrusTimePickerDialog(
@@ -426,6 +469,156 @@ fun ScheduleFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, d
             },
         )
     }
+    if (showEndTimePicker) {
+        CtrusTimePickerDialog(
+            initialHour = draft.alarmHour,
+            initialMinute = draft.alarmMinute,
+            is24Hour = android.text.format.DateFormat.is24HourFormat(context),
+            onDismiss = { showEndTimePicker = false },
+            onConfirm = { hour, minute ->
+                onDraftChange(draft.copy(alarmHour = hour, alarmMinute = minute))
+                showEndTimePicker = false
+            },
+        )
+    }
+}
+
+/** "Mon–Fri" in the phone's language, starting on its first day of the week. */
+@Composable
+private fun alarmDaysText(draft: ProfileDraft): String {
+    val locale = LocalContext.current.resources.configuration.locales[0]
+    val calendarFirst = java.util.Calendar.getInstance(locale).firstDayOfWeek
+    // Calendar.SUNDAY = 1 … SATURDAY = 7 → DayOfWeek.SUNDAY = 7, MONDAY = 1 …
+    val firstDay = DayOfWeek.of((calendarFirst + 5) % 7 + 1)
+    return draft.draftSchedule.alarmDaysText(locale, firstDay)
+}
+
+@Composable
+private fun alarmTimeText(draft: ProfileDraft): String =
+    DateFormatters.formatTimeOfDay(LocalContext.current, draft.alarmHour, draft.alarmMinute)
+
+/**
+ * Alarm mode's part of the schedule step (spec D3.1, items 4–8): the end time, the Child Mode
+ * note, the sound, and Snooze with its duration.
+ */
+@Composable
+private fun AlarmFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean, onPickEndTime: () -> Unit) {
+    SettingsRow(
+        title = stringResource(R.string.field_schedule_end_time),
+        onClick = if (disabled) null else onPickEndTime,
+        trailing = {
+            Text(alarmTimeText(draft), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+        },
+    )
+    if (!draft.hasValidAlarmTime) {
+        Text(
+            stringResource(R.string.alarm_end_time_invalid),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        )
+    }
+    if (ChildModeStore.isChildMode) ChildModeSessionLimitNote()
+
+    SettingsDivider()
+    AlarmSoundRow(draft, onDraftChange, disabled)
+
+    SettingsDivider()
+    CustomToggleRow(
+        title = stringResource(R.string.alarm_snooze),
+        description = stringResource(R.string.alarm_snooze_desc),
+        checked = draft.enableSnooze,
+        enabled = !disabled,
+        onCheckedChange = { onDraftChange(draft.copy(enableSnooze = it)) },
+    )
+    if (draft.enableSnooze) {
+        SettingsDivider()
+        SnoozeDurationRow(draft, onDraftChange, disabled)
+    }
+}
+
+/** A menu rather than a picker, so choosing a sound again still plays it (3 s). */
+@Composable
+private fun AlarmSoundRow(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
+    val context = LocalContext.current
+    var expanded by remember { mutableStateOf(false) }
+    SettingsRow(
+        title = stringResource(R.string.alarm_sound_title),
+        onClick = if (disabled) null else ({ expanded = true }),
+        trailing = {
+            Box {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(AlarmSounds.titleRes(draft.alarmSound)), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.UnfoldMore, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, shape = RoundedCornerShape(20.dp)) {
+                    ProfileSchedule.AVAILABLE_SOUNDS.forEach { soundId ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(AlarmSounds.titleRes(soundId))) },
+                            trailingIcon = if (soundId == draft.alarmSound) ({ Icon(Icons.Filled.Check, contentDescription = null) }) else null,
+                            onClick = {
+                                onDraftChange(draft.copy(alarmSound = soundId))
+                                AlarmSounds.preview(context, soundId)
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun SnoozeDurationRow(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) =
+    MinutesMenuRow(
+        title = stringResource(R.string.alarm_snooze_duration),
+        selected = draft.snoozeMinutes,
+        options = ProfileSchedule.AVAILABLE_SNOOZE_MINUTES,
+        disabled = disabled,
+        onSelect = { onDraftChange(draft.copy(snoozeMinutes = it)) },
+    )
+
+/**
+ * A labelled row whose value opens a menu of minute counts — iOS's `HStack { Text; Spacer; Picker(.menu) }`,
+ * used for Snooze Duration and Break Duration (iOS 3f83c9f), so the label shows in the guided flow too.
+ */
+@Composable
+private fun MinutesMenuRow(title: String, selected: Int, options: List<Int>, disabled: Boolean, onSelect: (Int) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    SettingsRow(
+        title = title,
+        onClick = if (disabled) null else ({ expanded = true }),
+        trailing = {
+            Box {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        pluralStringResource(R.plurals.alarm_snooze_minutes, selected, selected),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Icon(Icons.Filled.UnfoldMore, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.heightIn(max = 360.dp),
+                ) {
+                    options.forEach { minutes ->
+                        DropdownMenuItem(
+                            text = { Text(pluralStringResource(R.plurals.alarm_snooze_minutes, minutes, minutes)) },
+                            trailingIcon = if (minutes == selected) ({ Icon(Icons.Filled.Check, contentDescription = null) }) else null,
+                            onClick = {
+                                onSelect(minutes)
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable
@@ -470,36 +663,49 @@ private fun ScheduleDurationRow(draft: ProfileDraft, onDraftChange: (ProfileDraf
     )
 }
 
-/** "Su Mo · 9:00 · Indefinite" — Schedule.swift's `summaryText`. */
+/**
+ * "Su Mo · 9:00 · Indefinite" — Schedule.swift's `summaryText`. Alarm mode shows the end time in
+ * the duration's place: "Su Mo Tu · 23:00 → 07:00", or "Once · 23:00 → 07:00" (spec D3.4).
+ */
 @Composable
 fun scheduleSummary(draft: ProfileDraft): String {
     val context = LocalContext.current
+    val start = DateFormatters.formatTimeOfDay(context, draft.scheduleStartHour, draft.scheduleStartMinute)
+    if (draft.useAlarm) {
+        val range = "$start → ${alarmTimeText(draft)}"
+        if (draft.useOneTimeAlarm) return stringResource(R.string.alarm_once_summary, range)
+        val days = ProfileSchedule.DISPLAY_ORDER.filter { it in draft.scheduleDays }.map { stringResource(it.shortLabelRes()) }
+        return days.joinToString(" ") + " · " + range
+    }
     val days = ProfileSchedule.DISPLAY_ORDER.filter { it in draft.scheduleDays }.map { stringResource(it.shortLabelRes()) }
-    return days.joinToString(" ") + " · " + DateFormatters.formatTimeOfDay(context, draft.scheduleStartHour, draft.scheduleStartMinute) +
-        " · " + scheduleDurationText(draft.scheduleDurationHours)
+    return days.joinToString(" ") + " · " + start + " · " + scheduleDurationText(draft.scheduleDurationHours)
 }
+
+/** The review's Snooze line (spec D3.5): "9 minutes", or "Disabled". */
+@Composable
+fun snoozeSummary(draft: ProfileDraft): String =
+    if (draft.enableSnooze) pluralStringResource(R.plurals.alarm_snooze_minutes, draft.snoozeMinutes, draft.snoozeMinutes)
+    else stringResource(R.string.alarm_snooze_disabled)
 
 @Composable
 fun BreaksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
     CustomToggleRow(
         title = stringResource(R.string.field_allow_timed_breaks_title),
-        description = stringResource(R.string.field_allow_timed_breaks_desc),
+        // Alarm mode says the break doesn't move the alarm (spec D3.3).
+        description = stringResource(if (draft.useAlarm) R.string.field_allow_timed_breaks_desc_alarm else R.string.field_allow_timed_breaks_desc),
         checked = draft.enableBreaks,
         enabled = !disabled,
         onCheckedChange = { onDraftChange(draft.copy(enableBreaks = it)) },
     )
     if (draft.enableBreaks) {
         SettingsDivider()
-        // 16.dp on every side — was vertical-only, leaving these minute chips flush against the
-        // card's left edge unlike every other row.
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(5, 10, 15).forEach { minutes ->
-                val selected = draft.breakTimeInMinutes == minutes
-                TextButton(enabled = !disabled, onClick = { onDraftChange(draft.copy(breakTimeInMinutes = minutes)) }) {
-                    Text(stringResource(R.string.common_min_short, minutes), color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
+        MinutesMenuRow(
+            title = stringResource(R.string.field_break_duration),
+            selected = draft.breakTimeInMinutes,
+            options = listOf(5, 10, 15),
+            disabled = disabled,
+            onSelect = { onDraftChange(draft.copy(breakTimeInMinutes = it)) },
+        )
         SettingsDivider()
         CustomToggleRow(
             title = stringResource(R.string.field_allow_multiple_breaks_title),

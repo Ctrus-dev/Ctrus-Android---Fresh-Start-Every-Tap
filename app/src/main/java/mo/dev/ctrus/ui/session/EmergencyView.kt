@@ -56,9 +56,7 @@ private val EmergencyGreen = Color(0xFF34C759)
 @Composable
 fun EmergencyView(
     remaining: Int,
-    resetPeriodWeeks: Int,
     resetDateMillis: Long?,
-    onResetPeriodSelected: (Int) -> Unit,
     onConfirmUnblock: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -72,7 +70,6 @@ fun EmergencyView(
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.emergency_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                EmergencyResetGearButton(resetPeriodWeeks = resetPeriodWeeks, onResetPeriodSelected = onResetPeriodSelected)
             }
             Spacer(Modifier.height(4.dp))
             EmergencyResetStatusRow(resetDateMillis = resetDateMillis)
@@ -123,41 +120,6 @@ fun EmergencyView(
                     stringResource(if (hasRemaining) R.string.emergency_reduce_notice else R.string.emergency_none_remaining),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (hasRemaining) MaterialTheme.colorScheme.onSurfaceVariant else EmergencyRed,
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EmergencyResetGearButton(resetPeriodWeeks: Int, onResetPeriodSelected: (Int) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.emergency_reset_period_content_description), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.90f),
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
-        ) {
-            listOf(2 to R.string.emergency_reset_weeks_2, 4 to R.string.emergency_reset_weeks_4).forEach { (weeks, labelRes) ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (resetPeriodWeeks == weeks) {
-                                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                            }
-                            Text(stringResource(labelRes))
-                        }
-                    },
-                    onClick = { onResetPeriodSelected(weeks); expanded = false },
                 )
             }
         }

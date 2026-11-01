@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EscalatorWarning
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -87,6 +88,8 @@ fun SettingsScreen(
     onRequestExactAlarm: () -> Unit,
     isAutostartGranted: Boolean,
     onRequestAutostart: () -> Unit,
+    isBackgroundPopupsGranted: Boolean = true,
+    onRequestBackgroundPopups: () -> Unit = {},
     onRequestBatteryOptimizationExemption: () -> Unit,
     appVersion: String,
     selectedAppIcon: AppIcon,
@@ -99,6 +102,12 @@ fun SettingsScreen(
     deviceId: String? = null,
     useLeftHandedLayout: Boolean = false,
     onUseLeftHandedLayoutChange: (Boolean) -> Unit = {},
+    isChildMode: Boolean = false,
+    isBlocking: Boolean = false,
+    onUnlockWithParentCode: () -> Unit = {},
+    onUseParentTag: () -> Unit = {},
+    onOpenChildModeSettings: () -> Unit = {},
+    onEnableChildMode: () -> Unit = {},
 ) {
     var showInvalidCodeAlert by remember { mutableStateOf(false) }
     var unlockCode by remember { mutableStateOf("") }
@@ -180,7 +189,7 @@ fun SettingsScreen(
             item {
                 // Everything permission-related lives in one sheet (see PermissionsSheet); this row
                 // only says whether the required ones are all granted.
-                val requiredGranted = isUsageAccessGranted && isExactAlarmGranted && isAutostartGranted
+                val requiredGranted = isUsageAccessGranted && isExactAlarmGranted && isAutostartGranted && isBackgroundPopupsGranted
                 SettingsSection(title = stringResource(R.string.settings_permissions)) {
                     SettingsRow(
                         title = stringResource(R.string.settings_permissions_manage),
@@ -203,87 +212,117 @@ fun SettingsScreen(
 
             item {
                 SettingsSection(title = stringResource(R.string.settings_section_recovery)) {
-                    SettingsLinkRow(title = stringResource(R.string.settings_get_unlock_code)) { onOpenUrl("https://recover.ctrus.pt") }
-                    if (deviceId != null) {
+                    // Child Mode replaces the recover.ctrus.pt code: only the parents end a session
+                    // from here, with their code or their Ctrus, and only while one is running.
+                    if (isChildMode) {
+                        val themeColor = themeManager.selectedColorOption.color
+                        val disabledColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        SettingsRow(
+                            title = stringResource(R.string.settings_child_unlock_with_code),
+                            titleColor = if (isBlocking) themeColor else disabledColor,
+                            onClick = if (isBlocking) onUnlockWithParentCode else null,
+                        )
                         SettingsDivider()
-                        val clipboard = LocalClipboard.current
-                        val deviceIdLabel = stringResource(R.string.settings_device_id)
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(deviceIdLabel, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                                Spacer(Modifier.height(2.dp))
-                                Text(deviceId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            // IconButton's default 48dp minimum touch target left its icon
-                            // sitting well short of the row's own edge, unlike every other
-                            // row's trailing content — see "+ Add Tag"'s own kdoc for the
-                            // same fix applied there.
-                            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                                IconButton(onClick = {
-                                    coroutineScope.launch {
-                                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(deviceIdLabel, deviceId)))
+                        SettingsRow(
+                            title = stringResource(R.string.parent_confirm_use_tag),
+                            titleColor = if (isBlocking) themeColor else disabledColor,
+                            onClick = if (isBlocking) onUseParentTag else null,
+                        )
+                    } else {
+                        SettingsLinkRow(title = stringResource(R.string.settings_get_unlock_code)) { onOpenUrl("https://recover.ctrus.pt") }
+                        if (deviceId != null) {
+                            SettingsDivider()
+                            val clipboard = LocalClipboard.current
+                            val deviceIdLabel = stringResource(R.string.settings_device_id)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(deviceIdLabel, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(deviceId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                // IconButton's default 48dp minimum touch target left its icon
+                                // sitting well short of the row's own edge, unlike every other
+                                // row's trailing content — see "+ Add Tag"'s own kdoc for the
+                                // same fix applied there.
+                                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                                    IconButton(onClick = {
+                                        coroutineScope.launch {
+                                            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(deviceIdLabel, deviceId)))
+                                        }
+                                    }) {
+                                        Icon(
+                                            Icons.Filled.ContentCopy,
+                                            contentDescription = stringResource(R.string.settings_copy_device_id_content_description),
+                                            tint = themeManager.selectedColorOption.color,
+                                        )
                                     }
-                                }) {
-                                    Icon(
-                                        Icons.Filled.ContentCopy,
-                                        contentDescription = stringResource(R.string.settings_copy_device_id_content_description),
-                                        tint = themeManager.selectedColorOption.color,
-                                    )
                                 }
                             }
                         }
-                    }
-                    SettingsDivider()
-                    val hasUnlockRemaining = remainingRecoveryUnlocks > 0
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CompactTextField(
-                            value = unlockCode,
-                            onValueChange = { unlockCode = it },
-                            placeholder = stringResource(R.string.settings_enter_code_placeholder),
-                            enabled = !isVerifying && hasUnlockRemaining,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        if (isVerifying) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                        } else {
-                            // Plain tappable text rather than a TextButton: a TextButton always
-                            // reserves a 40dp minimum height, which made this the tallest row in
-                            // the card even with the field itself trimmed (see CompactTextField).
-                            val canUnlock = unlockCode.isNotEmpty() && hasUnlockRemaining
-                            Text(
-                                stringResource(R.string.settings_unlock_button),
-                                // Same size as the code being typed next to it (bodyLarge, 16sp),
-                                // kept semibold so it still reads as the action.
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                                color = if (canUnlock) themeManager.selectedColorOption.color else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.clickable(enabled = canUnlock) {
-                                    isVerifying = true
-                                    coroutineScope.launch {
-                                        val valid = onValidateUnlockCode(unlockCode)
-                                        isVerifying = false
-                                        if (valid) {
-                                            unlockCode = ""
-                                        } else {
-                                            showInvalidCodeAlert = true
-                                        }
-                                    }
-                                },
+                        SettingsDivider()
+                        val hasUnlockRemaining = remainingRecoveryUnlocks > 0
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CompactTextField(
+                                value = unlockCode,
+                                onValueChange = { unlockCode = it },
+                                placeholder = stringResource(R.string.settings_enter_code_placeholder),
+                                enabled = !isVerifying && hasUnlockRemaining,
+                                modifier = Modifier.weight(1f),
                             )
+                            Spacer(Modifier.width(8.dp))
+                            if (isVerifying) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            } else {
+                                // Plain tappable text rather than a TextButton: a TextButton always
+                                // reserves a 40dp minimum height, which made this the tallest row in
+                                // the card even with the field itself trimmed (see CompactTextField).
+                                val canUnlock = unlockCode.isNotEmpty() && hasUnlockRemaining
+                                Text(
+                                    stringResource(R.string.settings_unlock_button),
+                                    // Same size as the code being typed next to it (bodyLarge, 16sp),
+                                    // kept semibold so it still reads as the action.
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                                    color = if (canUnlock) themeManager.selectedColorOption.color else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.clickable(enabled = canUnlock) {
+                                        isVerifying = true
+                                        coroutineScope.launch {
+                                            val valid = onValidateUnlockCode(unlockCode)
+                                            isVerifying = false
+                                            if (valid) {
+                                                unlockCode = ""
+                                            } else {
+                                                showInvalidCodeAlert = true
+                                            }
+                                        }
+                                    },
+                                )
+                            }
                         }
+                        SettingsDivider()
+                        RecoveryUnlockStatusRow(
+                            remainingUnlocks = remainingRecoveryUnlocks,
+                            resetDateMillis = recoveryResetDateMillis,
+                        )
                     }
-                    SettingsDivider()
-                    RecoveryUnlockStatusRow(
-                        remainingUnlocks = remainingRecoveryUnlocks,
-                        resetDateMillis = recoveryResetDateMillis,
+                }
+            }
+
+            item {
+                SettingsSection(title = stringResource(R.string.settings_child_section)) {
+                    val themeColor = themeManager.selectedColorOption.color
+                    SettingsRow(
+                        title = stringResource(if (isChildMode) R.string.settings_child_section else R.string.settings_child_enable),
+                        titleColor = themeColor,
+                        leading = { Icon(Icons.Filled.EscalatorWarning, contentDescription = null, tint = themeColor) },
+                        onClick = if (isChildMode) onOpenChildModeSettings else onEnableChildMode,
                     )
                 }
             }
@@ -333,10 +372,12 @@ fun SettingsScreen(
             isAccessibilityEnabled = isUsageAccessGranted,
             isExactAlarmGranted = isExactAlarmGranted,
             isAutostartGranted = isAutostartGranted,
+            isBackgroundPopupsGranted = isBackgroundPopupsGranted,
             isBatteryOptimizationExempt = isBatteryOptimizationExempt,
             onRequestAccessibility = onRequestAccessibility,
             onRequestExactAlarm = onRequestExactAlarm,
             onRequestAutostart = onRequestAutostart,
+            onRequestBackgroundPopups = onRequestBackgroundPopups,
             onRequestBatteryOptimizationExemption = onRequestBatteryOptimizationExemption,
             onDismiss = { showPermissions = false },
         )

@@ -1,6 +1,7 @@
 package mo.dev.ctrus.data
 
 import kotlinx.coroutines.flow.Flow
+import mo.dev.ctrus.childmode.ChildTag
 import mo.dev.ctrus.strategy.StrategyIds
 import java.time.Instant
 
@@ -24,7 +25,7 @@ class ProfileRepository(private val dao: BlockedProfileDao) {
         domains: List<String>? = null,
         physicalUnblockItems: List<PhysicalUnblockItem>? = null,
         enableBreaks: Boolean = false,
-        breakTimeInMinutes: Int = 10,
+        breakTimeInMinutes: Int = 5,
         allowMultipleBreaks: Boolean = false,
         enableStrictMode: Boolean = false,
         enableBlockAppInstallation: Boolean = false,
@@ -36,6 +37,10 @@ class ProfileRepository(private val dao: BlockedProfileDao) {
         enableEmergencyUnblock: Boolean = true,
         schedule: ProfileSchedule? = null,
         allowSkip: Boolean = false,
+        enableSnooze: Boolean = true,
+        isOneTimeAlarm: Boolean = false,
+        childTag: ChildTag? = null,
+        childTagCanStop: Boolean = false,
     ): BlockedProfileEntity {
         val nextOrder = (dao.getMaxOrder() ?: -1) + 1
         val profile = BlockedProfileEntity(
@@ -59,6 +64,10 @@ class ProfileRepository(private val dao: BlockedProfileDao) {
             enableEmergencyUnblock = enableEmergencyUnblock,
             schedule = schedule,
             allowSkip = allowSkip,
+            enableSnooze = enableSnooze,
+            isOneTimeAlarm = isOneTimeAlarm,
+            childTag = childTag,
+            childTagCanStop = childTag != null && childTagCanStop,
         )
         dao.upsert(profile)
         return profile

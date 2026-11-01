@@ -10,7 +10,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import mo.dev.ctrus.alarm.WakeAlarmManager
 import mo.dev.ctrus.blocking.AdultDomainList
+import mo.dev.ctrus.childmode.ChildModeStore
+import mo.dev.ctrus.childmode.ChildSessionLimit
+import mo.dev.ctrus.childmode.ParentCredentials
 import mo.dev.ctrus.blocking.BlockingHealthMonitor
 import mo.dev.ctrus.blocking.BlockingStateHolder
 import mo.dev.ctrus.data.CtrusDatabase
@@ -50,6 +54,8 @@ class CtrusApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        ChildModeStore.init(this)
+        ParentCredentials.init(this)
         database = CtrusDatabase.getInstance(this)
         profileRepository = ProfileRepository(database.blockedProfileDao())
         schedulingGateway = AlarmSchedulingGateway(this)
@@ -58,6 +64,7 @@ class CtrusApp : Application() {
         preferences = AppPreferences(this)
         scheduleAlarmScheduler = ScheduleAlarmScheduler(this)
 
+        WakeAlarmManager.init(this)
         BlockingStateHolder.start(applicationScope, sessionRepository, profileRepository)
         AdultDomainList.init(this)
 
@@ -71,6 +78,8 @@ class CtrusApp : Application() {
                 val ids = profiles.map { it.id }.toSet()
                 scheduleAlarmScheduler.syncAll(profiles, removedProfileIds = previousIds - ids)
                 previousIds = ids
+                // Alarm mode's alarm follows every save, delete and skip too (spec D4).
+                WakeAlarmManager.refreshAll(this@CtrusApp)
             }
         }
         // Arms the automatic stop for fixed-duration schedule sessions however they started
@@ -88,6 +97,24 @@ class CtrusApp : Application() {
         applicationScope.launch {
             sessionRepository.observeMostRecentActive().map { it?.id }.distinctUntilChanged().drop(1).collect {
                 preferences.checkUnlockCycles()
+            }
+        }
+        // Alarm mode: a session starting or ending moves its profile's alarm (spec D4), and an
+        // ending one silences it, however it ended (D6.5).
+        applicationScope.launch {
+            var previous: mo.dev.ctrus.data.BlockedProfileSessionEntity? = null
+            sessionRepository.observeMostRecentActive().collect { session ->
+                val ended = previous?.takeIf { it.id != session?.id }
+                previous = session
+                ended?.let { WakeAlarmManager.onSessionEnded(this@CtrusApp, it.profileId) }
+                session?.let { WakeAlarmManager.refresh(this@CtrusApp, it.profileId) }
+            }
+        }
+        // Child Mode's 24-hour (or shorter) automatic end, armed for each new session and dropped
+        // when it ends, however it started or ended.
+        applicationScope.launch {
+            sessionRepository.observeMostRecentActive().map { it?.id }.distinctUntilChanged().collect {
+                ChildSessionLimit.sync(this@CtrusApp)
             }
         }
 
@@ -120,7 +147,19 @@ class CtrusApp : Application() {
             getString(R.string.blocking_status_channel_name),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply { description = getString(R.string.blocking_status_channel_description) }
-        manager.createNotificationChannels(listOf(breakChannel, scheduleChannel, blockingStatusChannel))
+        // The alarm's own sound and vibration come from AlarmService, so the channel stays quiet;
+        // it's high importance for the full-screen intent and the heads-up.
+        val alarmChannel = NotificationChannel(
+            ALARM_CHANNEL_ID,
+            getString(R.string.alarm_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = getString(R.string.alarm_channel_description)
+            setSound(null, null)
+            enableVibration(false)
+            lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+        }
+        manager.createNotificationChannels(listOf(breakChannel, scheduleChannel, blockingStatusChannel, alarmChannel))
     }
 
     companion object {
@@ -128,6 +167,8 @@ class CtrusApp : Application() {
         const val SCHEDULE_CHANNEL_ID = "schedule"
         /** BlockingHealthMonitor's "Blocking stopped" warning. */
         const val BLOCKING_STATUS_CHANNEL_ID = "blocking_status"
+        /** Alarm mode's ringing alarm (AlarmService). */
+        const val ALARM_CHANNEL_ID = "alarm"
 
         fun from(context: android.content.Context): CtrusApp = context.applicationContext as CtrusApp
     }

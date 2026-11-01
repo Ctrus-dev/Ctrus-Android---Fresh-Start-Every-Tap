@@ -32,16 +32,7 @@ object XiaomiAutostartUtil {
     /** True when Autostart is on, or when this isn't a Xiaomi device / the state can't be read. */
     fun isGranted(context: Context): Boolean = readMode(context)?.let { it == AppOpsManager.MODE_ALLOWED } ?: true
 
-    private fun readMode(context: Context): Int? {
-        if (!Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) return null
-        val appOps = context.getSystemService(AppOpsManager::class.java) ?: return null
-        return runCatching {
-            val method = AppOpsManager::class.java.getMethod(
-                "checkOpNoThrow", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, String::class.java,
-            )
-            method.invoke(appOps, OP_AUTO_START, Process.myUid(), context.packageName) as Int
-        }.getOrNull()
-    }
+    private fun readMode(context: Context): Int? = readMiuiAppOp(context, OP_AUTO_START)
 
     /** Opens MIUI's Autostart list, falling back to Ctrus's App info screen (which has the toggle). */
     fun request(context: Context) {
@@ -58,4 +49,20 @@ object XiaomiAutostartUtil {
             if (launched) return
         }
     }
+}
+
+/**
+ * Reads one of MIUI's hidden app-ops (e.g. 10008 Autostart, 10021 background pop-ups) through
+ * AppOpsManager by reflection, as Xiaomi's own Security app does. Null when this isn't a Xiaomi
+ * device or the ROM doesn't expose it.
+ */
+internal fun readMiuiAppOp(context: Context, op: Int): Int? {
+    if (!Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) return null
+    val appOps = context.getSystemService(AppOpsManager::class.java) ?: return null
+    return runCatching {
+        val method = AppOpsManager::class.java.getMethod(
+            "checkOpNoThrow", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, String::class.java,
+        )
+        method.invoke(appOps, op, Process.myUid(), context.packageName) as Int
+    }.getOrNull()
 }

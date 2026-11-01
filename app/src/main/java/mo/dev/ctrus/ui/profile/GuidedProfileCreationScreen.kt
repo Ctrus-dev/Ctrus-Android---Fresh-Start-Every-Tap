@@ -46,6 +46,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import mo.dev.ctrus.R
+import mo.dev.ctrus.childmode.ChildModeStore
 import mo.dev.ctrus.nfc.NfcScanController
 import mo.dev.ctrus.strategy.BlockingStrategy
 import mo.dev.ctrus.theme.CtrusSystemColors
@@ -86,7 +87,8 @@ fun GuidedProfileCreationScreen(
     onCreate: (ProfileDraft) -> Unit,
 ) {
     var stepIndex by rememberSaveable { mutableIntStateOf(0) }
-    var draft by remember { mutableStateOf(ProfileDraft(strategyId = availableStrategies.first().id)) }
+    // New Child Mode profiles allow skipping sessions by default (spec Part B, 7).
+    var draft by remember { mutableStateOf(ProfileDraft(strategyId = availableStrategies.first().id, allowSkip = ChildModeStore.isChildMode)) }
     // Only the Method step (which comes before Schedule) can change this list, so stepIndex
     // always stays pointed at the same step when it grows or shrinks.
     val steps = buildList {
@@ -101,12 +103,12 @@ fun GuidedProfileCreationScreen(
 
     val canContinue = when (currentStep) {
         GuidedStep.NAME -> draft.name.isNotBlank()
-        GuidedStep.STRICT_UNLOCKS -> draft.physicalUnblockItems.isNotEmpty()
-        GuidedStep.SCHEDULE -> draft.scheduleDays.isNotEmpty()
+        GuidedStep.STRICT_UNLOCKS -> draft.hasRequiredUnlocks
+        GuidedStep.SCHEDULE -> draft.hasValidSchedule
         else -> true
     }
 
-    fun createProfile() = onCreate(draft)
+    fun createProfile() = onCreate(draft.forSaving())
 
     Scaffold(
         topBar = {
@@ -252,8 +254,10 @@ private fun ReviewContent(draft: ProfileDraft, availableStrategies: List<Blockin
         ReviewRow(stringResource(R.string.guided_review_apps), appsSummary)
         ReviewRow(stringResource(R.string.guided_review_domains), domainsSummary)
         scheduleSummary?.let { ReviewRow(stringResource(R.string.guided_review_schedule), it) }
+        if (draft.useAlarm) ReviewRow(stringResource(R.string.alarm_snooze), snoozeSummary(draft))
         ReviewRow(stringResource(R.string.guided_review_breaks), breaksSummary)
-        ReviewRow(stringResource(R.string.guided_review_safeguards), safeguardsSummary, showDivider = false)
+        ReviewRow(stringResource(R.string.guided_review_safeguards), safeguardsSummary, showDivider = !ChildModeStore.isChildMode)
+        if (ChildModeStore.isChildMode) ChildModeSessionLimitNote()
     }
 }
 

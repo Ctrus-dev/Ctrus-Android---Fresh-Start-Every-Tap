@@ -12,6 +12,7 @@ class StrategyRegistry(sessions: SessionRepository) {
         NfcBlockingStrategy(sessions),
         NfcManualBlockingStrategy(sessions),
         ScheduleBlockingStrategy(sessions),
+        AlarmBlockingStrategy(sessions),
     ).associateBy { it.id }
 
     val pickerStrategies: List<BlockingStrategy> = StrategyIds.PICKER_IDS.mapNotNull { byId[it] }
