@@ -326,6 +326,9 @@ edit and delete stay apart. Hand-rolled with `detectDragGestures` on the handle 
 dragged row follows the finger and swaps with a neighbour once its centre passes the neighbour's,
 and `ProfileRepository.reorder` saves the order when the drag ends. Reordering doesn't need the
 parents in Child Mode.
+On Home, the profile whose session is running is shown first (sorted only for display, the stored
+order untouched), sliding back to its place when the session ends. Android-only, the user's call
+(2026-11-01); iOS doesn't do this.
 
 **Bug fixed this pass — the 3D model read dark, and was slow to appear/disappear on every Home
 visit.** Three related issues in `model3d/`:
