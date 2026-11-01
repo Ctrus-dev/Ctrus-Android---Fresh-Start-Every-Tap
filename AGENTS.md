@@ -327,8 +327,7 @@ dragged row follows the finger and swaps with a neighbour once its centre passes
 and `ProfileRepository.reorder` saves the order when the drag ends. Reordering doesn't need the
 parents in Child Mode.
 On Home, the profile whose session is running is shown first (sorted only for display, the stored
-order untouched), sliding back to its place when the session ends. Android-only, the user's call
-(2026-11-01); iOS doesn't do this.
+order untouched), sliding back to its place when the session ends. Same as iOS `24c96a3`.
 
 **Bug fixed this pass — the 3D model read dark, and was slow to appear/disappear on every Home
 visit.** Three related issues in `model3d/`:
@@ -499,8 +498,9 @@ ending the session. Never ends on a timer (`durationInHours` always null); break
   Without 10020 MIUI silently keeps the alarm screen off the lock screen (seen on the POCO).
 - The alarm screen copies the Pixel Clock's (7.5, checked on the emulator): always dark, a large
   "hh:mm"/"HH:mm" time with no AM/PM, the profile name, and one track with a theme-coloured pill
-  dragged left to Snooze (only shown with snooze on) or right to "Open Ctrus" (the spec's iOS 26.0
-  stop-button text). Vibration is an 800 ms pulse asked for every 1.5 s from `AlarmService`: one
+  dragged left to Snooze or right to "Open Ctrus" (the spec's iOS 26.0 stop-button text). With
+  snooze off (the Pixel can't turn it off, so nothing to copy) the snooze half goes: a shorter,
+  centred track with the pill at its start and "Open Ctrus" after it. Vibration is an 800 ms pulse asked for every 1.5 s from `AlarmService`: one
   repeating waveform was cancelled by the system when the alarm screen closed (POCO), leaving only
   the sound. While it rings, `AlarmService` brings it back 3 s after it's left
   (Home, Back, power button) unless Ctrus itself is on screen or the slide is still unlocking
