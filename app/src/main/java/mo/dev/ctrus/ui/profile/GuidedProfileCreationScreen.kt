@@ -256,7 +256,8 @@ private fun ReviewContent(draft: ProfileDraft, availableStrategies: List<Blockin
         scheduleSummary?.let { ReviewRow(stringResource(R.string.guided_review_schedule), it) }
         if (draft.useAlarm) ReviewRow(stringResource(R.string.alarm_snooze), snoozeSummary(draft))
         ReviewRow(stringResource(R.string.guided_review_breaks), breaksSummary)
-        ReviewRow(stringResource(R.string.guided_review_safeguards), safeguardsSummary, showDivider = !ChildModeStore.isChildMode)
+        // Like iOS: a line under the last row only when Child Mode's 24-hour note follows it.
+        ReviewRow(stringResource(R.string.guided_review_safeguards), safeguardsSummary, showDivider = ChildModeStore.isChildMode)
         if (ChildModeStore.isChildMode) ChildModeSessionLimitNote()
     }
 }

@@ -1,6 +1,13 @@
 package mo.dev.ctrus.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,10 +65,10 @@ import mo.dev.ctrus.ui.common.GlassIconButton
 /**
  * Android equivalent of BlockedProfileListView.swift's "Manage" sheet: tap a row to edit, "+" to
  * create (disabled while a profile is actively blocking, matching iOS's `canCreateProfiles`), and
- * a pencil toggle that turns on a delete edit mode (no reordering — dropped in favor of keeping
- * each row visually identical between modes). Delete still guards against removing the currently-
- * active profile, matching iOS's alert, and closes this sheet automatically once the last profile
- * is gone.
+ * a pencil toggle that turns on edit mode: edit on the leading side, delete on the trailing side,
+ * and a drag handle at the far trailing edge to reorder (iOS d849aac, where the system's reorder
+ * handle sits after delete). Delete still guards against removing the currently-active profile,
+ * matching iOS's alert, and closes this sheet automatically once the last profile is gone.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,9 +80,36 @@ fun ManageProfilesScreen(
     onEditProfile: (BlockedProfileEntity) -> Unit,
     onAddProfile: () -> Unit,
     onDeleteProfile: (BlockedProfileEntity) -> Unit,
+    onReorderProfiles: (List<BlockedProfileEntity>) -> Unit,
     onAllInsights: () -> Unit,
 ) {
     var editMode by remember { mutableStateOf(false) }
+    // The order shown while a row is dragged; otherwise it follows `profiles`.
+    var orderedProfiles by remember { mutableStateOf(profiles) }
+    var draggingId by remember { mutableStateOf<String?>(null) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    val listState = rememberLazyListState()
+    LaunchedEffect(profiles) {
+        if (draggingId == null) orderedProfiles = profiles
+    }
+    // Swaps the dragged row with its neighbour once its centre passes the neighbour's centre.
+    fun dragBy(amount: Float) {
+        val id = draggingId ?: return
+        dragOffset += amount
+        val items = listState.layoutInfo.visibleItemsInfo
+        val current = items.firstOrNull { it.key == id } ?: return
+        val center = current.offset + dragOffset + current.size / 2f
+        val target = items.firstOrNull { other ->
+            other.key != id && other.key is String &&
+                if (dragOffset > 0) other.index > current.index && center > other.offset + other.size / 2f
+                else other.index < current.index && center < other.offset + other.size / 2f
+        } ?: return
+        val from = orderedProfiles.indexOfFirst { it.id == id }
+        val to = orderedProfiles.indexOfFirst { it.id == target.key }
+        if (from < 0 || to < 0) return
+        orderedProfiles = orderedProfiles.toMutableList().apply { add(to, removeAt(from)) }
+        dragOffset += (current.offset - target.offset).toFloat()
+    }
     var showActiveProfileError by remember { mutableStateOf(false) }
     val canCreateProfiles = activeProfileId == null
 
@@ -129,12 +163,19 @@ fun ManageProfilesScreen(
         },
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(profiles, key = { it.id }) { profile ->
+            items(orderedProfiles, key = { it.id }) { profile ->
+                val isDragging = profile.id == draggingId
                 ManageProfileRow(
+                    modifier = if (isDragging) {
+                        Modifier.zIndex(1f).graphicsLayer { translationY = dragOffset }
+                    } else {
+                        Modifier.animateItem()
+                    },
                     profile = profile,
                     isActive = profile.id == activeProfileId,
                     themeColor = themeColor,
@@ -146,6 +187,27 @@ fun ManageProfilesScreen(
                             showActiveProfileError = true
                         } else {
                             onDeleteProfile(profile)
+                        }
+                    },
+                    handleModifier = Modifier.pointerInput(profile.id) {
+                        detectDragGestures(
+                            onDragStart = {
+                                draggingId = profile.id
+                                dragOffset = 0f
+                            },
+                            onDragEnd = {
+                                draggingId = null
+                                dragOffset = 0f
+                                if (orderedProfiles.map { it.id } != profiles.map { it.id }) onReorderProfiles(orderedProfiles)
+                            },
+                            onDragCancel = {
+                                draggingId = null
+                                dragOffset = 0f
+                                orderedProfiles = profiles
+                            },
+                        ) { change, amount ->
+                            change.consume()
+                            dragBy(amount.y)
                         }
                     },
                 )
@@ -165,6 +227,7 @@ fun ManageProfilesScreen(
 
 @Composable
 private fun ManageProfileRow(
+    modifier: Modifier,
     profile: BlockedProfileEntity,
     isActive: Boolean,
     themeColor: Color,
@@ -172,9 +235,10 @@ private fun ManageProfileRow(
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    handleModifier: Modifier,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -232,6 +296,17 @@ private fun ManageProfileRow(
                 // muted/dark next to the pencil circle's neutral grey.
                 backgroundColor = Color(0xFFFF3B30),
             )
+            // The reorder handle at the far trailing edge, after delete (iOS d849aac).
+            Box(
+                modifier = handleModifier.size(32.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.DragHandle,
+                    contentDescription = stringResource(R.string.manage_move_content_description, profile.name),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

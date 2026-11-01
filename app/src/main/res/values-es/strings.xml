@@ -51,6 +51,7 @@
     <string name="manage_title">Perfiles</string>
     <string name="manage_close_content_description">Cerrar</string>
     <string name="manage_edit_move_content_description">Editar/Mover</string>
+    <string name="manage_move_content_description">Mover %1$s</string>
     <string name="manage_done_content_description">Hecho</string>
     <string name="manage_add_profile_content_description">Añadir Perfil</string>
     <string name="manage_delete_content_description">Eliminar %1$s</string>

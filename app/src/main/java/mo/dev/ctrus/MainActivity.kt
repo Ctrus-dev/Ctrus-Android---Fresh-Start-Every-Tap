@@ -550,6 +550,8 @@ private fun CtrusNavHost(
                     if (ChildModeStore.isChildMode) parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_delete, delete)
                     else delete()
                 },
+                // Reordering doesn't loosen anything, so Child Mode doesn't ask the parents.
+                onReorderProfiles = { reordered -> coroutineScope.launch { app.profileRepository.reorder(reordered) } },
                 onAllInsights = { showAllInsights = true },
             )
         }

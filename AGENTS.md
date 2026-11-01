@@ -320,12 +320,12 @@ as an accidental omission.
 Manage opens the new `ui/home/ManageProfilesScreen.kt`, porting `BlockedProfileListView.swift`: tap
 a row to edit, "+" to create (disabled while a profile is actively blocking, matching iOS's
 `canCreateProfiles`), a pencil toggle for edit mode showing a red delete button per row (guarded
-against deleting the active profile, same alert copy as iOS), and reordering. **Simplified vs.
-iOS**: reordering uses per-row up/down arrow buttons instead of iOS's native drag handle — this
-project has no drag-reorder library dependency, and a hand-rolled pointer-drag reimplementation
-wasn't worth the fragility for a rarely-used affordance. `ProfileRepository.reorder` (already used
-elsewhere) is the same call either way, so swapping in real drag-and-drop later is a pure UI change,
-not a data-layer one.
+against deleting the active profile, same alert copy as iOS), and drag-to-reorder (iOS `d849aac`):
+in edit mode the row is pencil, card, red delete, then a drag handle at the far trailing edge, so
+edit and delete stay apart. Hand-rolled with `detectDragGestures` on the handle (no library): the
+dragged row follows the finger and swaps with a neighbour once its centre passes the neighbour's,
+and `ProfileRepository.reorder` saves the order when the drag ends. Reordering doesn't need the
+parents in Child Mode.
 
 **Bug fixed this pass — the 3D model read dark, and was slow to appear/disappear on every Home
 visit.** Three related issues in `model3d/`:
