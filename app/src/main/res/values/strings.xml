@@ -51,6 +51,7 @@
     <string name="manage_title">Profiles</string>
     <string name="manage_close_content_description">Close</string>
     <string name="manage_edit_move_content_description">Edit/Move</string>
+    <string name="manage_move_content_description">Move %1$s</string>
     <string name="manage_done_content_description">Done</string>
     <string name="manage_add_profile_content_description">Add Profile</string>
     <string name="manage_delete_content_description">Delete %1$s</string>
