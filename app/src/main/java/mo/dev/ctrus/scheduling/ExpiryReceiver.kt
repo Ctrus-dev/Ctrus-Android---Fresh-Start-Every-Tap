@@ -1,5 +1,7 @@
 package mo.dev.ctrus.scheduling
 
+import mo.dev.ctrus.util.SessionClock
+import mo.dev.ctrus.data.breakScheduledEndMillis
 import android.Manifest
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -42,8 +44,13 @@ class ExpiryReceiver : BroadcastReceiver() {
                 val session = app.sessionRepository.find(sessionId) ?: return@launch
                 val profile = app.profileRepository.find(profileId) ?: return@launch
                 if (session.breakStartTimeEpochMilli == null || session.breakEndTimeEpochMilli != null) return@launch
-                // Stamped at the scheduled end, not "now", in case this alarm arrived late.
-                app.sessionRepository.finalizeExpiredBreak(session.id, profile)
+                // Stamped at the scheduled end, not "now", in case this alarm arrived late. Early
+                // (the date was moved forward): armed again for when the break really ends.
+                if (!app.sessionRepository.finalizeExpiredBreak(session.id, profile)) {
+                    session.breakScheduledEndMillis(profile)?.let { end ->
+                        app.schedulingGateway.scheduleBreakExpiry(session.id, profile.id, SessionClock.toWallClock(end))
+                    }
+                }
             } finally {
                 pendingResult.finish()
             }

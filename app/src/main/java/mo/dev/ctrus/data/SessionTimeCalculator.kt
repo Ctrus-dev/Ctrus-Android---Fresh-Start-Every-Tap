@@ -2,6 +2,7 @@ package mo.dev.ctrus.data
 
 import mo.dev.ctrus.strategy.StrategyCapabilities
 import mo.dev.ctrus.strategy.StrategyIds
+import mo.dev.ctrus.util.SessionClock
 import java.util.Date
 
 /**
@@ -11,8 +12,8 @@ import java.util.Date
  * duration. An Indefinite schedule has no end, so it counts up like the NFC modes.
  */
 object SessionTimeCalculator {
-    /** Wall-clock elapsed time minus time spent on break — what "focus time" actually counts. */
-    fun elapsedFocusTimeSeconds(session: BlockedProfileSessionEntity, profile: BlockedProfileEntity, at: Date = Date()): Double {
+    /** Elapsed time (on [SessionClock]) minus time spent on break — what "focus time" actually counts. */
+    fun elapsedFocusTimeSeconds(session: BlockedProfileSessionEntity, profile: BlockedProfileEntity, at: Date = Date(SessionClock.now())): Double {
         val rawElapsed = (at.time - session.startTimeEpochMilli).toDouble() / 1000.0
         val breakDuration = calculateBreakDuration(session, profile, at)
         return maxOf(0.0, rawElapsed - breakDuration)
@@ -23,14 +24,21 @@ object SessionTimeCalculator {
         session: BlockedProfileSessionEntity,
         profile: BlockedProfileEntity,
         elapsedFocusTimeSeconds: Double? = null,
-        at: Date = Date(),
+        at: Date = Date(SessionClock.now()),
     ): Double {
         val expectedEnd = expectedEndTime(session, profile)
         if (expectedEnd != null) {
-            return maxOf(0.0, (expectedEnd.time - at.time).toDouble() / 1000.0)
+            // Alarm mode's alarm rings by the phone's date; breaks and schedule ends go by SessionClock.
+            val now = if (isAlarmCountdown(session, profile)) System.currentTimeMillis() else at.time
+            return maxOf(0.0, (expectedEnd.time - now).toDouble() / 1000.0)
         }
         return elapsedFocusTimeSeconds ?: elapsedFocusTimeSeconds(session, profile, at)
     }
+
+    private fun isAlarmCountdown(session: BlockedProfileSessionEntity, profile: BlockedProfileEntity): Boolean =
+        profile.blockingStrategyId == StrategyIds.ALARM &&
+            !(session.breakStartTimeEpochMilli != null &&
+                session.isBreakActive(profile, StrategyCapabilities.allowsTimedBreaks(profile.blockingStrategyId)))
 
     fun expectedEndTime(session: BlockedProfileSessionEntity, profile: BlockedProfileEntity): Date? {
         val breakStart = session.breakStartTimeEpochMilli

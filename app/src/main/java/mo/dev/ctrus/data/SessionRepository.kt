@@ -3,6 +3,7 @@ package mo.dev.ctrus.data
 import kotlinx.coroutines.flow.Flow
 import mo.dev.ctrus.scheduling.SchedulingGateway
 import java.time.Instant
+import mo.dev.ctrus.util.SessionClock
 
 /** Mirrors the static + instance methods on BlockedProfileSessions.swift, backed by Room. */
 class SessionRepository(private val dao: BlockedProfileSessionDao, private val scheduling: SchedulingGateway) {
@@ -44,8 +45,9 @@ class SessionRepository(private val dao: BlockedProfileSessionDao, private val s
         return ended
     }
 
+    // Breaks are stamped and measured on SessionClock, so a date change can't stretch them.
     suspend fun startBreak(session: BlockedProfileSessionEntity, allowMultipleBreaks: Boolean): BlockedProfileSessionEntity {
-        val now = Instant.now().toEpochMilli()
+        val now = SessionClock.now()
         val updated = if (allowMultipleBreaks) {
             session.copy(breakStartTimeEpochMilli = now, breakEndTimeEpochMilli = null)
         } else {
@@ -63,7 +65,7 @@ class SessionRepository(private val dao: BlockedProfileSessionDao, private val s
     suspend fun endBreak(
         session: BlockedProfileSessionEntity,
         profile: BlockedProfileEntity,
-        now: Long = Instant.now().toEpochMilli(),
+        now: Long = SessionClock.now(),
     ): BlockedProfileSessionEntity {
         val completedSeconds = session.activeBreakElapsedSeconds(now)
         val updated = if (profile.allowMultipleBreaks) {
@@ -88,14 +90,15 @@ class SessionRepository(private val dao: BlockedProfileSessionDao, private val s
      * time from anywhere (expiry alarm, session ticker, accessibility service); it does nothing
      * unless that break is really overdue.
      */
-    suspend fun finalizeExpiredBreak(sessionId: String, profile: BlockedProfileEntity, now: Long = Instant.now().toEpochMilli()) {
-        val session = dao.getById(sessionId) ?: return
-        if (session.endTimeEpochMilli != null) return
-        val scheduledEnd = session.breakScheduledEndMillis(profile) ?: return
-        if (now < scheduledEnd) return
+    suspend fun finalizeExpiredBreak(sessionId: String, profile: BlockedProfileEntity, now: Long = SessionClock.now()): Boolean {
+        val session = dao.getById(sessionId) ?: return false
+        if (session.endTimeEpochMilli != null) return false
+        val scheduledEnd = session.breakScheduledEndMillis(profile) ?: return false
+        if (now < scheduledEnd) return false
         endBreak(session, profile, now = scheduledEnd)
         scheduling.cancelBreakExpiry(session.id)
         scheduling.cancelBreakWarning(session.id)
+        return true
     }
 
 }

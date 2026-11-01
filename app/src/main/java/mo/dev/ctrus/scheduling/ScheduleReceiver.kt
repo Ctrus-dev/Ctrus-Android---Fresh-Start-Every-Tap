@@ -136,6 +136,12 @@ class ScheduleReceiver : BroadcastReceiver() {
         // Child Mode ends sessions through ChildSessionLimit, which checks the real time passed
         // instead of trusting this wall-clock alarm.
         if (ChildModeStore.isChildMode) return@withLock
+        // Early, because the date was moved forward: armed again for the real end.
+        val duration = profile.schedule?.automaticEndDurationMillis ?: return@withLock
+        if (mo.dev.ctrus.util.SessionClock.now() < session.startTimeEpochMilli + duration) {
+            app.scheduleAlarmScheduler.syncSessionEnd(session, profile)
+            return@withLock
+        }
         app.sessionRepository.endSession(session)
     }
 

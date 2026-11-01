@@ -28,7 +28,7 @@ fun TagReadDialog(
     NfcScanDialog(
         availability = nfcScanController.availability,
         onDismiss = onDismiss,
-        onOpenNfcSettings = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) },
+        onOpenNfcSettings = { mo.dev.ctrus.nfc.openNfcSettings(context) },
         message = message,
     )
 }

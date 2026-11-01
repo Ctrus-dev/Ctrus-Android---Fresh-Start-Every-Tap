@@ -64,6 +64,7 @@ class CtrusApp : Application() {
         preferences = AppPreferences(this)
         scheduleAlarmScheduler = ScheduleAlarmScheduler(this)
 
+        mo.dev.ctrus.util.SessionClock.init(this)
         WakeAlarmManager.init(this)
         BlockingStateHolder.start(applicationScope, sessionRepository, profileRepository)
         AdultDomainList.init(this)
@@ -86,6 +87,7 @@ class CtrusApp : Application() {
         // (on schedule or from the bubble). ScheduleReceiver checks the session is still running.
         applicationScope.launch {
             sessionRepository.observeMostRecentActive().collect { session ->
+                session?.let { mo.dev.ctrus.util.SessionClock.ensureAnchored(it.id) }
                 BlockingHealthMonitor.sync(this@CtrusApp, session?.id)
                 val profile = session?.let { profileRepository.find(it.profileId) } ?: return@collect
                 scheduleAlarmScheduler.syncSessionEnd(session, profile)

@@ -339,7 +339,7 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
         NfcScanDialog(
             availability = nfcScanController.availability,
             onDismiss = { isScanningTag = false; scanError = null },
-            onOpenNfcSettings = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) },
+            onOpenNfcSettings = { mo.dev.ctrus.nfc.openNfcSettings(context) },
             errorMessage = scanError,
         )
     }

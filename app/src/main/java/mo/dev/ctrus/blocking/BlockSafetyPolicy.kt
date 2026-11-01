@@ -62,7 +62,34 @@ object BlockSafetyPolicy {
         "com.samsung.android.lool",
     )
 
+    /** Calls, the dialer (emergency dialer included) and SOS: a ringing alarm stays out of their way. */
+    private val PHONE_AND_EMERGENCY = setOf(
+        "com.android.dialer",
+        "com.google.android.dialer",
+        "com.samsung.android.dialer",
+        "com.android.phone",
+        "com.android.server.telecom",
+        "com.android.incallui",
+        "com.samsung.android.incallui",
+        "com.samsung.android.app.telephonyui",
+        "com.android.emergency",
+        "com.samsung.android.emergency",
+        "com.sec.android.emergencylauncher",
+        "com.google.android.apps.safetyhub",
+    )
+
     private const val CTRUS_DOMAIN = "ctrus.pt"
+
+    @Volatile private var cachedPhonePackages: Set<String>? = null
+
+    fun isPhoneOrEmergency(context: Context, packageName: String): Boolean {
+        if (packageName in PHONE_AND_EMERGENCY) return true
+        val resolved = cachedPhonePackages ?: setOfNotNull(
+            runCatching { context.packageManager.resolveActivity(Intent(Intent.ACTION_DIAL), 0)?.activityInfo?.packageName }.getOrNull(),
+            runCatching { context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage }.getOrNull(),
+        ).filterNot { it == "android" }.toSet().also { cachedPhonePackages = it }
+        return packageName in resolved
+    }
 
     // isProtected() runs synchronously on every single TYPE_WINDOW_STATE_CHANGED event — an
     // AccessibilityService has a strict time budget to respond in, and resolveActivity() is a

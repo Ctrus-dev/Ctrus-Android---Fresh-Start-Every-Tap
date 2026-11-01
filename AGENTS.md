@@ -461,8 +461,24 @@ or later from Settings. Pieces, all in `childmode/` and `ui/childmode/`:
   deleted with a red trash button, hidden for the last one (iOS 9b780d3).
 - `ParentGuardActivity`: during a Child Mode session the service puts the parent confirmation
   over Ctrus's own Accessibility page (matched by the service description) or App info
-  (`entity_header_title` / MIUI's details activity). Confirming frees it until Settings is left,
-  and ✕/Back goes Home.
+  (`entity_header_title` / MIUI's details activity; on the newer Compose "SPA" Settings, seen on
+  API 37, the tree is walked for the app name plus Settings' own `force_stop` string, since
+  `findAccessibilityNodeInfosByText` finds nothing there). Confirming frees it until Settings is
+  left, and ✕/Back goes Home. **Normal mode, during any session** (the user's call, 2026-11-01):
+  Ctrus's App info page just goes Home (Force stop would end the alarm and every scheduled start).
+  Only the page showing Force stop (app name + Settings' `force_stop` string) counts, so its
+  notification/battery pages stay usable. Ctrus's own Accessibility page (the one with the
+  service description; the list of services stays usable) goes Home too.
+
+**Breaks and fixed-duration schedules count real time (`util/SessionClock`, the user's call,
+2026-11-01).** Moving the date back used to stretch a break (5 min + 1 h), and moving it forward
+ended a fixed-duration schedule early. `SessionClock.now()` = the phone's date when the session
+started + `elapsedRealtime` since (re-anchored on a new session and after a reboot); break
+start/end stamps, `isBreakActiveAt`, the break re-check, the session timer and the schedule's end
+use it. Alarms stay wall-clock (`toWallClock` converts); one that fires early (date moved forward)
+re-arms for the real end. Alarm mode's alarm still follows the phone's date. Verified on the
+emulator: a 1-min break ended after 60 real s with the date moved back 1 h; a 1-h schedule kept
+running with the date moved forward 3 h, its end re-armed for the real time.
 - Leaving Child Mode (`ChildModeSwitcher`): each profile gets the parents' Ctrus and its own
   child's Ctrus as physical unlocks ("Ctrus N", URL else uppercase UID, no duplicates).
 Section 14 normal-mode changes made here too: welcome/First Steps are `IntroCard`s with full stops,
@@ -492,6 +508,8 @@ ending the session. Never ends on a timer (`durationInHours` always null); break
 - Snooze (`enableSnooze`, `snoozeMinutes` 1–15): one global `snoozedUntil`, spares moved there.
 - D8: `startMissedAlarmSession` on resume starts a session (from the occurrence's start) that the
   start alarm missed, within 30 min of the alarm, when no session runs and Accessibility is on.
+  Sliding a ringing alarm starts it regardless (Accessibility off, or ringing for longer), so the
+  alarm only ever stops with the Ctrus (the user's call, 2026-11-01).
 - Saving needs notifications, "Alarms & reminders", (14+) full-screen intents and, on Xiaomi, MIUI's
   "Show on Lock screen" (`XiaomiLockScreenUtil`, app-op 10020; also a Recommended row in Permissions)
   (`permissions/AlarmPermissionUtil`, checked in `MainActivity` before the parent confirmation).
@@ -507,6 +525,12 @@ ending the session. Never ends on a timer (`durationInHours` always null); break
   (`AlarmActivity.openingAppUntil`). The direct start relies on the bound Accessibility service's
   background-launch exemption; when the phone is locked a short-lived second full-screen notification
   is posted too, which works even without it. The user's call (2026-11-01), not in the spec.
+  Calls and help come first: during a call (`AudioManager.mode` in call/communication/ringtone) the
+  sound and vibration pause until it ends, and with the dialer/emergency dialer/SOS in front
+  (`BlockSafetyPolicy.isPhoneOrEmergency`, from the service's `ForegroundApp`) the screen isn't
+  brought back but the sound goes on (an open dialer mustn't quiet the alarm). `openNfcSettings`
+  holds the bring-back for 60 s so NFC can be turned on. The alarm volume is never touched
+  (the user's call: like iOS, it's the phone's own alarm volume).
 Verified on the emulator (API 37): automatic start, ringing over the lock screen, Snooze from the
 alarm screen, notification and card, ringing again after it, re-armed after an app update, slide →
 auto Ctrus read, emergency → silenced and a one-time profile deleted, spares cancelled.
