@@ -235,7 +235,6 @@
     <string name="emergency_limited_notice">You have a limited number of emergency unblocks.</string>
     <string name="emergency_unblock_button">Emergency Unblock</string>
     <string name="emergency_hold_button">Hold to Unblock</string>
-    <string name="emergency_none_remaining">No emergency unblocks remaining. You\'re out of luck.</string>
     <string name="emergency_resets_in_hours">Resets in %1$dh</string>
     <string name="emergency_resets_on_date">Resets %1$s</string>
     <string name="error_dialog_title">Something went wrong</string>
