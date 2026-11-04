@@ -243,6 +243,7 @@
     <string name="error_not_allowed_to_unblock">Esta tag não pode desbloquear este perfil.</string>
     <string name="error_background_stops_disabled">As paragens em segundo plano estão desativadas para %1$s.</string>
     <string name="nfc_scan_title">Lê a tua tag Ctrus</string>
+    <string name="nfc_not_a_ctrus">Isto não é um Ctrus.</string>
     <string name="nfc_no_hardware">Este dispositivo não suporta NFC, por isso esta estratégia não pode iniciar ou parar aqui.</string>
     <string name="nfc_disabled">O NFC está desligado. Ativa-o nas definições do sistema e tenta novamente.</string>
     <string name="nfc_hold_near_tag">Toca com a parte de trás do teu telemóvel no Ctrus.</string>
@@ -468,6 +469,7 @@
     <string name="parent_confirm_locked">Demasiadas tentativas. Tenta de novo daqui a %1$s.</string>
     <string name="parent_confirm_continue">Continuar</string>
     <string name="parent_confirm_reason_edit">Para editar este perfil</string>
+    <string name="parent_confirm_reason_create">Para criar um perfil</string>
     <string name="parent_confirm_reason_delete">Para apagar este perfil</string>
     <string name="parent_confirm_reason_skip">Para saltar sessões</string>
     <string name="parent_confirm_reason_end_session">Para terminar a sessão ativa</string>

@@ -442,8 +442,12 @@ or later from Settings. Pieces, all in `childmode/` and `ui/childmode/`:
   `TrustedClock`; the parents' Ctrus resets them. Hashing is slow: call it off the main thread.
 - `ParentConfirmationSheet` (`ParentConfirmationHost`/`Request`): the single confirmation (their
   Ctrus, the code, or the recovery key and a new code), and the action runs after it closes. It's needed for
-  editing/deleting profiles, skipping sessions, ending a session from Settings, Child Mode
-  settings and the attempt log. Creating, duplicating and reordering profiles don't need it.
+  creating/editing/deleting profiles, skipping sessions, ending a session from Settings, Child Mode
+  settings and the attempt log. Duplicating and reordering profiles don't need it. Creating needs it
+  since iOS `ac37116`: a profile the child made and started first used to keep the parents'
+  schedule from ever starting. For the same reason, in Child Mode `ScheduleReceiver` ends a
+  session started by hand (any non-`SCHEDULED_IDS` profile) and starts the schedule; another
+  schedule's or alarm's session is still left alone and the start is skipped.
 - Ending a session: only a parents' Ctrus or the profile's child's Ctrus (if `childTagCanStop`)
   in every strategy's `stopBlocking`, plus Settings (parents) and emergency (cycle fixed at 4 weeks).
   No recover.ctrus.pt in Child Mode. Android has no shortcuts/widget/deep-link stop to disable.
@@ -696,6 +700,16 @@ while NFC was off never took effect once NFC was turned on from Quick Settings. 
 `EXTRA_READER_PRESENCE_CHECK_DELAY`, re-claims reader mode when the adapter turns on and when the
 window regains focus, and logs to the `CtrusNfc` tag. Verified on that device: 9 taps (some with
 no scan pending) all went to Ctrus, none to the system.
+
+**Only a real Ctrus can be registered (iOS `9fd42fd`).** Each Ctrus carries an NDEF external record
+`ctrus.pt:sig` with a P-256 ECDSA/SHA-256 signature of `"ctrus-tag-v1:" + UID`, in CryptoKit's raw
+r ‖ s form (`nfc/CtrusTagSignature` converts it to DER for Java; same public key as iOS).
+`NfcTagRead.isGenuineCtrus` carries the result. Registering a tag (a profile's physical unlock,
+the parents' Ctrus in setup/settings, the child's Ctrus) turns away tags without it, with "This
+isn't a Ctrus." (`TagReadDialog(requiresGenuineCtrus = true)`, and `PhysicalUnlocksFields`);
+checking a tag already registered still goes by UID/code only, so older tags keep working.
+**Writing/signing tags is developer-only and never goes in this repo** (the user's call: on iOS
+it's an untracked `CTRUS_DEVELOPER`-only writer). Unit tests: `CtrusTagSignatureTest`.
 
 **`permissions/AccessibilityPermissionUtil`** + **`ui/intro/`** — the onboarding screen, following
 Switchly's pattern: `AccessibilityDisclosureDialog` is a mandatory, checkbox-gated consent dialog

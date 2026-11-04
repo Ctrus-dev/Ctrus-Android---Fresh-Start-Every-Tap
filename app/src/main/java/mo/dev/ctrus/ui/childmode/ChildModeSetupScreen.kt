@@ -296,6 +296,7 @@ fun ChildModeSetupScreen(
                 }
             },
             onDismiss = { isReadingTag = false },
+            requiresGenuineCtrus = true,
         )
     }
 }
