@@ -234,7 +234,6 @@
     <string name="emergency_limited_notice">Tienes un número limitado de desbloqueos de emergencia.</string>
     <string name="emergency_unblock_button">Desbloqueo de Emergencia</string>
     <string name="emergency_hold_button">Mantén pulsado para desbloquear</string>
-    <string name="emergency_none_remaining">No quedan desbloqueos de emergencia. Mala suerte.</string>
     <string name="emergency_resets_in_hours">Se renuevan en %1$d h</string>
     <string name="emergency_resets_on_date">Se renuevan el %1$s</string>
     <string name="error_dialog_title">Algo salió mal</string>

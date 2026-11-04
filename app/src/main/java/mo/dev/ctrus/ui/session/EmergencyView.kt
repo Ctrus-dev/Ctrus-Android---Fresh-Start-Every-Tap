@@ -115,15 +115,6 @@ fun EmergencyView(
                     contentColor = if (hasRemaining) EmergencyRed else MaterialTheme.colorScheme.onSurfaceVariant,
                     onConfirm = { if (hasRemaining) onConfirmUnblock() },
                 )
-                // Only the "none left" line: the one saying you'll have one less was dropped.
-                if (!hasRemaining) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        stringResource(R.string.emergency_none_remaining),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = EmergencyRed,
-                    )
-                }
             }
         }
     }
