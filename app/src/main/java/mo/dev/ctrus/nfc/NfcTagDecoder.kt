@@ -21,7 +21,13 @@ import kotlinx.coroutines.withContext
  * copied onto any tag). [code] is what normal mode stores and compares: the ctrus.pt URL if the
  * tag has one, else the UID as uppercase hex.
  */
-data class NfcTagRead(val uid: String, val url: String?) {
+data class NfcTagRead(
+    val uid: String,
+    val url: String?,
+    /** Carries a valid Ctrus signature ([CtrusTagSignature]). Registering a Ctrus needs it;
+     *  checking one already registered goes by its UID/code alone, so older tags keep working. */
+    val isGenuineCtrus: Boolean = false,
+) {
     val code: String get() = url ?: uid.uppercase()
 }
 
@@ -29,8 +35,14 @@ object NfcTagDecoder {
     suspend fun decode(tag: Tag): NfcTagRead = withContext(Dispatchers.IO) { decodeBlocking(tag) }
 
     /** Blocking read; call off the main thread (e.g. from a reader-mode callback). */
-    fun decodeBlocking(tag: Tag): NfcTagRead =
-        NfcTagRead(uid = tag.id.toHexString().lowercase(), url = readNdefMessage(tag)?.let(::extractCtrusUrl))
+    fun decodeBlocking(tag: Tag): NfcTagRead {
+        val message = readNdefMessage(tag)
+        return NfcTagRead(
+            uid = tag.id.toHexString().lowercase(),
+            url = message?.let(::extractCtrusUrl),
+            isGenuineCtrus = CtrusTagSignature.isGenuine(tag.id, message),
+        )
+    }
 
     private fun readNdefMessage(tag: Tag): NdefMessage? {
         val ndef = Ndef.get(tag) ?: return null

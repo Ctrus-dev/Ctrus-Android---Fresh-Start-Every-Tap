@@ -244,6 +244,7 @@
     <string name="error_not_allowed_to_unblock">This is not allowed to unblock this profile.</string>
     <string name="error_background_stops_disabled">Background stops are disabled for %1$s.</string>
     <string name="nfc_scan_title">Scan your Ctrus tag</string>
+    <string name="nfc_not_a_ctrus">This isn\'t a Ctrus.</string>
     <string name="nfc_no_hardware">This device doesn\'t support NFC, so this strategy can\'t start or stop here.</string>
     <string name="nfc_disabled">NFC is turned off. Enable it in system settings, then try again.</string>
     <string name="nfc_hold_near_tag">Tap the back of your phone on the Ctrus.</string>
@@ -469,6 +470,7 @@
     <string name="parent_confirm_locked">Too many attempts. Try again in %1$s.</string>
     <string name="parent_confirm_continue">Continue</string>
     <string name="parent_confirm_reason_edit">To edit this profile</string>
+    <string name="parent_confirm_reason_create">To create a profile</string>
     <string name="parent_confirm_reason_delete">To delete this profile</string>
     <string name="parent_confirm_reason_skip">To skip sessions</string>
     <string name="parent_confirm_reason_end_session">To end the active session</string>

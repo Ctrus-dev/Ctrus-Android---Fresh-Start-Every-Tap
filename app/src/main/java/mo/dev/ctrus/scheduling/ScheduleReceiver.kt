@@ -108,14 +108,22 @@ class ScheduleReceiver : BroadcastReceiver() {
         }
 
         val activeSession = app.sessionRepository.mostRecentActive()
+        val activeProfile = activeSession?.let { app.profileRepository.find(it.profileId) }
         when {
             activeSession == null -> app.sessionRepository.create(profile.id, tag = profile.blockingStrategyId)
             // Already running (e.g. started from the app a bit early) — keep that session.
             activeSession.profileId == profile.id -> Unit
+            // In Child Mode a session the child started by hand could otherwise keep the parents'
+            // schedule from ever starting, so the schedule takes over (iOS ac37116). Another
+            // schedule's (or alarm's) session is still left alone, as below.
+            ChildModeStore.isChildMode && activeProfile?.blockingStrategyId !in StrategyIds.SCHEDULED_IDS -> {
+                app.sessionRepository.endSession(activeSession)
+                app.sessionRepository.create(profile.id, tag = profile.blockingStrategyId)
+            }
             // A different profile is active. Never end it or swap its restrictions — skip this
             // occurrence and say so. No retry later the same day, matching iOS.
             else -> {
-                val activeName = app.profileRepository.find(activeSession.profileId)?.name
+                val activeName = activeProfile?.name
                 val body = if (activeName != null) {
                     context.getString(R.string.schedule_skipped_notification_body, profile.name, activeName)
                 } else {

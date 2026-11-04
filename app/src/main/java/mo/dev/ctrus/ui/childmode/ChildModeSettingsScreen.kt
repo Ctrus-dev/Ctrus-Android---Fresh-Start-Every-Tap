@@ -326,6 +326,7 @@ private fun ParentTagsPage(themeColor: Color, nfcScanController: NfcScanControll
                 }
             },
             onDismiss = { isReadingTag = false },
+            requiresGenuineCtrus = true,
         )
     }
 }

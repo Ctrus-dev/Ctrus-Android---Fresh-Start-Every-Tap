@@ -102,6 +102,7 @@ fun ChildModeProfileTagFields(
                 }
             },
             onDismiss = { isReadingTag = false },
+            requiresGenuineCtrus = true,
         )
     }
 }

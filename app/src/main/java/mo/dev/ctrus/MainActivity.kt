@@ -566,7 +566,7 @@ private fun CtrusNavHost(
                 onDismiss = { showCreateProfile = false },
                 onCreate = { draft -> checkAlarmSetup(draft) {
                     requestScheduleNotificationPermissionIfNeeded(draft)
-                    coroutineScope.launch {
+                    val create = { coroutineScope.launch {
                         app.profileRepository.create(
                             name = draft.name.trim(),
                             selectedPackages = draft.selectedPackages.toList(),
@@ -590,7 +590,12 @@ private fun CtrusNavHost(
                             childTagCanStop = draft.childTagCanStop,
                         )
                         showCreateProfile = false
-                    }
+                    }; Unit }
+                    // In Child Mode a new profile could be started (or scheduled) ahead of the
+                    // parents' schedule to keep it from starting, so the parents confirm creating
+                    // one too (iOS ac37116).
+                    if (ChildModeStore.isChildMode) parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_create, create)
+                    else create()
                 } },
             )
         }
@@ -696,8 +701,8 @@ private fun CtrusNavHost(
                             }
                             Unit
                         }
-                        // Creating a profile only ever adds blocking; changing one can loosen it,
-                        // so in Child Mode the parents confirm (spec Part B, 6.2).
+                        // Changing a profile can loosen it, so in Child Mode the parents confirm
+                        // (spec Part B, 6.2). Creating one needs them too (see onCreate above).
                         if (ChildModeStore.isChildMode) parentConfirmationRequest = ParentConfirmationRequest(R.string.parent_confirm_reason_edit, save)
                         else save()
                     } },

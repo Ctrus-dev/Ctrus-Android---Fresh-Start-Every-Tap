@@ -283,6 +283,7 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
     var scanError by remember { mutableStateOf<String?>(null) }
     val scanEmptyError = stringResource(R.string.field_nfc_scan_empty)
     val scanDuplicateError = stringResource(R.string.field_nfc_scan_duplicate)
+    val notCtrusError = stringResource(R.string.nfc_not_a_ctrus)
 
     DisposableEffect(isScanningTag) {
         if (isScanningTag) {
@@ -293,6 +294,8 @@ fun PhysicalUnlocksFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> 
                     PhysicalUnblockItem.normalizedCodeValue(it.codeValue, it.type) == normalized
                 }
                 when {
+                    // Registering one takes a real Ctrus (iOS 9fd42fd); stopping still goes by code.
+                    !read.isGenuineCtrus -> scanError = notCtrusError
                     normalized.isEmpty() -> scanError = scanEmptyError
                     alreadyPresent -> scanError = scanDuplicateError
                     else -> {
