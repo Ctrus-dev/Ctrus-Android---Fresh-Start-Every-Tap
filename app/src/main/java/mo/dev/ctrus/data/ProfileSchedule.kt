@@ -150,8 +150,8 @@ data class ProfileSchedule(
     companion object {
         /** Spec D3.2, in menu order. Each is a file in res/raw. */
         val ALARM_TONE_IDS = listOf(
-            "ctrus_urgent", "ctrus_morning", "ctrus_lumen", "ctrus_pulsar", "ctrus_orbit", "ctrus_lagoon",
-            "ctrus_spark", "ctrus_waves", "ctrus_daybreak", "ctrus_musicbox", "ctrus_rally",
+            "ctrus_morning", "ctrus_lumen", "ctrus_lagoon", "ctrus_daybreak", "ctrus_timber",
+            "ctrus_serenade", "ctrus_arcade", "ctrus_groove", "ctrus_oldclock", "ctrus_birdsong",
         )
         const val DEFAULT_ALARM_SOUND = "ctrus_morning"
         const val VIBRATE_ALARM_SOUND = "vibrate"
