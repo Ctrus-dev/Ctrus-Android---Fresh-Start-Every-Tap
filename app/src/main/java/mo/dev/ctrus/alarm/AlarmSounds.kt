@@ -20,33 +20,31 @@ import mo.dev.ctrus.data.ProfileSchedule
 object AlarmSounds {
     @RawRes
     fun rawRes(soundId: String): Int? = when (soundId) {
-        "ctrus_urgent" -> R.raw.ctrus_urgent
         "ctrus_morning" -> R.raw.ctrus_morning
         "ctrus_lumen" -> R.raw.ctrus_lumen
-        "ctrus_pulsar" -> R.raw.ctrus_pulsar
-        "ctrus_orbit" -> R.raw.ctrus_orbit
         "ctrus_lagoon" -> R.raw.ctrus_lagoon
-        "ctrus_spark" -> R.raw.ctrus_spark
-        "ctrus_waves" -> R.raw.ctrus_waves
         "ctrus_daybreak" -> R.raw.ctrus_daybreak
-        "ctrus_musicbox" -> R.raw.ctrus_musicbox
-        "ctrus_rally" -> R.raw.ctrus_rally
+        "ctrus_timber" -> R.raw.ctrus_timber
+        "ctrus_serenade" -> R.raw.ctrus_serenade
+        "ctrus_arcade" -> R.raw.ctrus_arcade
+        "ctrus_groove" -> R.raw.ctrus_groove
+        "ctrus_oldclock" -> R.raw.ctrus_oldclock
+        "ctrus_birdsong" -> R.raw.ctrus_birdsong
         else -> null
     }
 
     @StringRes
     fun titleRes(soundId: String): Int = when (soundId) {
-        "ctrus_urgent" -> R.string.alarm_sound_urgent
         "ctrus_morning" -> R.string.alarm_sound_morning
         "ctrus_lumen" -> R.string.alarm_sound_lumen
-        "ctrus_pulsar" -> R.string.alarm_sound_pulsar
-        "ctrus_orbit" -> R.string.alarm_sound_orbit
         "ctrus_lagoon" -> R.string.alarm_sound_lagoon
-        "ctrus_spark" -> R.string.alarm_sound_spark
-        "ctrus_waves" -> R.string.alarm_sound_waves
         "ctrus_daybreak" -> R.string.alarm_sound_daybreak
-        "ctrus_musicbox" -> R.string.alarm_sound_musicbox
-        "ctrus_rally" -> R.string.alarm_sound_rally
+        "ctrus_timber" -> R.string.alarm_sound_timber
+        "ctrus_serenade" -> R.string.alarm_sound_serenade
+        "ctrus_arcade" -> R.string.alarm_sound_arcade
+        "ctrus_groove" -> R.string.alarm_sound_groove
+        "ctrus_oldclock" -> R.string.alarm_sound_oldclock
+        "ctrus_birdsong" -> R.string.alarm_sound_birdsong
         ProfileSchedule.VIBRATE_ALARM_SOUND -> R.string.alarm_sound_vibrate
         else -> R.string.alarm_sound_morning
     }
