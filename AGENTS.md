@@ -577,7 +577,9 @@ sheet, Settings row, `ScheduleReceiver` skip + notification). Not Xiaomi or unre
 Switchly (reviewed for this) can't detect it either; it only shows per-brand instructions.
 **No persistent/foreground-service notification as a keep-alive** — the user rejected it.
 Other brands get `OemBackgroundGuide` (Xiaomi, Huawei/Honor, Oppo/Realme/OnePlus, Vivo/iQOO,
-Samsung): per-brand steps plus a best-effort deep link, never gating. `BlockingHealthMonitor`
+Samsung, Asus, Tecno/Infinix/itel, and a generic guide for the rest; none on Pixel). The non-Xiaomi
+managers it opens are never blocked outside Child Mode, but stay blockable in it, since a child could
+use them against Ctrus (the user's call, 2026-11-09). Each guide has: per-brand steps plus a best-effort deep link, never gating. `BlockingHealthMonitor`
 checks every ~15 min during a session (inexact `setAndAllowWhileIdle`) and posts one dismissible
 "Blocking stopped" notification per session if Accessibility isn't running. **Xiaomi background pop-ups** (`XiaomiBackgroundPopupUtil`, app-op 10021, read the same way): without
 it MIUI refuses every activity the service opens (`Permission Denied Activity`), so nothing looks
