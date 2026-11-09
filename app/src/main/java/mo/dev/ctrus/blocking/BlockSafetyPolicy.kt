@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.telecom.TelecomManager
+import mo.dev.ctrus.childmode.ChildModeStore
 
 /**
  * Apps and sites that must never be blocked, whatever a profile says (including allow-mode,
@@ -19,6 +20,8 @@ import android.telecom.TelecomManager
  * - The home launcher, system UI, the lock screen's unlock (fingerprint/face) screens,
  *   permission prompts, the emergency/in-call/SOS screens, and the Clock (a ringing alarm).
  * - The OEM screens Ctrus itself sends people to (MIUI Security/Autostart, battery settings).
+ * - Outside Child Mode, the other brands' managers the "Keep Ctrus Running" guide opens. In Child
+ *   Mode they stay blockable: they can restrict other apps, so a child could use them against Ctrus.
  * - Every enabled keyboard (e.g. Gboard). Its window fires the same window-state event as an app
  *   when it opens, so in allow-mode typing in an allowed app showed the block screen for Gboard.
  * The app picker hides all of these, so they can't even be selected.
@@ -62,6 +65,18 @@ object BlockSafetyPolicy {
         "com.samsung.android.lool",
     )
 
+    /** The screens OemBackgroundGuide opens. Unlike NEVER_BLOCK, protected only outside Child Mode. */
+    private val OEM_GUIDE_APPS = setOf(
+        "com.huawei.systemmanager",
+        "com.hihonor.systemmanager",
+        "com.coloros.safecenter",
+        "com.oppo.safe",
+        "com.vivo.permissionmanager",
+        "com.iqoo.secure",
+        "com.asus.mobilemanager",
+        "com.transsion.phonemaster",
+    )
+
     /** Calls, the dialer (emergency dialer included) and SOS: a ringing alarm stays out of their way. */
     private val PHONE_AND_EMERGENCY = setOf(
         "com.android.dialer",
@@ -103,9 +118,13 @@ object BlockSafetyPolicy {
     fun isProtected(context: Context, packageName: String): Boolean {
         if (packageName == context.packageName) return true
         if (packageName in NEVER_BLOCK) return true
+        if (isOemGuideAppProtected(packageName, ChildModeStore.isChildMode)) return true
         if (isEnabledKeyboard(context, packageName)) return true
         return packageName in resolvedPackages(context)
     }
+
+    internal fun isOemGuideAppProtected(packageName: String, isChildMode: Boolean): Boolean =
+        !isChildMode && packageName in OEM_GUIDE_APPS
 
     // Not cached with the others: keyboards can be added or switched at any time. Settings.Secure
     // reads are served from a local cache, so this is cheap enough for every event.
