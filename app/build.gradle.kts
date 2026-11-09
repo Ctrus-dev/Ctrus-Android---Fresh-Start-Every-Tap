@@ -6,6 +6,8 @@ plugins {
 }
 
 android {
+    // OemBackgroundGuide builds ComponentNames, which android.jar's stubs would otherwise reject.
+    testOptions { unitTests.isReturnDefaultValues = true }
     namespace = "mo.dev.ctrus"
     compileSdk = 37
 

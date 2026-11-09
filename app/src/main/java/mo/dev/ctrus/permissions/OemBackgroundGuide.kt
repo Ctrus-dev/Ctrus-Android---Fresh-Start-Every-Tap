@@ -15,7 +15,9 @@ import mo.dev.ctrus.R
  * and close Ctrus, which stops the Accessibility service and with it all blocking. Only Xiaomi's
  * Autostart can be read (see XiaomiAutostartUtil); everything here is a recommendation that can't
  * be verified, so it never gates anything. Same approach as Switchly's background-access FAQ,
- * steps adapted from dontkillmyapp.com. Menu names vary between OS versions.
+ * steps adapted from dontkillmyapp.com. Menu names vary between OS versions. Asus and
+ * Tecno/Infinix/itel have their own entries (their screen names are untested on real phones, so
+ * they may fall through to App info), and every other brand gets GENERIC, except Google's Pixel.
  */
 enum class OemBackgroundGuide(@StringRes val stepsRes: Int, private val targets: List<ComponentName>) {
     XIAOMI(
@@ -46,7 +48,21 @@ enum class OemBackgroundGuide(@StringRes val stepsRes: Int, private val targets:
         ),
     ),
     // Samsung's per-app Battery setting lives on the App info screen (the fallback below).
-    SAMSUNG(R.string.oem_steps_samsung, emptyList());
+    SAMSUNG(R.string.oem_steps_samsung, emptyList()),
+    ASUS(
+        R.string.oem_steps_asus,
+        listOf(
+            ComponentName("com.asus.mobilemanager", "com.asus.mobilemanager.autostart.AutoStartActivity"),
+            ComponentName("com.asus.mobilemanager", "com.asus.mobilemanager.entry.FunctionActivity"),
+            ComponentName("com.asus.mobilemanager", "com.asus.mobilemanager.powersaver.PowerSaverSettings"),
+        ),
+    ),
+    TRANSSION(
+        R.string.oem_steps_transsion,
+        listOf(ComponentName("com.transsion.phonemaster", "com.cyin.himgr.autostart.AutoStartActivity")),
+    ),
+    // Any other brand: no screen of its own, so straight to App info.
+    GENERIC(R.string.oem_steps_generic, emptyList());
 
     /** Tries the brand's own screen, then Ctrus's App info screen. */
     fun open(context: Context) {
@@ -61,16 +77,21 @@ enum class OemBackgroundGuide(@StringRes val stepsRes: Int, private val targets:
     }
 
     companion object {
-        /** The guide for this phone's brand, or null on brands that don't need one (e.g. Pixel). */
-        fun forDevice(): OemBackgroundGuide? {
-            val id = "${Build.MANUFACTURER} ${Build.BRAND}".lowercase()
+        /** The guide for this phone's brand: [GENERIC] if it isn't a known one, null only on Google's Pixel. */
+        fun forDevice(): OemBackgroundGuide? = forBrand(Build.MANUFACTURER, Build.BRAND)
+
+        internal fun forBrand(manufacturer: String, brand: String): OemBackgroundGuide? {
+            val id = "$manufacturer $brand".lowercase()
             return when {
                 listOf("xiaomi", "redmi", "poco").any(id::contains) -> XIAOMI
                 listOf("huawei", "honor").any(id::contains) -> HUAWEI
                 listOf("oppo", "realme", "oneplus").any(id::contains) -> OPPO
                 listOf("vivo", "iqoo").any(id::contains) -> VIVO
                 id.contains("samsung") -> SAMSUNG
-                else -> null
+                id.contains("asus") -> ASUS
+                listOf("tecno", "infinix", "itel").any(id::contains) -> TRANSSION
+                manufacturer.equals("Google", ignoreCase = true) -> null
+                else -> GENERIC
             }
         }
     }

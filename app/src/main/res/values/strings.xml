@@ -417,6 +417,9 @@
     <string name="oem_steps_oppo">1. Turn on Auto launch for Ctrus.\n2. In App info › Battery usage, allow background activity (or choose Unrestricted).\n3. Open Recent apps and lock Ctrus.</string>
     <string name="oem_steps_vivo">1. Turn on Autostart and Associated startup for Ctrus.\n2. In Battery, allow high background power consumption.\n3. Open Recent apps and lock Ctrus.\n4. If i Manager says Accessibility was turned off, choose to turn it back on.</string>
     <string name="oem_steps_samsung">1. In App info › Battery, choose Unrestricted.\n2. In Battery › Background usage limits, make sure Ctrus isn\'t under Sleeping apps or Deep sleeping apps.\n3. Turn off Put unused apps to sleep.</string>
+    <string name="oem_steps_asus">1. In Mobile Manager › Auto-start Manager, allow Ctrus.\n2. In App info › Battery, choose Unrestricted (or turn off battery optimization).\n3. Open Recent apps and lock Ctrus.</string>
+    <string name="oem_steps_transsion">1. In Phone Master › Auto-start management, allow Ctrus.\n2. In App info › Battery, choose Unrestricted.\n3. Open Recent apps and lock Ctrus.\n4. If blocking still stops, turn Ctrus\'s Accessibility off and on again.</string>
+    <string name="oem_steps_generic">1. In App info › Battery, choose Unrestricted (or turn off battery optimization).\n2. If your phone has an app-launch or auto-start setting, allow Ctrus there.\n3. Open Recent apps and lock Ctrus, if your phone offers it.\n4. If blocking stops, turn Ctrus\'s Accessibility off and on again.</string>
     <string name="blocking_status_channel_name">Blocking problems</string>
     <string name="blocking_status_channel_description">Lets you know when blocking stopped during a session.</string>
     <string name="blocking_stopped_title">Blocking stopped</string>
