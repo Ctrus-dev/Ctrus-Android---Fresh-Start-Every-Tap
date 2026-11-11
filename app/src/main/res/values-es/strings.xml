@@ -517,11 +517,15 @@
     <string name="alarm_snooze">Posponer</string>
     <string name="alarm_snooze_desc">Al posponer, la alarma se silencia unos minutos y luego vuelve a sonar.</string>
     <string name="alarm_snooze_duration">Duración al Posponer</string>
+    <string name="alarm_snooze_limit">Veces que Posponer</string>
+    <string name="alarm_snooze_unlimited">Indefinido</string>
     <string name="alarm_snooze_disabled">Desactivado</string>
     <string name="alarm_once_summary">Una vez · %1$s</string>
     <string name="field_allow_timed_breaks_desc_alarm">Usa tus apps unos minutos sin terminar la sesión. El descanso acaba solo y la alarma sonará igualmente a la hora de fin.</string>
     <string name="alarm_ringing">Sonando</string>
     <string name="alarm_open_ctrus">Abrir Ctrus</string>
+    <!-- The alarm screen's slider, always on two lines. -->
+    <string name="alarm_open_ctrus_two_lines">Abrir\nCtrus</string>
     <string name="alarm_full_screen_required">Para que la alarma aparezca con la pantalla bloqueada, activa “Notificaciones a pantalla completa”.</string>
     <string name="alarm_lock_screen_required">Para que la alarma aparezca con la pantalla bloqueada, activa “Mostrar en pantalla de bloqueo” para Ctrus.</string>
     <string name="settings_lock_screen">Mostrar en pantalla de bloqueo</string>

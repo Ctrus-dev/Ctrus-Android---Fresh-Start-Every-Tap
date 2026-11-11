@@ -509,7 +509,10 @@ ending the session. Never ends on a timer (`durationInHours` always null); break
   (channel `alarm`, silent) has a Snooze action and a full-screen intent to `alarm/AlarmActivity`
   (the only new screen: time, name, Snooze, slide → unlock → `MainActivity` with
   `EXTRA_ALARM_PROFILE_ID`, where the card expands and the Ctrus read starts after 0.6 s).
-- Snooze (`enableSnooze`, `snoozeMinutes` 1–15): one global `snoozedUntil`, spares moved there.
+- Snooze (`enableSnooze`, `snoozeMinutes` 1–15): one global `snoozedUntil`, spares moved there. Limited to `snoozeLimit`
+  1/2/3/unlimited (default 1, iOS 6b1cb42), counted per alarm in `AlarmRecord.snoozesUsed`; after the last one
+  `allowsSnooze` goes false, which drops Snooze from the card, alarm screen and notification. The alarm
+  screen's "Open Ctrus" is always on two lines (`alarm_open_ctrus_two_lines`, the user's call).
 - D8: `startMissedAlarmSession` on resume starts a session (from the occurrence's start) that the
   start alarm missed, within 30 min of the alarm, when no session runs and Accessibility is on.
   Sliding a ringing alarm starts it regardless (Accessibility off, or ringing for longer), so the

@@ -32,6 +32,8 @@ data class ProfileSchedule(
     val alarmMinute: Int? = null,
     val alarmSound: String? = null,
     val snoozeMinutes: Int? = null,
+    /** How many times the alarm can be snoozed: 1–3, or [UNLIMITED_SNOOZES]. Read through [alarmSnoozeLimit]. */
+    val snoozeLimit: Int? = null,
 ) {
     val isActive: Boolean get() = days.isNotEmpty()
 
@@ -87,6 +89,12 @@ data class ProfileSchedule(
         get() = alarmSound?.takeIf { it == VIBRATE_ALARM_SOUND || it in ALARM_TONE_IDS } ?: DEFAULT_ALARM_SOUND
 
     val alarmSnoozeMinutes: Int get() = (snoozeMinutes ?: DEFAULT_SNOOZE_MINUTES).coerceIn(1, 15)
+
+    val alarmSnoozeLimit: Int get() = snoozeLimit?.takeIf { it in AVAILABLE_SNOOZE_LIMITS } ?: DEFAULT_SNOOZE_LIMIT
+
+    /** Whether the alarm can still be snoozed after [snoozesUsed] snoozes (iOS 6b1cb42). */
+    fun allowsSnooze(snoozesUsed: Int): Boolean =
+        alarmSnoozeLimit == UNLIMITED_SNOOZES || snoozesUsed < alarmSnoozeLimit
 
     val hasValidAlarmTime: Boolean get() = alarmTime != LocalTime.of(startHour, startMinute)
 
@@ -159,6 +167,9 @@ data class ProfileSchedule(
 
         val AVAILABLE_SNOOZE_MINUTES = (1..15).toList()
         const val DEFAULT_SNOOZE_MINUTES = 9
+        const val UNLIMITED_SNOOZES = 0
+        val AVAILABLE_SNOOZE_LIMITS = listOf(1, 2, 3, UNLIMITED_SNOOZES)
+        const val DEFAULT_SNOOZE_LIMIT = 1
 
         /** Mirrors `BlockedProfileSchedule.availableDurationsInHours`. `null` (Indefinite) is offered separately. */
         val AVAILABLE_DURATIONS_IN_HOURS = listOf(1, 2, 3, 4)

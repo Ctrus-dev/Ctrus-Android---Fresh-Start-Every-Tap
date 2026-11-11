@@ -544,8 +544,8 @@ private fun ProfileBalloonCard(
         ) {
             ExpandedActions(
                 // Only while it rings: a snooze counts down in the clock instead, and the button
-                // comes back once it's over.
-                showsSnooze = alarm?.isRinging == true && profile.enableSnooze,
+                // comes back once it's over, unless that was the last one.
+                showsSnooze = alarm?.isRinging == true && alarm.allowsSnooze,
                 onSnooze = { scope.launch { WakeAlarmManager.snooze(CtrusApp.from(context), profile.id) } },
                 isBreakAvailable = isBreakAvailable,
                 isBreakActive = isBreakActive,
@@ -680,7 +680,13 @@ private fun SessionTimeAccessory(displaySeconds: Double, isBreakActive: Boolean,
 }
 
 /** Alarm mode's state for an active card: when it rings, whether it's ringing, and a snooze. */
-private data class AlarmCardState(val alarmDateMillis: Long?, val snoozedUntilMillis: Long?, val nowMillis: Long) {
+private data class AlarmCardState(
+    val alarmDateMillis: Long?,
+    val snoozedUntilMillis: Long?,
+    val nowMillis: Long,
+    /** Snooze on and the profile's limit not used up yet. */
+    val allowsSnooze: Boolean,
+) {
     val isSnoozed: Boolean get() = (snoozedUntilMillis ?: 0) > nowMillis
     val isRinging: Boolean get() = alarmDateMillis != null && alarmDateMillis <= nowMillis && !isSnoozed
 }
@@ -697,7 +703,8 @@ private fun rememberAlarmCardState(profileId: String, enabled: Boolean): AlarmCa
             value = System.currentTimeMillis()
         }
     }
-    return AlarmCardState(records[profileId]?.alarmDate, snoozedUntil, now)
+    val record = records[profileId]
+    return AlarmCardState(record?.alarmDate, snoozedUntil, now, allowsSnooze = record?.allowsSnooze == true)
 }
 
 /**
