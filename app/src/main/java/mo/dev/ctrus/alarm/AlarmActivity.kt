@@ -281,9 +281,9 @@ private fun AlarmSlider(themeColor: Color, showsSnooze: Boolean, onSnooze: () ->
                     SliderLabel(stringResource(R.string.alarm_snooze), textAlign = TextAlign.Center)
                 }
                 Spacer(Modifier.width(pillWidth))
-                // Its lines centred on each other, as without snooze ("Abrir o" / "Ctrus").
+                // Always two lines, centred on each other ("Abrir o" / "Ctrus"), as without snooze.
                 Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    SliderLabel(stringResource(R.string.alarm_open_ctrus), textAlign = TextAlign.Center)
+                    SliderLabel(stringResource(R.string.alarm_open_ctrus_two_lines), textAlign = TextAlign.Center)
                 }
             }
         } else {
@@ -291,7 +291,7 @@ private fun AlarmSlider(themeColor: Color, showsSnooze: Boolean, onSnooze: () ->
                 modifier = Modifier.fillMaxWidth().padding(start = pillWidth + inset * 2, end = 20.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                SliderLabel(stringResource(R.string.alarm_open_ctrus), textAlign = TextAlign.Center)
+                SliderLabel(stringResource(R.string.alarm_open_ctrus_two_lines), textAlign = TextAlign.Center)
             }
         }
         Box(

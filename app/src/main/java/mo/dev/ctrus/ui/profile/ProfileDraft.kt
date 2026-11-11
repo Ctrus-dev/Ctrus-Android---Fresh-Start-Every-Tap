@@ -38,6 +38,7 @@ data class ProfileDraft(
     val alarmSound: String = ProfileSchedule.DEFAULT_ALARM_SOUND,
     val snoozeMinutes: Int = ProfileSchedule.DEFAULT_SNOOZE_MINUTES,
     val enableSnooze: Boolean = true,
+    val snoozeLimit: Int = ProfileSchedule.DEFAULT_SNOOZE_LIMIT,
     val isOneTimeAlarm: Boolean = false,
     /** Child Mode only (spec Part B, 6.1). */
     val childTag: ChildTag? = null,
@@ -93,6 +94,7 @@ data class ProfileDraft(
                 alarmMinute = alarmMinute.takeIf { useAlarm },
                 alarmSound = alarmSound.takeIf { useAlarm },
                 snoozeMinutes = snoozeMinutes.takeIf { useAlarm },
+                snoozeLimit = snoozeLimit.takeIf { useAlarm },
             )
         } else {
             null
@@ -134,6 +136,7 @@ fun BlockedProfileEntity.toDraft() = ProfileDraft(
     alarmSound = schedule?.alarmSoundId ?: ProfileSchedule.DEFAULT_ALARM_SOUND,
     snoozeMinutes = schedule?.alarmSnoozeMinutes ?: ProfileSchedule.DEFAULT_SNOOZE_MINUTES,
     enableSnooze = enableSnooze,
+    snoozeLimit = schedule?.alarmSnoozeLimit ?: ProfileSchedule.DEFAULT_SNOOZE_LIMIT,
     isOneTimeAlarm = isOneTimeAlarm,
     childTag = childTag,
     childTagCanStop = childTagCanStop,

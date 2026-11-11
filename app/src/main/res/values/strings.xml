@@ -518,11 +518,15 @@
     <string name="alarm_snooze">Snooze</string>
     <string name="alarm_snooze_desc">Snooze silences the alarm for a while. Then it rings again.</string>
     <string name="alarm_snooze_duration">Snooze Duration</string>
+    <string name="alarm_snooze_limit">Snooze Limit</string>
+    <string name="alarm_snooze_unlimited">Unlimited</string>
     <string name="alarm_snooze_disabled">Disabled</string>
     <string name="alarm_once_summary">Once · %1$s</string>
     <string name="field_allow_timed_breaks_desc_alarm">Get your apps back for a while during the session. The break ends on its own, and the alarm still rings at the end time.</string>
     <string name="alarm_ringing">Ringing</string>
     <string name="alarm_open_ctrus">Open Ctrus</string>
+    <!-- The alarm screen's slider, always on two lines. -->
+    <string name="alarm_open_ctrus_two_lines">Open\nCtrus</string>
     <string name="alarm_full_screen_required">To show the alarm on the lock screen, turn on “Full-screen notifications”.</string>
     <string name="alarm_lock_screen_required">To show the alarm on the lock screen, turn on “Show on Lock screen” for Ctrus.</string>
     <string name="settings_lock_screen">Show on Lock screen</string>

@@ -93,4 +93,22 @@ class AlarmScheduleTest {
         assertFalse(draft.copy(scheduleDays = emptySet()).hasValidSchedule)
         assertTrue(draft.copy(isOneTimeAlarm = true).hasValidSchedule)
     }
+
+    @Test
+    fun snoozeLimit() {
+        val one = night
+        assertEquals(1, one.alarmSnoozeLimit)
+        assertTrue(one.allowsSnooze(snoozesUsed = 0))
+        assertFalse(one.allowsSnooze(snoozesUsed = 1))
+
+        val three = night.copy(snoozeLimit = 3)
+        assertTrue(three.allowsSnooze(snoozesUsed = 2))
+        assertFalse(three.allowsSnooze(snoozesUsed = 3))
+
+        val unlimited = night.copy(snoozeLimit = ProfileSchedule.UNLIMITED_SNOOZES)
+        assertTrue(unlimited.allowsSnooze(snoozesUsed = 50))
+
+        // A value that isn't offered falls back to the default.
+        assertEquals(1, night.copy(snoozeLimit = 7).alarmSnoozeLimit)
+    }
 }

@@ -59,6 +59,8 @@ object WakeAlarmManager {
         val allowsSnooze: Boolean,
         val soundId: String,
         val profileName: String,
+        /** How many times this alarm has been snoozed (iOS 6b1cb42). */
+        val snoozesUsed: Int = 0,
     )
 
     private const val KEY_RECORDS = "records"
@@ -123,7 +125,10 @@ object WakeAlarmManager {
             return
         }
 
-        val allowsSnooze = profile.enableSnooze
+        // Changing the sound or snooze settings sets the same alarm again, which doesn't give back
+        // the snoozes it has used.
+        val snoozesUsed = record?.takeIf { it.alarmDate == desiredDate }?.snoozesUsed ?: 0
+        val allowsSnooze = isSnoozeAvailable(profile, snoozesUsed)
         val soundId = profile.schedule?.alarmSoundId ?: mo.dev.ctrus.data.ProfileSchedule.DEFAULT_ALARM_SOUND
         if (record != null && record.alarmDate == desiredDate && record.allowsSnooze == allowsSnooze &&
             record.soundId == soundId && record.profileName == profile.name
@@ -148,9 +153,14 @@ object WakeAlarmManager {
                 allowsSnooze = allowsSnooze,
                 soundId = soundId,
                 profileName = profile.name,
+                snoozesUsed = snoozesUsed,
             ),
         )
     }
+
+    /** Snooze on, and the profile's limit not used up by this alarm. */
+    private fun isSnoozeAvailable(profile: BlockedProfileEntity, snoozesUsed: Int): Boolean =
+        profile.enableSnooze && (profile.schedule?.allowsSnooze(snoozesUsed) ?: true)
 
     /** The running session's alarm, or else the next session's (spec D4). */
     private suspend fun desiredAlarmDate(app: CtrusApp, profile: BlockedProfileEntity): Long? {
@@ -253,14 +263,23 @@ object WakeAlarmManager {
         moveSparesLocked(app, profileId, System.currentTimeMillis() + RINGING_SPARES_LEAD_MILLIS)
     }
 
-    /** D6.3: silences it for the profile's snooze time, then it rings again. */
+    /**
+     * D6.3: silences it for the profile's snooze time, then it rings again. Each one counts towards
+     * the profile's limit; after the last, the Snooze button is gone from the card, the alarm
+     * screen and the notification (iOS 6b1cb42).
+     */
     suspend fun snooze(app: CtrusApp, profileId: String) {
         val profile = app.profileRepository.find(profileId) ?: return
-        if (!profile.enableSnooze) return
         val minutes = profile.schedule?.alarmSnoozeMinutes ?: mo.dev.ctrus.data.ProfileSchedule.DEFAULT_SNOOZE_MINUTES
-        val until = System.currentTimeMillis() + minutes * 60_000L
         mutex.withLock {
+            val now = System.currentTimeMillis()
+            // Already snoozed (e.g. from the notification and the screen at once): counted once.
+            if ((_snoozedUntil.value ?: 0) > now) return
+            val record = _records.value[profileId] ?: return
+            if (!isSnoozeAvailable(profile, record.snoozesUsed)) return
+            val until = now + minutes * 60_000L
             setSnoozedUntil(until)
+            setRecord(profileId, record.copy(snoozesUsed = record.snoozesUsed + 1))
             moveSparesLocked(app, profileId, until)
         }
         AlarmService.stop(app)
@@ -332,7 +351,7 @@ object WakeAlarmManager {
             record.copy(
                 sparesAt = at,
                 requestCodes = arm(app, profileId, at),
-                allowsSnooze = profile.enableSnooze,
+                allowsSnooze = isSnoozeAvailable(profile, record.snoozesUsed),
                 soundId = profile.schedule?.alarmSoundId ?: record.soundId,
                 profileName = profile.name,
             ),

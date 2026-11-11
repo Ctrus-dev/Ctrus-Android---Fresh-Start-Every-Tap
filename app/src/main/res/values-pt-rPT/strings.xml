@@ -517,11 +517,15 @@
     <string name="alarm_snooze">Adiar</string>
     <string name="alarm_snooze_desc">Ao adiar, o alarme cala-se durante uns minutos e depois volta a tocar.</string>
     <string name="alarm_snooze_duration">Tempo de Adiamento</string>
+    <string name="alarm_snooze_limit">Limite de Adiamentos</string>
+    <string name="alarm_snooze_unlimited">Indefinido</string>
     <string name="alarm_snooze_disabled">Desativado</string>
     <string name="alarm_once_summary">Uma vez · %1$s</string>
     <string name="field_allow_timed_breaks_desc_alarm">Usa as tuas apps durante uns minutos sem terminar a sessão. A pausa acaba sozinha e o alarme toca na mesma à hora de fim.</string>
     <string name="alarm_ringing">A tocar</string>
     <string name="alarm_open_ctrus">Abrir o Ctrus</string>
+    <!-- The alarm screen's slider, always on two lines. -->
+    <string name="alarm_open_ctrus_two_lines">Abrir o\nCtrus</string>
     <string name="alarm_full_screen_required">Para o alarme aparecer com o ecrã bloqueado, ativa “Notificações em ecrã inteiro”.</string>
     <string name="alarm_lock_screen_required">Para o alarme aparecer com o ecrã bloqueado, ativa “Mostrar no ecrã de bloqueio” para o Ctrus.</string>
     <string name="settings_lock_screen">Mostrar no ecrã de bloqueio</string>

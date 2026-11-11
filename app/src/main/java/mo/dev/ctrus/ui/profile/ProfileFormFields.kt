@@ -521,7 +521,10 @@ private fun AlarmFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Un
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         )
     }
-    if (ChildModeStore.isChildMode) ChildModeSessionLimitNote()
+    if (ChildModeStore.isChildMode) {
+        SettingsDivider()
+        ChildModeSessionLimitNote()
+    }
 
     SettingsDivider()
     AlarmSoundRow(draft, onDraftChange, disabled)
@@ -537,7 +540,42 @@ private fun AlarmFields(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Un
     if (draft.enableSnooze) {
         SettingsDivider()
         SnoozeDurationRow(draft, onDraftChange, disabled)
+        SettingsDivider()
+        SnoozeLimitRow(draft, onDraftChange, disabled)
     }
+}
+
+/** How many times it can be snoozed: 1, 2, 3 or Unlimited (iOS 6b1cb42). */
+@Composable
+private fun SnoozeLimitRow(draft: ProfileDraft, onDraftChange: (ProfileDraft) -> Unit, disabled: Boolean) {
+    var expanded by remember { mutableStateOf(false) }
+    @Composable
+    fun label(limit: Int) =
+        if (limit == ProfileSchedule.UNLIMITED_SNOOZES) stringResource(R.string.alarm_snooze_unlimited) else limit.toString()
+    SettingsRow(
+        title = stringResource(R.string.alarm_snooze_limit),
+        onClick = if (disabled) null else ({ expanded = true }),
+        trailing = {
+            Box {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(label(draft.snoozeLimit), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.UnfoldMore, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, shape = RoundedCornerShape(20.dp)) {
+                    ProfileSchedule.AVAILABLE_SNOOZE_LIMITS.forEach { limit ->
+                        DropdownMenuItem(
+                            text = { Text(label(limit)) },
+                            trailingIcon = if (limit == draft.snoozeLimit) ({ Icon(Icons.Filled.Check, contentDescription = null) }) else null,
+                            onClick = {
+                                onDraftChange(draft.copy(snoozeLimit = limit))
+                                expanded = false
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    )
 }
 
 /** A menu rather than a picker, so choosing a sound again still plays it (3 s). */
