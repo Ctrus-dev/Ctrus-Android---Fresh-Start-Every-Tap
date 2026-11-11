@@ -272,17 +272,16 @@ private fun AlarmSlider(themeColor: Color, showsSnooze: Boolean, onSnooze: () ->
             (if (showsSnooze) (maxWidth - pillWidth) / 2 - inset else maxWidth - pillWidth - inset * 2).toPx()
         }.coerceAtLeast(0f)
         val minOffset = if (showsSnooze) -maxOffset else 0f
+        // With snooze, each label is centred in the free space between the resting pill and its
+        // end of the track. Without, the label keeps its own spacing (the user preferred it).
         if (showsSnooze) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f).padding(horizontal = LabelPadding), contentAlignment = Alignment.Center) {
                     SliderLabel(stringResource(R.string.alarm_snooze), textAlign = TextAlign.Center)
                 }
                 Spacer(Modifier.width(pillWidth))
                 // Always two lines, centred on each other ("Abrir o" / "Ctrus"), as without snooze.
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                Box(Modifier.weight(1f).padding(horizontal = LabelPadding), contentAlignment = Alignment.Center) {
                     SliderLabel(stringResource(R.string.alarm_open_ctrus_two_lines), textAlign = TextAlign.Center)
                 }
             }
@@ -331,6 +330,9 @@ private fun AlarmSlider(themeColor: Color, showsSnooze: Boolean, onSnooze: () ->
         }
     }
 }
+
+/** Kept on both sides of a slider label, so it never touches the pill or the track's end. */
+private val LabelPadding = 8.dp
 
 @Composable
 private fun SliderLabel(text: String, textAlign: TextAlign = TextAlign.Start) {
