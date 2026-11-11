@@ -28,7 +28,14 @@ object BlockDecisionEngine {
     // (installs) and the package installer's uninstall-confirmation UI (deletions, for any app,
     // matching "including Ctrus" in field_prevent_app_deletion_desc). Neither package is in
     // BlockSafetyPolicy's NEVER_BLOCK set, so this can't strand the user out of Settings/dialer/home.
-    private val PLAY_STORE_PACKAGES = setOf("com.android.vending")
+    // Brand app stores install apps too: Huawei AppGallery (the only store on Huawei phones
+    // without Google services), Samsung Galaxy Store and Xiaomi GetApps.
+    private val PLAY_STORE_PACKAGES = setOf(
+        "com.android.vending",
+        "com.huawei.appmarket",
+        "com.sec.android.app.samsungapps",
+        "com.xiaomi.mipicks",
+    )
 
     // The stock AOSP names are kept as a fallback, but some OEMs (confirmed: MIUI) route the
     // uninstall-confirmation UI through their own package instead — hardcoding names silently
