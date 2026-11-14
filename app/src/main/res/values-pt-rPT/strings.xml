@@ -90,7 +90,7 @@
         <item>Sáb</item>
     </string-array>
     <string name="a11y_disclosure_title">Acesso de Acessibilidade</string>
-    <string name="a11y_disclosure_body">O Ctrus usa o serviço de Acessibilidade do Android para saber que app tens aberta, para poder mostrar o ecrã de bloqueio quando preciso. Lê o nome da app e, nos navegadores, o endereço do site em que estás, para bloquear os sites que escolheste. Nunca lê palavras-passe, mensagens ou o que escreves, e nada sai do teu dispositivo.\n\nNo ecrã seguinte, procura o Ctrus em \"Apps transferidas\", toca nele e aprova. Não precisas do atalho.</string>
+    <string name="a11y_disclosure_body">O Ctrus usa o serviço de Acessibilidade do Android para saber que app tens aberta, para poder mostrar o ecrã de bloqueio quando preciso. Lê o nome da app e, nos navegadores, o endereço do site em que estás, para bloquear os sites que escolheste. Nunca lê palavras-passe, mensagens ou o que escreves, e nada sai do teu dispositivo. Durante uma sessão, também deteta quando são abertas as páginas das Definições que desligariam a proteção (as páginas de informações da app e de Acessibilidade do Ctrus) e sai delas, ou, no Modo Criança, pede a confirmação dos pais.\n\nNo ecrã seguinte, procura o Ctrus em \"Apps transferidas\", toca nele e aprova. Não precisas do atalho.</string>
     <string name="a11y_disclosure_agree_checkbox">Compreendo e concordo</string>
     <string name="a11y_disclosure_continue">Continuar para Definições</string>
     <string name="battery_optimization_title">Mantém o bloqueio a funcionar de forma fiável</string>
@@ -294,7 +294,7 @@
     <string name="blocker_title">Acesso restrito</string>
     <string name="blocker_body">Não é possível usar a aplicação %1$s porque tem acesso restrito.</string>
     <string name="blocker_ok">OK</string>
-    <string name="accessibility_service_description">Permite que o Ctrus detete quando uma app ou um site bloqueado é aberto, para mostrar o ecrã de bloqueio do perfil que configuraste. Nos navegadores, lê a barra de endereço para saber que site está aberto.</string>
+    <string name="accessibility_service_description">Permite que o Ctrus detete quando uma app ou um site bloqueado é aberto, para mostrar o ecrã de bloqueio do perfil que configuraste. Nos navegadores, lê a barra de endereço para saber que site está aberto. Durante uma sessão, também deteta quando são abertas as páginas de informações da app ou de Acessibilidade do Ctrus, porque podem desligar a proteção.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
         <item quantity="other">%1$d Apps</item>

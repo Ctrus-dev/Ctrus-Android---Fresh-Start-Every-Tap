@@ -91,7 +91,7 @@
         <item>Sat</item>
     </string-array>
     <string name="a11y_disclosure_title">Accessibility access</string>
-    <string name="a11y_disclosure_body">Ctrus uses Android\'s Accessibility service to detect the app you have open, so it can show the block screen when needed. It reads the app\'s name and, in web browsers, the address of the site you\'re on, so it can block the sites you chose. It never reads passwords, messages, or anything you type, and nothing leaves your device.\n\nOn the next screen, find Ctrus under \"Downloaded apps\", tap it, and approve it. You won\'t need the shortcut option.</string>
+    <string name="a11y_disclosure_body">Ctrus uses Android\'s Accessibility service to detect the app you have open, so it can show the block screen when needed. It reads the app\'s name and, in web browsers, the address of the site you\'re on, so it can block the sites you chose. It never reads passwords, messages, or anything you type, and nothing leaves your device. During a session, it also detects when the Settings pages that would turn off the protection (Ctrus\'s App info and Accessibility pages) are opened, and leaves them, or in Child Mode asks for the parents\' confirmation.\n\nOn the next screen, find Ctrus under \"Downloaded apps\", tap it, and approve it. You won\'t need the shortcut option.</string>
     <string name="a11y_disclosure_agree_checkbox">I understand and agree</string>
     <string name="a11y_disclosure_continue">Continue to Settings</string>
     <string name="battery_optimization_title">Keep blocking running reliably</string>
@@ -295,7 +295,7 @@
     <string name="blocker_title">Restricted</string>
     <string name="blocker_body">You cannot use %1$s because it is restricted.</string>
     <string name="blocker_ok">OK</string>
-    <string name="accessibility_service_description">Lets Ctrus detect when a blocked app or website is opened so it can show the block screen for the profile you configured. In web browsers it reads the address bar to know which site is open.</string>
+    <string name="accessibility_service_description">Lets Ctrus detect when a blocked app or website is opened so it can show the block screen for the profile you configured. In web browsers it reads the address bar to know which site is open. During a session, it also detects when Ctrus\'s App info or Accessibility page is opened, since those could turn off the protection.</string>
     <plurals name="apps_count">
         <item quantity="one">%1$d App</item>
         <item quantity="other">%1$d Apps</item>
