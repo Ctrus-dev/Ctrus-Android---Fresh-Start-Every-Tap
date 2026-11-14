@@ -91,18 +91,19 @@ fun ChildModeProfileTagFields(
     }
 
     if (isReadingTag) {
+        val parentsCtrusMessage = stringResource(R.string.child_tag_is_parents_ctrus)
         TagReadDialog(
             nfcScanController = nfcScanController,
             message = stringResource(R.string.profile_child_tag_add),
             onRead = { read ->
                 isReadingTag = false
-                // A parents' Ctrus is already the master key; it isn't the child's.
-                if (!ChildModeStore.isParentTag(read.uid)) {
-                    onDraftChange(draft.copy(childTag = ChildTag(uid = ChildModeStore.normalizedUid(read.uid), url = read.url)))
-                }
+                onDraftChange(draft.copy(childTag = ChildTag(uid = ChildModeStore.normalizedUid(read.uid), url = read.url)))
             },
             onDismiss = { isReadingTag = false },
             requiresGenuineCtrus = true,
+            // A parents' Ctrus is already the master key; it can't be the child's too. Easy to
+            // mix up with several Ctrus about, so the scan says so (iOS f1ce64b).
+            rejectionMessage = { read -> if (ChildModeStore.isParentTag(read.uid)) parentsCtrusMessage else null },
         )
     }
 }

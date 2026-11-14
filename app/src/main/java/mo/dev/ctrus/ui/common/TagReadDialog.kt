@@ -19,6 +19,8 @@ import mo.dev.ctrus.nfc.NfcTagRead
  * shows [NfcScanDialog] until a tag is read or [onDismiss] closes it. [onRead] gets the tag and
  * should usually close this dialog too. With [requiresGenuineCtrus] (registering a Ctrus) a tag
  * without a valid Ctrus signature is turned away with "This isn't a Ctrus." instead, like iOS.
+ * [rejectionMessage] turns away a tag that can't be used here, showing the reason it returns
+ * (null for a tag that's fine), like iOS's `TagReader.read(rejectionMessage:)`.
  */
 @Composable
 fun TagReadDialog(
@@ -27,13 +29,19 @@ fun TagReadDialog(
     onRead: (NfcTagRead) -> Unit,
     onDismiss: () -> Unit,
     requiresGenuineCtrus: Boolean = false,
+    rejectionMessage: ((NfcTagRead) -> String?)? = null,
 ) {
     val context = LocalContext.current
-    var notCtrus by remember { mutableStateOf(false) }
-    DisposableEffect(notCtrus) {
-        if (!notCtrus) {
+    val notCtrusMessage = stringResource(R.string.nfc_not_a_ctrus)
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    DisposableEffect(errorMessage) {
+        if (errorMessage == null) {
             nfcScanController.startScan { read ->
-                if (requiresGenuineCtrus && !read.isGenuineCtrus) notCtrus = true else onRead(read)
+                errorMessage = when {
+                    requiresGenuineCtrus && !read.isGenuineCtrus -> notCtrusMessage
+                    else -> rejectionMessage?.invoke(read)
+                }
+                if (errorMessage == null) onRead(read)
             }
         }
         onDispose { nfcScanController.stopScan() }
@@ -43,6 +51,6 @@ fun TagReadDialog(
         onDismiss = onDismiss,
         onOpenNfcSettings = { mo.dev.ctrus.nfc.openNfcSettings(context) },
         message = message,
-        errorMessage = if (notCtrus) stringResource(R.string.nfc_not_a_ctrus) else null,
+        errorMessage = errorMessage,
     )
 }
